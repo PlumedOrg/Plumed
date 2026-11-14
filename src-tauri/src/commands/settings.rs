@@ -98,6 +98,13 @@ pub fn set_keep_recordings(app: AppHandle, enabled: bool) -> Result<(), String> 
 }
 
 #[command]
+pub fn set_block_cli_import(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let mut s = crate::settings::load_settings(&app);
+    s.block_cli_import = enabled;
+    crate::settings::save_settings(&app, &s)
+}
+
+#[command]
 pub fn set_remove_hesitations(app: AppHandle, enabled: bool) -> Result<(), String> {
     let mut s = crate::settings::load_settings(&app);
     s.remove_hesitations = enabled;

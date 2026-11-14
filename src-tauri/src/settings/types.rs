@@ -79,6 +79,9 @@ pub struct AppSettings {
     // Linux only. Persists the user's dismissal of the Wayland clipboard
     // fallback onboarding card (manual Ctrl+V hint when auto-paste fails).
     pub wayland_clipboard_fallback_dismissed: bool,
+    // Lockdown for managed devices: refuses `plumed import` from the CLI.
+    // Never exported, so a settings file cannot flip it.
+    pub block_cli_import: bool,
 }
 
 impl Default for AppSettings {
@@ -176,6 +179,7 @@ impl Default for AppSettings {
             remove_hesitations: false,
             wayland_notice_dismissed: false,
             wayland_clipboard_fallback_dismissed: false,
+            block_cli_import: false,
         }
     }
 }
