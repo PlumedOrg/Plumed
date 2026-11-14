@@ -477,6 +477,7 @@ pub fn run() {
             set_log_level,
             set_keep_recordings,
             set_remove_hesitations,
+            set_block_cli_import,
             get_recordings_dir,
             open_accessibility_settings,
             check_accessibility_permission,

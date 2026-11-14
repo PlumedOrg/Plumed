@@ -17,6 +17,7 @@ import { useTranslation } from '@/i18n';
 import { RecordModeSettings } from '@/features/settings/system/record-mode-settings/record-mode-settings.tsx';
 import { LogLevelSettings } from './log-level-settings/log-level-settings';
 import { KeepRecordingsSettings } from './keep-recordings-settings/keep-recordings-settings';
+import { BlockCliImportSettings } from './block-cli-import-settings/block-cli-import-settings';
 import { Settings, Wrench, Monitor } from 'lucide-react';
 
 export const System = () => {
@@ -69,6 +70,8 @@ export const System = () => {
                             <KeepRecordingsSettings />
                             <SettingsUI.Separator />
                             <CopyToClipboardSettings />
+                            <SettingsUI.Separator />
+                            <BlockCliImportSettings />
                         </SettingsUI.Section>
                     </div>
                 </div>

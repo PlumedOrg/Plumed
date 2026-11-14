@@ -17,6 +17,16 @@ fn validate_extension(file_path: &str) -> Result<(), String> {
     }
 }
 
+fn ensure_import_allowed(block_cli_import: bool) -> Result<(), String> {
+    match block_cli_import {
+        true => Err(
+            "Error: Importing settings from the command line is disabled in Plumed's advanced settings."
+                .to_string(),
+        ),
+        false => Ok(()),
+    }
+}
+
 fn category_display_name(key: &str) -> &str {
     match key {
         "settings" => "System Settings",
@@ -34,6 +44,7 @@ pub fn execute_import(
     file_path: &str,
     strategy: &ImportStrategy,
 ) -> Result<String, String> {
+    ensure_import_allowed(crate::settings::load_settings(app).block_cli_import)?;
     validate_extension(file_path)?;
 
     let content = std::fs::read_to_string(file_path).map_err(|e| match e.kind() {
@@ -285,6 +296,14 @@ pub fn apply_hot_reload_side_effects(app: &AppHandle) {
 mod tests {
     use super::*;
     use crate::settings::PasteMethod;
+
+    #[test]
+    fn test_import_refused_when_blocked() {
+        assert!(ensure_import_allowed(true)
+            .unwrap_err()
+            .contains("disabled"));
+        assert!(ensure_import_allowed(false).is_ok());
+    }
 
     #[test]
     fn test_validate_extension_valid() {

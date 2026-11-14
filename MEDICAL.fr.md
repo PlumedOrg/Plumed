@@ -28,7 +28,7 @@ Sur une installation existante (ou après les avoir supprimées), vous pouvez le
 1. Télécharger [`config.murmure`](https://framagit.org/interhop/murmure-regex/-/raw/main/config.murmure).
 2. Dans **Paramètres > Importer / Exporter**, importer ce fichier avec la stratégie **Fusionner**, pour garder vos propres règles (**Remplacer** les supprime). Les règles InterHop déjà présentes sont mises à jour, pas dupliquées.
 
-En ligne de commande : `plumed import config.murmure --strategy merge`.
+En ligne de commande : `plumed import config.murmure --strategy merge`. Sur un poste verrouillé, l'option **Paramètres > Système > Avancé > Bloquer l'import en ligne de commande** refuse cette commande.
 
 Attention : l'import, quelle que soit la stratégie, applique aussi les options intégrées d'InterHop (espace avant ? et !, conversion des nombres en chiffres en français, etc.). La correction des médicaments reste activée.
 

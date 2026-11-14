@@ -24,6 +24,7 @@ export interface SystemSettings {
     remove_hesitations: boolean;
     wayland_notice_dismissed: boolean;
     wayland_clipboard_fallback_dismissed: boolean;
+    block_cli_import: boolean;
 }
 
 export interface ShortcutSettings {
