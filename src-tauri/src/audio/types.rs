@@ -1,5 +1,6 @@
 use crate::audio::chunking::ChunkPipeline;
 use crate::audio::recorder::AudioRecorder;
+use crate::audio::short_context::ContextAudio;
 use crate::engine::ParakeetEngine;
 use cpal::Device;
 use parking_lot::Mutex;
@@ -40,6 +41,8 @@ pub struct AudioState {
     /// post-processing. Unlike `recorder`, reading it never blocks on the
     /// microphone init and it stays true while the transcript is post-processed.
     session_active: AtomicBool,
+    /// Plumed fork: RAM-only tail of recent dictations, see short_context.
+    pub short_context: Arc<Mutex<ContextAudio>>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -74,6 +77,7 @@ impl AudioState {
             chunk_pipeline: Mutex::new(None),
             session_gen: AtomicU64::new(0),
             session_active: AtomicBool::new(false),
+            short_context: Arc::new(Mutex::new(ContextAudio::default())),
         }
     }
 
