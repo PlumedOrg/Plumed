@@ -188,7 +188,7 @@ impl Default for AppSettings {
             block_cli_import: false,
             short_dictation_context: true,
             remote_mic_enabled: false,
-            remote_mic_url: "https://relay.plumed.fr".to_string(),
+            remote_mic_url: "https://turn.plumed.fr".to_string(),
         }
     }
 }

@@ -49,7 +49,7 @@ Smart Mic lets a phone on the same local network act as a microphone. It is **di
 
 ## Remote microphone
 
-The remote microphone lets a phone on any network act as a microphone, through a relay server (by default `https://relay.plumed.fr`, configurable). It is **disabled by default**, and nothing is sent until you click "Connect a phone".
+The remote microphone lets a phone on any network act as a microphone, through a relay server (by default `https://turn.plumed.fr`, configurable). It is **disabled by default**, and nothing is sent until you click "Connect a phone".
 
 - The phone page and the relay are those of [ParakeetWeb](https://parakeetweb.olicorne.org). Audio is **encrypted end to end** (ECDH P-256 and AES-256-GCM) between the phone and Plumed: the relay forwards packets it cannot decrypt.
 - Before any audio is accepted, both screens show the same short code and both users must confirm it matches. This blocks a relay that would try to put itself in the middle.

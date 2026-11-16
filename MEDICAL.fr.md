@@ -36,7 +36,7 @@ Le téléphone sert de micro, même s'il n'est pas sur le même réseau que l'or
 3. Les deux écrans affichent un code (par exemple `524C-F8E8-D5A4-2D82`). S'il est identique, confirmer des deux côtés.
 4. Dicter sur le téléphone : le texte transcrit est collé dans l'application active de l'ordinateur, comme pour une dictée normale.
 
-L'audio passe par un serveur relais (`https://relay.plumed.fr` par défaut, modifiable), mais il est chiffré de bout en bout entre le téléphone et Plumed : le relais ne peut pas l'écouter. La vérification du code empêche un relais malveillant de s'intercaler. Le relais voit en revanche les adresses IP et la taille des paquets chiffrés. Le QR code expire au bout de 10 minutes ; si le téléphone se déconnecte, le même QR code permet de le reconnecter tant qu'il n'a pas expiré.
+L'audio passe par un serveur relais (`https://turn.plumed.fr` par défaut, modifiable), mais il est chiffré de bout en bout entre le téléphone et Plumed : le relais ne peut pas l'écouter. La vérification du code empêche un relais malveillant de s'intercaler. Le relais voit en revanche les adresses IP et la taille des paquets chiffrés. Le QR code expire au bout de 10 minutes ; si le téléphone se déconnecte, le même QR code permet de le reconnecter tant qu'il n'a pas expiré.
 
 Seul le relais HTTPS est utilisé (pas de WebRTC, souvent bloqué sur les réseaux hospitaliers), et le proxy système est respecté.
 

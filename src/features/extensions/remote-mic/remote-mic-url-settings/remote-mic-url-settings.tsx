@@ -28,7 +28,7 @@ export const RemoteMicUrlSettings = ({ url, setUrl, saveUrl, disabled }: RemoteM
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}
                     onBlur={saveUrl}
-                    placeholder="https://relay.plumed.fr"
+                    placeholder="https://turn.plumed.fr"
                     className="w-72"
                     disabled={disabled}
                 />

@@ -7,7 +7,7 @@ pub mod sdp;
 pub mod session;
 
 /// End-to-end check against a real ParakeetWeb server, with a simulated phone:
-/// `PLUMED_RELAY_E2E_URL=https://relay.plumed.fr cargo test --lib relay_e2e -- --ignored`
+/// `PLUMED_RELAY_E2E_URL=https://turn.plumed.fr cargo test --lib relay_e2e -- --ignored`
 #[cfg(test)]
 mod e2e {
     use super::client::{origin_of, Frame, RelayClient};

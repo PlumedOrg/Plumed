@@ -62,7 +62,7 @@ pub struct RelayClient {
     origin: String,
 }
 
-/// `https://relay.plumed.fr/` -> `https://relay.plumed.fr` (the origin the server allows).
+/// `https://turn.plumed.fr/` -> `https://turn.plumed.fr` (the origin the server allows).
 pub fn origin_of(server_url: &str) -> Result<String, String> {
     let url = reqwest::Url::parse(server_url.trim()).map_err(|e| e.to_string())?;
     match (url.scheme(), url.host_str()) {
@@ -225,19 +225,19 @@ mod tests {
     #[test]
     fn origin_strips_path_and_requires_https() {
         assert_eq!(
-            origin_of("https://relay.plumed.fr/").unwrap(),
-            "https://relay.plumed.fr"
+            origin_of("https://turn.plumed.fr/").unwrap(),
+            "https://turn.plumed.fr"
         );
         assert_eq!(
-            origin_of(" https://Relay.Plumed.fr/x/y ").unwrap(),
-            "https://relay.plumed.fr"
+            origin_of(" https://Turn.Plumed.fr/x/y ").unwrap(),
+            "https://turn.plumed.fr"
         );
         assert_eq!(
             origin_of("https://h.example:8443").unwrap(),
             "https://h.example:8443"
         );
-        assert!(origin_of("http://relay.plumed.fr").is_err());
-        assert!(origin_of("relay.plumed.fr").is_err());
+        assert!(origin_of("http://turn.plumed.fr").is_err());
+        assert!(origin_of("turn.plumed.fr").is_err());
     }
 
     #[test]
@@ -247,8 +247,8 @@ mod tests {
             secret: "s3cr:et".into(),
         };
         assert_eq!(
-            phone_link("https://relay.plumed.fr", &room),
-            "https://relay.plumed.fr/remote-mic.html#ABC234:s3cr:et"
+            phone_link("https://turn.plumed.fr", &room),
+            "https://turn.plumed.fr/remote-mic.html#ABC234:s3cr:et"
         );
     }
 }
