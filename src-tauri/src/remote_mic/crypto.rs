@@ -120,6 +120,17 @@ impl SessionKey {
         buf.truncate(plain_len);
         Ok(buf)
     }
+
+    /// What the phone does: `IV || ciphertext || tag` (fixed IV, tests only).
+    #[cfg(test)]
+    pub fn seal(&self, plain: &[u8]) -> Vec<u8> {
+        let iv = [3u8; IV_LEN];
+        let mut buf = plain.to_vec();
+        self.0
+            .seal_in_place_append_tag(Nonce::assume_unique_for_key(iv), Aad::empty(), &mut buf)
+            .expect("in-memory sealing cannot fail");
+        [iv.as_slice(), &buf].concat()
+    }
 }
 
 /// `SHA-256(receiver || sender)`, first 16 uppercase hex, grouped by 4: `524C-F8E8-D5A4-2D82`.
@@ -198,12 +209,7 @@ mod tests {
         let ka = a.derive(&b_pub).unwrap();
         let kb = b.derive(&a_pub).unwrap();
         // Seal with b's key, open with a's
-        let mut buf = b"hello".to_vec();
-        let iv = [7u8; IV_LEN];
-        kb.0.seal_in_place_append_tag(Nonce::assume_unique_for_key(iv), Aad::empty(), &mut buf)
-            .unwrap();
-        let packet = [iv.as_slice(), &buf].concat();
-        assert_eq!(ka.decrypt(&packet).unwrap(), b"hello");
+        assert_eq!(ka.decrypt(&kb.seal(b"hello")).unwrap(), b"hello");
     }
 
     #[test]
