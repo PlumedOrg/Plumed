@@ -12,6 +12,7 @@ mod medical;
 mod model;
 mod onboarding;
 mod overlay;
+mod remote_mic;
 mod settings;
 mod shortcuts;
 mod smartmic;

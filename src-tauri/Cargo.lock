@@ -3430,6 +3430,8 @@ dependencies = [
  "rcgen",
  "rdev",
  "regex",
+ "reqwest",
+ "ring",
  "rodio",
  "rubato",
  "rustls",
