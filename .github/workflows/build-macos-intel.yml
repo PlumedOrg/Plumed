@@ -37,7 +37,10 @@ permissions:
 
 jobs:
     build-macos-intel:
-        runs-on: macos-latest
+        # Plumed: a native Intel runner. The arm64 pool (macos-latest) is often
+        # saturated and cancels jobs after 15 min without a machine; the Intel
+        # pool is separate. The arch -x86_64 prefixes below are no-ops here.
+        runs-on: macos-15-intel
         timeout-minutes: 200
         # Plumed: no Apple Developer account, so the Apple certificate,
         # DMG signing and notarization steps only run when the secret exists;
