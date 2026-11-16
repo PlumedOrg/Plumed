@@ -101,6 +101,44 @@ fn top_k_threshold(logits: &[f32], k: usize) -> f32 {
 static DECODE_SPACE_RE: Lazy<Result<Regex, regex::Error>> =
     Lazy::new(|| Regex::new(r"\A\s|\s\B|(\s)\b"));
 
+/// Joins decoded tokens into text, turning the SentencePiece word markers into spaces.
+fn join_tokens(tokens: &[String]) -> String {
+    let joined = tokens.join("");
+    match &*DECODE_SPACE_RE {
+        Ok(regex) => regex
+            .replace_all(
+                &joined,
+                |caps: &regex::Captures| {
+                    if caps.get(1).is_some() {
+                        " "
+                    } else {
+                        ""
+                    }
+                },
+            )
+            .to_string(),
+        Err(_) => joined, // Fallback if regex failed to compile
+    }
+}
+
+/// Keeps only the words that start at or after `from_secs`. Plumed fork: drops
+/// the context audio prepended to a short dictation.
+fn words_from(result: &TimestampedResult, from_secs: f32) -> TimestampedResult {
+    let start = result
+        .tokens
+        .iter()
+        .zip(result.timestamps.iter())
+        .position(|(token, &t)| t >= from_secs && token.starts_with(' '))
+        .unwrap_or(result.tokens.len());
+    let tokens = result.tokens[start..].to_vec();
+    TimestampedResult {
+        text: join_tokens(&tokens),
+        timestamps: result.timestamps[start..].to_vec(),
+        probs: result.probs.get(start..).unwrap_or_default().to_vec(),
+        tokens,
+    }
+}
+
 fn softmax_prob(logits: &[f32], token: usize) -> f32 {
     let target = match logits.get(token) {
         Some(&l) => l,
@@ -762,18 +800,7 @@ impl ParakeetModel {
             }
         }
 
-        let text = match &*DECODE_SPACE_RE {
-            Ok(regex) => regex
-                .replace_all(&tokens.join(""), |caps: &regex::Captures| {
-                    if caps.get(1).is_some() {
-                        " "
-                    } else {
-                        ""
-                    }
-                })
-                .to_string(),
-            Err(_) => tokens.join(""), // Fallback if regex failed to compile
-        };
+        let text = join_tokens(&tokens);
 
         let float_timestamps: Vec<f32> = timestamps
             .iter()
@@ -821,6 +848,7 @@ use super::helpers::convert_timestamps;
 use super::transcription_engine::{TranscriptionEngine, TranscriptionResult};
 use super::types::{
     ParakeetEngine, ParakeetInferenceParams, ParakeetModelParams, QuantizationType,
+    TimestampGranularity,
 };
 use std::path::Path as StdPath;
 
@@ -841,6 +869,37 @@ impl ParakeetEngine {
         let mut engine = ParakeetEngine::new();
         engine.load_model_with_params(model_path, params)?;
         Ok(engine)
+    }
+
+    /// Transcribes `samples` and returns only the words starting at or after `from_secs`.
+    pub fn transcribe_samples_from(
+        &mut self,
+        samples: Vec<f32>,
+        from_secs: f32,
+    ) -> Result<TranscriptionResult, Box<dyn std::error::Error>> {
+        let full = self.loaded_model()?.transcribe_samples(samples)?;
+        Ok(to_transcription_result(
+            &words_from(&full, from_secs),
+            TimestampGranularity::Token,
+        ))
+    }
+
+    fn loaded_model(&mut self) -> Result<&mut ParakeetModel, Box<dyn std::error::Error>> {
+        Ok(self
+            .model
+            .as_mut()
+            .ok_or("Model not loaded. Call load_model_with_params() first.")?)
+    }
+}
+
+fn to_transcription_result(
+    result: &TimestampedResult,
+    granularity: TimestampGranularity,
+) -> TranscriptionResult {
+    TranscriptionResult {
+        word_confidences: super::helpers::word_confidences(result),
+        text: result.text.clone(),
+        segments: convert_timestamps(result, granularity),
     }
 }
 
@@ -869,31 +928,60 @@ impl TranscriptionEngine for ParakeetEngine {
         samples: Vec<f32>,
         params: Option<Self::InferenceParams>,
     ) -> Result<TranscriptionResult, Box<dyn std::error::Error>> {
-        let model: &mut ParakeetModel = self
-            .model
-            .as_mut()
-            .ok_or("Model not loaded. Call load_model_with_params() first.")?;
-
-        let parakeet_params = params.unwrap_or_default();
-
-        // Get the timestamped result from the model
-        let timestamped_result = model.transcribe_samples(samples)?;
-
-        // Convert timestamps based on requested granularity
-        let segments =
-            convert_timestamps(&timestamped_result, parakeet_params.timestamp_granularity);
-
-        Ok(TranscriptionResult {
-            word_confidences: super::helpers::word_confidences(&timestamped_result),
-            text: timestamped_result.text,
-            segments,
-        })
+        let granularity = params.unwrap_or_default().timestamp_granularity;
+        let timestamped_result = self.loaded_model()?.transcribe_samples(samples)?;
+        Ok(to_transcription_result(&timestamped_result, granularity))
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn timestamped(tokens: &[(&str, f32)]) -> TimestampedResult {
+        let tokens_only: Vec<String> = tokens.iter().map(|(t, _)| t.to_string()).collect();
+        TimestampedResult {
+            text: join_tokens(&tokens_only),
+            timestamps: tokens.iter().map(|(_, t)| *t).collect(),
+            probs: vec![0.9; tokens.len()],
+            tokens: tokens_only,
+        }
+    }
+
+    #[test]
+    fn words_from_drops_context_words_before_the_cut() {
+        // "on augmente le Lamictal." in the context, then "Dépakote" after the gap
+        let full = timestamped(&[
+            (" on", 0.3),
+            (" augmente", 0.6),
+            (" le", 1.0),
+            (" Lam", 1.2),
+            ("ictal", 1.3),
+            (".", 1.5),
+            (" Dé", 12.0),
+            ("pa", 12.1),
+            ("kote", 12.2),
+        ]);
+        let tail = words_from(&full, 11.0);
+        assert_eq!(tail.text, "Dépakote");
+        assert_eq!(tail.tokens.len(), 3);
+        assert_eq!(tail.probs.len(), 3);
+    }
+
+    #[test]
+    fn words_from_skips_trailing_punctuation_and_word_pieces_after_the_cut() {
+        // A context-sentence period emitted late must not lead the kept text
+        let full = timestamped(&[(" fin", 1.0), (".", 11.2), (" oui", 12.0)]);
+        assert_eq!(words_from(&full, 11.0).text, "oui");
+    }
+
+    #[test]
+    fn words_from_returns_empty_when_nothing_follows_the_cut() {
+        let full = timestamped(&[(" fin", 1.0)]);
+        let tail = words_from(&full, 11.0);
+        assert!(tail.text.is_empty());
+        assert!(tail.tokens.is_empty());
+    }
 
     #[test]
     fn degressive_alpha_decays_with_word_count() {
