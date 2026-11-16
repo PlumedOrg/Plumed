@@ -69,6 +69,8 @@ jobs:
               run: arch -x86_64 npm install -g pnpm@10.19.0 --ignore-scripts
 
             - name: Install Rosetta (Intel emulation)
+              # Only needed on an arm64 runner; the native Intel runner has no Rosetta
+              if: runner.arch == 'ARM64'
               shell: bash
               run: |
                   set -euo pipefail
