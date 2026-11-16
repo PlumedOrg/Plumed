@@ -13,6 +13,7 @@ import {
     Mic,
     ArrowDownUp,
     Smartphone,
+    RadioTower,
 } from 'lucide-react';
 import { Link, useLocation } from '@tanstack/react-router';
 import { useState } from 'react';
@@ -68,6 +69,12 @@ const getTopLevelItems = (t: (key: string) => string) => [
         url: '/extensions/smart-mic',
         icon: Smartphone,
         dataTestId: 'smart-mic-tab',
+    },
+    {
+        name: t('Remote microphone'),
+        url: '/extensions/remote-mic',
+        icon: RadioTower,
+        dataTestId: 'remote-mic-tab',
     },
 ];
 

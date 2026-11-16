@@ -9,6 +9,7 @@ import { System } from './features/settings/system/system';
 import { VoiceMode } from './features/extensions/voice-mode/voice-mode';
 import { ImportExport } from './features/settings/import-export/import-export';
 import { SmartMic } from './features/extensions/smart-mic/smart-mic';
+import { RemoteMic } from './features/extensions/remote-mic/remote-mic';
 
 const rootRoute = createRootRoute({
     component: () => <Layout />,
@@ -68,6 +69,12 @@ const extensionsSmartMicRoute = createRoute({
     component: SmartMic,
 });
 
+const extensionsRemoteMicRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/extensions/remote-mic',
+    component: RemoteMic,
+});
+
 const extensionsIndexRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/extensions',
@@ -105,6 +112,7 @@ const routeTree = rootRoute.addChildren([
     extensionsIndexRoute,
     extensionsVoiceModeRoute,
     extensionsSmartMicRoute,
+    extensionsRemoteMicRoute,
     aboutRoute,
 ]);
 
