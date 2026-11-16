@@ -46,6 +46,34 @@ pub fn split_into_chunks(buffer: Vec<i16>, source_sample_rate: u32) -> Vec<Vec<f
         .collect()
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum TranscribeError {
+    #[error("model not available")]
+    ModelUnavailable(#[source] anyhow::Error),
+    #[error("transcription failed")]
+    Failed(#[source] anyhow::Error),
+}
+
+/// Transcribes a phone recording (pcm-s16 at `sample_rate`), chunk by chunk.
+/// Shared by Smart Mic and the Plumed remote mic.
+pub fn transcribe_pcm(
+    app: &tauri::AppHandle,
+    buffer: Vec<i16>,
+    sample_rate: u32,
+) -> Result<String, TranscribeError> {
+    let chunks = split_into_chunks(buffer, sample_rate);
+    crate::audio::preload_engine(app).map_err(TranscribeError::ModelUnavailable)?;
+    let mut parts: Vec<String> = Vec::with_capacity(chunks.len());
+    for samples in chunks {
+        let text = crate::audio::pipeline::process_recording_from_samples(app, samples)
+            .map_err(TranscribeError::Failed)?;
+        if !text.is_empty() {
+            parts.push(text);
+        }
+    }
+    Ok(parts.join(" "))
+}
+
 /// Calculate the RMS (Root Mean Square) level of the given samples, normalized to 0.0-1.0
 pub fn calculate_rms(samples: &[i16]) -> f32 {
     if samples.is_empty() {

@@ -53,3 +53,6 @@ tmp-release-flat/
 # Personal local notes
 TODO.local.md
 AGENTS.local.md
+
+# Local build artifacts, releases and benchmarks (Plumed fork)
+/plumed_build_ignore_backups/

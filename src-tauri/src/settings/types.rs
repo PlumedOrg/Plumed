@@ -84,6 +84,10 @@ pub struct AppSettings {
     pub block_cli_import: bool,
     // Plumed fork: re-transcribe short dictations behind the previous one (RAM only).
     pub short_dictation_context: bool,
+    // Plumed fork: phone microphone through a ParakeetWeb relay. Never exported,
+    // so a settings file cannot redirect dictation audio to another server.
+    pub remote_mic_enabled: bool,
+    pub remote_mic_url: String,
 }
 
 impl Default for AppSettings {
@@ -183,6 +187,8 @@ impl Default for AppSettings {
             wayland_clipboard_fallback_dismissed: false,
             block_cli_import: false,
             short_dictation_context: true,
+            remote_mic_enabled: false,
+            remote_mic_url: "https://turn.plumed.fr".to_string(),
         }
     }
 }

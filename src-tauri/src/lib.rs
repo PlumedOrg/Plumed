@@ -12,6 +12,7 @@ mod medical;
 mod model;
 mod onboarding;
 mod overlay;
+mod remote_mic;
 mod settings;
 mod shortcuts;
 mod smartmic;
@@ -304,6 +305,7 @@ pub fn run() {
             }
 
             app.manage(SmartMicState::new());
+            app.manage(remote_mic::session::RemoteMicState::default());
             app.manage(utils::enigo_session::EnigoState::default());
 
             // Plumed: parse the medical rules now, not on the first transcription
@@ -479,6 +481,12 @@ pub fn run() {
             set_remove_hesitations,
             set_block_cli_import,
             set_short_dictation_context,
+            set_remote_mic_url,
+            set_remote_mic_enabled,
+            remote_mic_start,
+            remote_mic_stop,
+            remote_mic_confirm,
+            get_remote_mic_state,
             get_recordings_dir,
             open_accessibility_settings,
             check_accessibility_permission,
