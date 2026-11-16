@@ -17,6 +17,7 @@ export type ExportedSystemSettings = Omit<
     | 'keep_recordings'
     | 'remove_hesitations'
     | 'block_cli_import'
+    | 'short_dictation_context'
 >;
 
 export interface MurmureExportData {

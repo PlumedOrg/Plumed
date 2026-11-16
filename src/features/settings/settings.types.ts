@@ -25,6 +25,7 @@ export interface SystemSettings {
     wayland_notice_dismissed: boolean;
     wayland_clipboard_fallback_dismissed: boolean;
     block_cli_import: boolean;
+    short_dictation_context: boolean;
 }
 
 export interface ShortcutSettings {

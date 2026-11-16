@@ -82,6 +82,8 @@ pub struct AppSettings {
     // Lockdown for managed devices: refuses `plumed import` from the CLI.
     // Never exported, so a settings file cannot flip it.
     pub block_cli_import: bool,
+    // Plumed fork: re-transcribe short dictations behind the previous one (RAM only).
+    pub short_dictation_context: bool,
 }
 
 impl Default for AppSettings {
@@ -180,6 +182,7 @@ impl Default for AppSettings {
             wayland_notice_dismissed: false,
             wayland_clipboard_fallback_dismissed: false,
             block_cli_import: false,
+            short_dictation_context: true,
         }
     }
 }
