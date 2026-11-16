@@ -23,7 +23,7 @@ pub fn pairing_url(base_url: &str, token: &str, lang: Option<&str>) -> String {
     url
 }
 
-fn encode_svg_data_uri(url: &str) -> Result<String> {
+pub(crate) fn encode_svg_data_uri(url: &str) -> Result<String> {
     let code = QrCode::new(url.as_bytes()).context("Failed to generate QR code")?;
 
     let svg = code

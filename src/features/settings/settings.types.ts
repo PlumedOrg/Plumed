@@ -26,6 +26,8 @@ export interface SystemSettings {
     wayland_clipboard_fallback_dismissed: boolean;
     block_cli_import: boolean;
     short_dictation_context: boolean;
+    remote_mic_enabled: boolean;
+    remote_mic_url: string;
 }
 
 export interface ShortcutSettings {

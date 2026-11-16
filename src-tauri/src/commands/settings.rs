@@ -118,6 +118,15 @@ pub fn set_short_dictation_context(app: AppHandle, enabled: bool) -> Result<(), 
 }
 
 #[command]
+pub fn set_remote_mic_url(app: AppHandle, url: String) -> Result<String, String> {
+    let origin = crate::remote_mic::client::origin_of(&url)?;
+    let mut s = crate::settings::load_settings(&app);
+    s.remote_mic_url = origin.clone();
+    crate::settings::save_settings(&app, &s)?;
+    Ok(origin)
+}
+
+#[command]
 pub fn set_remove_hesitations(app: AppHandle, enabled: bool) -> Result<(), String> {
     let mut s = crate::settings::load_settings(&app);
     s.remove_hesitations = enabled;
