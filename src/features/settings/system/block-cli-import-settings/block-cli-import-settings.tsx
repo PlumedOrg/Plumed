@@ -3,11 +3,15 @@ import { Typography } from '@/components/typography';
 import { Switch } from '@/components/switch';
 import { ShieldOff } from 'lucide-react';
 import { useTranslation } from '@/i18n';
-import { useBlockCliImportState } from './hooks/use-block-cli-import-state';
+import { useBooleanSetting } from '@/features/settings/hooks/use-boolean-setting';
 
 export const BlockCliImportSettings = () => {
-    const { blockCliImport, setBlockCliImport } = useBlockCliImportState();
     const { t } = useTranslation();
+    const [blockCliImport, setBlockCliImport] = useBooleanSetting(
+        'block_cli_import',
+        'set_block_cli_import',
+        t('Failed to save the command-line import setting')
+    );
 
     return (
         <SettingsUI.Item>

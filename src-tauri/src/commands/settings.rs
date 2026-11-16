@@ -105,6 +105,19 @@ pub fn set_block_cli_import(app: AppHandle, enabled: bool) -> Result<(), String>
 }
 
 #[command]
+pub fn set_short_dictation_context(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let mut s = crate::settings::load_settings(&app);
+    s.short_dictation_context = enabled;
+    if !enabled {
+        app.state::<crate::audio::types::AudioState>()
+            .short_context
+            .lock()
+            .clear();
+    }
+    crate::settings::save_settings(&app, &s)
+}
+
+#[command]
 pub fn set_remove_hesitations(app: AppHandle, enabled: bool) -> Result<(), String> {
     let mut s = crate::settings::load_settings(&app);
     s.remove_hesitations = enabled;

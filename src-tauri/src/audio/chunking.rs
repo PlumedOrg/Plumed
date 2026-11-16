@@ -159,6 +159,9 @@ fn spawn_worker(
 ) -> JoinHandle<()> {
     std::thread::spawn(move || {
         let freeze_settings = preview.as_ref().map(|_| load_formatting_settings(&app));
+        // Live dictations only: headless runs (CLI transcribe, benchmarks) stay independent.
+        let use_context =
+            epoch.is_some() && crate::settings::load_settings(&app).short_dictation_context;
         let owns_ui = || {
             !cancelled.load(Ordering::SeqCst)
                 && epoch.is_some_and(|e| PIPELINE_EPOCH.load(Ordering::SeqCst) == e)
@@ -183,7 +186,7 @@ fn spawn_worker(
                     if let Some(link) = preview.as_ref() {
                         link.inference_active.store(true, Ordering::SeqCst);
                     }
-                    let outcome = process_chunk(&app, samples, sample_rate);
+                    let outcome = process_chunk(&app, samples, sample_rate, use_context);
                     if let Some(link) = preview.as_ref() {
                         link.inference_active.store(false, Ordering::SeqCst);
                     }

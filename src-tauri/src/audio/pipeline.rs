@@ -1,9 +1,11 @@
 use crate::audio::chunking::{ChunkPipeline, Chunker};
 use crate::audio::clean_recording::clean_transcription;
 use crate::audio::helpers::{read_wav_mono_native, resample, rms};
+use crate::audio::short_context;
 use crate::audio::types::AudioState;
 use crate::dictionary::{correct_transcription, sync_boost_words, Dictionary};
 use crate::engine::transcription_engine::{TranscriptionEngine, TranscriptionResult};
+use crate::engine::ParakeetEngine;
 use crate::formatting_rules;
 use crate::history;
 use crate::stats;
@@ -18,7 +20,7 @@ pub enum ChunkOutcome {
     Failed,
 }
 
-const INFERENCE_SILENCE_PAD_SECS: f32 = 0.25;
+pub(crate) const INFERENCE_SILENCE_PAD_SECS: f32 = 0.25;
 
 pub(crate) fn pad_with_silence(samples: &[f32], sample_rate: u32) -> Vec<f32> {
     let silence = vec![0.0; (INFERENCE_SILENCE_PAD_SECS * sample_rate as f32) as usize];
@@ -29,8 +31,14 @@ pub(crate) fn pad_with_silence(samples: &[f32], sample_rate: u32) -> Vec<f32> {
     padded
 }
 
-/// Transcribes one chunk in isolation (fresh decoder state)
-pub fn process_chunk(app: &AppHandle, samples: Vec<f32>, sample_rate: u32) -> ChunkOutcome {
+/// Transcribes one chunk with a fresh decoder state. With `use_context`, a short
+/// chunk is transcribed again behind the previous dictation (see short_context).
+pub fn process_chunk(
+    app: &AppHandle,
+    samples: Vec<f32>,
+    sample_rate: u32,
+    use_context: bool,
+) -> ChunkOutcome {
     // 1. Resample to 16 kHz if needed
     let resampled = if sample_rate != 16000 {
         resample(&samples, sample_rate as usize, 16000)
@@ -58,7 +66,18 @@ pub fn process_chunk(app: &AppHandle, samples: Vec<f32>, sample_rate: u32) -> Ch
     sync_boost_words(engine, &dictionary);
 
     // 3. Transcribe
-    match engine.transcribe_samples(padded, None) {
+    let transcribed = engine.transcribe_samples(padded, None);
+    let transcribed = match (use_context, transcribed) {
+        (true, Ok(result)) => {
+            let result = with_short_context(engine, &state, &resampled, result);
+            if !result.text.trim().is_empty() {
+                short_context::remember(&state.short_context, &resampled);
+            }
+            Ok(result)
+        }
+        (_, other) => other,
+    };
+    match transcribed {
         Ok(result) => {
             let trimmed = result.text.trim();
             if trimmed.is_empty() {
@@ -86,6 +105,38 @@ pub fn process_chunk(app: &AppHandle, samples: Vec<f32>, sample_rate: u32) -> Ch
         Err(e) => {
             error!("Chunk transcription failed: {}", e);
             ChunkOutcome::Failed
+        }
+    }
+}
+
+/// Re-transcribes a short chunk behind the remembered context and keeps the words
+/// after the gap. Falls back to the isolated result when that yields nothing.
+fn with_short_context(
+    engine: &mut ParakeetEngine,
+    state: &AudioState,
+    speech: &[f32],
+    isolated: TranscriptionResult,
+) -> TranscriptionResult {
+    if !short_context::is_short(speech.len(), &isolated.text) {
+        return isolated;
+    }
+    let Some(context) = state.short_context.lock().get(std::time::Instant::now()) else {
+        return isolated;
+    };
+    let (input, cut_secs) = short_context::build_input(&context, speech);
+    match engine.transcribe_samples_from(input, cut_secs) {
+        Ok(result) if !result.text.trim().is_empty() => {
+            debug!(
+                "Short dictation context: {} words isolated, {} words with context",
+                isolated.text.split_whitespace().count(),
+                result.text.split_whitespace().count()
+            );
+            result
+        }
+        Ok(_) => isolated,
+        Err(e) => {
+            warn!("Short dictation context pass failed: {}", e);
+            isolated
         }
     }
 }

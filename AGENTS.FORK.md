@@ -61,6 +61,7 @@ Branches are created only with the user's approval. **Never open a pull request 
 | ParakeetWeb phrase boosting engine (hybrid: upstream boost for the user dictionary, ParakeetWeb trie for phrase lists, larger bonus wins where they overlap) | `feat/phrase-boosting` (from `medmain`) | | merged | |
 | French medical phrase boosting list (bundled from ParakeetWeb, armed at model load, ~2 s trie build on the startup thread) | `feat/medical-phrase-list` | `feat/phrase-boosting` | merged | |
 | Branding (name Plumed, purple theme, fork credits, local-only notice, own identifier, updater and winget; icon and toggles for extra regex and phrase boosting still to do) | `feat/branding` (from `medmain`) | | merged, in progress | |
+| Context for short dictations (under 2 s or at most 3 words: transcribed again behind the last 10 s of previous dictation audio plus 2 s of silence, only the words after the gap are kept; RAM only, expires after 5 min; live sessions only, not Smart Mic nor CLI; setting, on by default) | `feat/branding` | | merged (UltiMed, 200 clips, last 2 words split off: WER 45.5% isolated, 38.6% with context; benchmark `short_context::tests::bench_short_context`) | not planned (fork only) |
 | Remote microphone through an internet relay (or iroh) | `feat/remote-mic-relay` | | idea | |
 
 Update this table when a branch is created, merged, or proposed upstream.
