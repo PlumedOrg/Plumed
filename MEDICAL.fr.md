@@ -17,6 +17,14 @@ Sous l'interrupteur, **Modifier les règles de médicaments et de termes médica
 
 Ces modifications sont enregistrées à part (`medical_rules.json`), séparément de vos règles personnalisées : importer ou réinitialiser l'un ne touche pas l'autre. Pour corriger autre chose qu'un médicament (un nom propre, par exemple), utilisez plutôt les règles personnalisées.
 
+## Contexte pour les dictées courtes
+
+Activé par défaut : **Paramètres > Système > Avancé > Contexte pour les dictées courtes**.
+
+Une dictée très courte, par exemple un seul mot que l'on redicte pour le corriger, se reconnaît mal toute seule : le modèle n'a ni le timbre de votre voix ni la phrase autour. Quand une dictée dure moins de 2 secondes ou donne 3 mots au plus, Plumed la retranscrit derrière les 10 dernières secondes de la dictée précédente, séparées par 2 secondes de silence, puis ne garde que les mots prononcés après ce silence (repérés par leur horodatage, pas en comparant les textes).
+
+Cet audio reste uniquement en mémoire vive, n'est jamais écrit sur le disque, et est oublié 5 minutes après la dernière dictée, à la fermeture de Plumed, ou dès que l'option est désactivée.
+
 ## Règles de dictée InterHop (installées par défaut)
 
 L'association [InterHop](https://interhop.org/) maintient des règles de dictée médicale pour Murmure (unités, constantes, ponctuation dictée, modèles d'examen déclenchés par « ajoute la commande ... ») : [framagit.org/interhop/murmure-regex](https://framagit.org/interhop/murmure-regex). Par exemple « tension 120 80 » devient « TA : 120/80 » et « 3 fois par jour » devient « 3/j ».
