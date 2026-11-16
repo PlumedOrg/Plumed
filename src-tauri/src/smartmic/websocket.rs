@@ -365,38 +365,23 @@ fn process_recording(
     sample_rate: u32,
     should_paste: bool,
 ) {
-    let chunks = audio_bridge::split_into_chunks(buffer, sample_rate);
-
-    // Ensure engine is loaded
-    if let Err(e) = crate::audio::preload_engine(&app) {
-        error!("SmartMic: Failed to preload engine: {}", e);
-        let err_msg = ServerMessage::Error {
-            message: "Transcription failed: model not available".to_string(),
-        };
-        let _ = tx.try_send(err_msg.to_json());
-        return;
-    }
-
-    let mut parts: Vec<String> = Vec::with_capacity(chunks.len());
-    for samples in chunks {
-        match crate::audio::pipeline::process_recording_from_samples(&app, samples) {
-            Ok(text) => {
-                if !text.is_empty() {
-                    parts.push(text);
+    let text = match audio_bridge::transcribe_pcm(&app, buffer, sample_rate) {
+        Ok(text) => text,
+        Err(e) => {
+            error!("SmartMic: {:?}", e);
+            let message = match e {
+                audio_bridge::TranscribeError::ModelUnavailable(_) => {
+                    "Transcription failed: model not available"
                 }
-            }
-            Err(e) => {
-                error!("SmartMic transcription failed: {}", e);
-                let err_msg = ServerMessage::Error {
-                    message: "Transcription failed".to_string(),
-                };
-                let _ = tx.try_send(err_msg.to_json());
-                return;
-            }
+                audio_bridge::TranscribeError::Failed(_) => "Transcription failed",
+            };
+            let err_msg = ServerMessage::Error {
+                message: message.to_string(),
+            };
+            let _ = tx.try_send(err_msg.to_json());
+            return;
         }
-    }
-
-    let text = parts.join(" ");
+    };
     debug!("SmartMic transcription result: {}", text);
 
     if !text.is_empty() && should_paste {
