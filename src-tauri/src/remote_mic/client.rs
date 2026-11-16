@@ -194,6 +194,19 @@ impl RelayClient {
         }
     }
 
+    /// What the phone sends: an encrypted audio packet.
+    #[cfg(test)]
+    pub async fn send_binary_for_test(&self, room: &Room, token: &str, packet: Vec<u8>) {
+        let req = self
+            .http
+            .post(self.url(&format!("/rooms/{}/relay/up", room.id)))
+            .header("X-Room-Secret", &room.secret)
+            .header("X-Slot-Token", token)
+            .header(header::CONTENT_TYPE, "application/octet-stream")
+            .body(packet);
+        check(req.send().await.unwrap()).await.unwrap();
+    }
+
     /// Frees our slot (best effort: the server reaps idle slots after 60 s anyway).
     pub async fn close_slot(&self, room: &Room, token: &str) {
         let req = self
