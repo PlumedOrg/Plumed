@@ -1,10 +1,11 @@
 //! Desktop side of the Plumed remote-mic protocol, without I/O.
 //!
 //! The QR code carries the public key of `pending`. A phone that scanned it posts
-//! `{"type":"hello","key":<phone pub>,"to":<that key>}`: it becomes the
+//! `{"type":"hello","key":<phone pub>,"to":<that key>,"inbox":<tag>}`: it becomes the
 //! `candidate`, both screens show the same fingerprint, and only the desktop user
 //! confirms. The confirmed phone becomes `active` and gets an encrypted `BOUND`.
 //! From then on every frame is `IV || AES-GCM(seq || op || payload)`.
+//! Every answer goes to the inbox the phone named in its hello.
 //!
 //! Each hello consumes the pending key (ring's ECDH keys are single use), so a
 //! new one is generated and the QR code changes: the old code answers `stale`.
@@ -15,7 +16,9 @@
 
 use super::crypto::{decode_public_key, pair_fingerprint, CryptoError, KeyPair, SessionKey};
 use crate::smartmic::audio_bridge::accumulate_pcm;
-use plumed_relay_protocol::{op, open_inner, seal_inner, Frame, MAX_FRAME, SAMPLE_RATES};
+use plumed_relay_protocol::{
+    op, open_inner, seal_inner, valid_inbox_tag, Frame, MAX_FRAME, SAMPLE_RATES,
+};
 use serde::Deserialize;
 use std::time::{Duration, Instant};
 
@@ -30,6 +33,7 @@ enum PhoneMessage {
     Hello {
         key: String,
         to: String,
+        inbox: String,
     },
     #[serde(other)]
     Other,
@@ -43,17 +47,27 @@ pub enum Event {
     Recording { pcm: Vec<i16>, sample_rate: u32 },
 }
 
+/// A frame for the phone inbox tagged `inbox`.
+#[derive(Debug, PartialEq)]
+pub struct Outgoing {
+    pub inbox: String,
+    pub frame: Frame,
+}
+
 /// What one input produced: frames to post to the relay, and maybe an event.
 #[derive(Debug, Default, PartialEq)]
 pub struct Step {
-    pub send: Vec<Frame>,
+    pub send: Vec<Outgoing>,
     pub event: Option<Event>,
 }
 
 impl Step {
-    fn send(frame: Frame) -> Self {
+    fn send(inbox: &str, frame: Frame) -> Self {
         Self {
-            send: vec![frame],
+            send: vec![Outgoing {
+                inbox: inbox.to_string(),
+                frame,
+            }],
             event: None,
         }
     }
@@ -62,22 +76,27 @@ impl Step {
 struct Candidate {
     key: SessionKey,
     phone_b64: String,
+    inbox: String,
     fingerprint: String,
     since: Instant,
 }
 
 struct Active {
     key: SessionKey,
+    inbox: String,
     seq_in: u64,
     seq_out: u64,
     recording: Option<(Vec<i16>, u32)>,
 }
 
 impl Active {
-    fn seal(&mut self, op: u8, payload: &[u8]) -> Result<Frame, CryptoError> {
+    fn seal(&mut self, op: u8, payload: &[u8]) -> Result<Outgoing, CryptoError> {
         self.seq_out += 1;
         let packet = self.key.seal(&seal_inner(self.seq_out, op, payload))?;
-        Ok(Frame::Binary(packet))
+        Ok(Outgoing {
+            inbox: self.inbox.clone(),
+            frame: Frame::Binary(packet),
+        })
     }
 }
 
@@ -87,10 +106,11 @@ pub struct Pairing {
     active: Option<Active>,
 }
 
-/// Unencrypted answer to one phone's hello. `to` lets the other phones of the
-/// room (they all poll the same mailbox) ignore it.
-fn reply(kind: &str, phone_b64: &str) -> Frame {
-    Frame::Text(serde_json::json!({ "type": kind, "to": phone_b64 }).to_string())
+/// Unencrypted answer to one phone's hello, in its inbox. `to` names the key
+/// it answers, so a reloaded page reusing the inbox ignores an old answer.
+fn reply(kind: &str, inbox: &str, phone_b64: &str) -> Step {
+    let text = serde_json::json!({ "type": kind, "to": phone_b64 }).to_string();
+    Step::send(inbox, Frame::Text(text))
 }
 
 impl Pairing {
@@ -128,17 +148,25 @@ impl Pairing {
             return Ok(Step::default());
         }
         match serde_json::from_str(text) {
-            Ok(PhoneMessage::Hello { key, to }) => self.on_hello(key, &to),
+            Ok(PhoneMessage::Hello { key, to, inbox }) if valid_inbox_tag(&inbox) => {
+                self.on_hello(key, &to, inbox)
+            }
+            Ok(PhoneMessage::Hello { .. }) => Ok(Step::default()),
             Ok(PhoneMessage::Other) | Err(_) => Ok(Step::default()),
         }
     }
 
-    fn on_hello(&mut self, phone_b64: String, to: &str) -> Result<Step, CryptoError> {
+    fn on_hello(
+        &mut self,
+        phone_b64: String,
+        to: &str,
+        inbox: String,
+    ) -> Result<Step, CryptoError> {
         let Ok(phone_raw) = decode_public_key(&phone_b64) else {
             return Ok(Step::default());
         };
         if to != self.pending.public_b64() {
-            return Ok(Step::send(reply("stale", &phone_b64)));
+            return Ok(reply("stale", &inbox, &phone_b64));
         }
         let ours = std::mem::replace(&mut self.pending, KeyPair::generate()?);
         let fingerprint = pair_fingerprint(ours.public_raw(), &phone_raw);
@@ -149,6 +177,7 @@ impl Pairing {
         self.candidate = Some(Candidate {
             key,
             phone_b64,
+            inbox,
             fingerprint: fingerprint.clone(),
             since: Instant::now(),
         });
@@ -172,15 +201,19 @@ impl Pairing {
             true => {
                 let mut active = Active {
                     key: candidate.key,
+                    inbox: candidate.inbox,
                     seq_in: 0,
                     seq_out: 0,
                     recording: None,
                 };
                 let bound = active.seal(op::BOUND, &[])?;
                 self.active = Some(active);
-                Ok(Step::send(bound))
+                Ok(Step {
+                    send: vec![bound],
+                    event: None,
+                })
             }
-            false => Ok(Step::send(reply("denied", &candidate.phone_b64))),
+            false => Ok(reply("denied", &candidate.inbox, &candidate.phone_b64)),
         }
     }
 
@@ -201,7 +234,7 @@ impl Pairing {
     }
 
     /// Seals one op for the active phone (`None` when no phone is bound).
-    pub fn seal_op(&mut self, op: u8) -> Result<Option<Frame>, CryptoError> {
+    pub fn seal_op(&mut self, op: u8) -> Result<Option<Outgoing>, CryptoError> {
         self.active.as_mut().map(|a| a.seal(op, &[])).transpose()
     }
 
@@ -270,6 +303,7 @@ mod tests {
     struct Phone {
         public_b64: String,
         desktop_b64: String,
+        inbox: String,
         key: SessionKey,
         seq: u64,
     }
@@ -279,18 +313,22 @@ mod tests {
             let desktop_raw = B64URL.decode(p.link_key()).unwrap();
             let kp = KeyPair::generate().unwrap();
             let public_b64 = kp.public_b64();
+            let inbox = B64URL.encode(&kp.public_raw()[1..17]);
             let desktop_b64 = base64::engine::general_purpose::STANDARD.encode(&desktop_raw);
             let key = kp.derive(&desktop_raw).unwrap();
             Phone {
                 public_b64,
                 desktop_b64,
+                inbox,
                 key,
                 seq: 0,
             }
         }
 
         fn hello(&self) -> Frame {
-            let hello = serde_json::json!({"type": "hello", "key": self.public_b64, "to": self.desktop_b64});
+            let hello = serde_json::json!({
+                "type": "hello", "key": self.public_b64, "to": self.desktop_b64, "inbox": self.inbox,
+            });
             Frame::Text(hello.to_string())
         }
 
@@ -300,8 +338,11 @@ mod tests {
         }
 
         /// -> (seq, op) of a desktop frame, `None` if not for this phone.
-        fn open(&self, frame: &Frame) -> Option<(u64, u8)> {
-            let Frame::Binary(packet) = frame else {
+        fn open(&self, out: &Outgoing) -> Option<(u64, u8)> {
+            let Frame::Binary(packet) = &out.frame else {
+                return None;
+            };
+            if out.inbox != self.inbox {
                 return None;
             };
             let plain = self.key.decrypt(packet).ok()?;
@@ -309,8 +350,8 @@ mod tests {
         }
     }
 
-    fn text(frame: &Frame) -> serde_json::Value {
-        match frame {
+    fn text(out: &Outgoing) -> serde_json::Value {
+        match &out.frame {
             Frame::Text(t) => serde_json::from_str(t).unwrap(),
             Frame::Binary(_) => panic!("expected text"),
         }
@@ -356,6 +397,7 @@ mod tests {
             ..Phone::scan(&p)
         };
         let step = p.on_frame(late.hello()).unwrap();
+        assert_eq!(step.send[0].inbox, late.inbox);
         let answer = text(&step.send[0]);
         assert_eq!(answer["type"], "stale");
         assert_eq!(answer["to"], late.public_b64.as_str());
@@ -369,6 +411,7 @@ mod tests {
         p.on_frame(phone.hello()).unwrap();
         let code = p.fingerprint().unwrap().to_string();
         let step = p.confirm(&code, false).unwrap();
+        assert_eq!(step.send[0].inbox, phone.inbox);
         let answer = text(&step.send[0]);
         assert_eq!(answer["type"], "denied");
         assert_eq!(answer["to"], phone.public_b64.as_str());
@@ -509,6 +552,12 @@ mod tests {
             p.on_frame(Frame::Text("not json".into())).unwrap(),
             Step::default()
         );
+        // A hello without a valid inbox cannot be answered: ignored
+        let qr_key = p.link_key();
+        let mut nameless = Phone::scan(&p);
+        nameless.inbox = "a/b".into();
+        assert_eq!(p.on_frame(nameless.hello()).unwrap(), Step::default());
+        assert_eq!(p.link_key(), qr_key);
     }
 
     #[test]

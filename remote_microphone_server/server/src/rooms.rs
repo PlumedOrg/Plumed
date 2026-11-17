@@ -1,31 +1,64 @@
 //! In-memory rooms. Nothing is ever written to disk: a restart drops every room.
 
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD as B64, Engine};
-use plumed_relay_protocol::{Role, MAILBOX_CAP};
+use plumed_relay_protocol::{Role, MAILBOX_CAP, MAX_PHONE_INBOXES};
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use tokio::sync::Notify;
 
-/// Random bytes of a room id (16 base64url chars) and of its secret (24 chars).
+/// Random bytes of a room id (16 base64url chars) and of its secrets (24 chars).
 const ID_BYTES: usize = 12;
 const SECRET_BYTES: usize = 18;
+/// A phone inbox nobody used for this long may be dropped to make room for a
+/// new phone (a polling phone touches its inbox every 25 s).
+const PHONE_INBOX_IDLE: Duration = Duration::from_secs(60);
 
-/// The queue toward one end of a room: request bodies appended as they come
-/// (envelopes concatenate), taken all at once by the next poll.
-#[derive(Default)]
+/// One inbox: request bodies appended as they come (envelopes concatenate),
+/// taken all at once by the next poll.
 struct Mailbox {
     queue: Mutex<Vec<u8>>,
     notify: Notify,
+    last_used: Mutex<Instant>,
+}
+
+impl Mailbox {
+    fn new(now: Instant) -> Self {
+        Self {
+            queue: Mutex::new(Vec::new()),
+            notify: Notify::new(),
+            last_used: Mutex::new(now),
+        }
+    }
+}
+
+/// Which inbox of a room.
+#[derive(Clone, Copy, Debug)]
+pub enum Inbox<'a> {
+    Desktop,
+    /// A phone, by the tag it chose.
+    Phone(&'a str),
+}
+
+impl Inbox<'_> {
+    /// Who reads it (the writer is the other role).
+    pub fn owner(self) -> Role {
+        match self {
+            Inbox::Desktop => Role::Desktop,
+            Inbox::Phone(_) => Role::Phone,
+        }
+    }
 }
 
 pub struct Room {
-    secret: String,
+    desktop_secret: String,
+    phone_secret: String,
     created: Instant,
     last_seen: Mutex<Instant>,
     closed: AtomicBool,
-    mailboxes: [Mailbox; 2],
+    desktop: Arc<Mailbox>,
+    phones: Mutex<HashMap<String, Arc<Mailbox>>>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -37,16 +70,30 @@ pub enum Taken {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct MailboxFull;
+pub enum PushError {
+    /// The reader is not polling (asleep, offline): slow down.
+    Full,
+    /// Too many phone inboxes in use.
+    TooManyPhones,
+}
 
 impl Room {
-    fn new(secret: String, now: Instant) -> Self {
+    fn new(desktop_secret: String, phone_secret: String, now: Instant) -> Self {
         Self {
-            secret,
+            desktop_secret,
+            phone_secret,
             created: now,
             last_seen: Mutex::new(now),
             closed: AtomicBool::new(false),
-            mailboxes: Default::default(),
+            desktop: Arc::new(Mailbox::new(now)),
+            phones: Mutex::new(HashMap::new()),
+        }
+    }
+
+    fn secret(&self, role: Role) -> &str {
+        match role {
+            Role::Desktop => &self.desktop_secret,
+            Role::Phone => &self.phone_secret,
         }
     }
 
@@ -61,18 +108,44 @@ impl Room {
     /// Wakes the pollers so they see the room is gone.
     fn close(&self) {
         self.closed.store(true, Ordering::Release);
-        for mailbox in &self.mailboxes {
+        self.desktop.notify.notify_waiters();
+        for mailbox in lock(&self.phones).values() {
             mailbox.notify.notify_waiters();
         }
     }
 
-    /// Queues `envelope` for `to`.
-    pub fn push(&self, to: Role, envelope: &[u8]) -> Result<(), MailboxFull> {
-        let mailbox = &self.mailboxes[to.index()];
+    /// The inbox, created for a new phone tag (dropping idle phone inboxes
+    /// when [`MAX_PHONE_INBOXES`] are in use).
+    fn mailbox(&self, inbox: Inbox<'_>) -> Result<Arc<Mailbox>, PushError> {
+        let now = Instant::now();
+        let mailbox = match inbox {
+            Inbox::Desktop => self.desktop.clone(),
+            Inbox::Phone(tag) => {
+                let mut phones = lock(&self.phones);
+                if !phones.contains_key(tag) && phones.len() >= MAX_PHONE_INBOXES {
+                    phones
+                        .retain(|_, m| now.duration_since(*lock(&m.last_used)) < PHONE_INBOX_IDLE);
+                }
+                if !phones.contains_key(tag) && phones.len() >= MAX_PHONE_INBOXES {
+                    return Err(PushError::TooManyPhones);
+                }
+                phones
+                    .entry(tag.to_string())
+                    .or_insert_with(|| Arc::new(Mailbox::new(now)))
+                    .clone()
+            }
+        };
+        *lock(&mailbox.last_used) = now;
+        Ok(mailbox)
+    }
+
+    /// Queues `envelope` in `inbox`.
+    pub fn push(&self, inbox: Inbox<'_>, envelope: &[u8]) -> Result<(), PushError> {
+        let mailbox = self.mailbox(inbox)?;
         {
             let mut queue = lock(&mailbox.queue);
             if queue.len() + envelope.len() > MAILBOX_CAP {
-                return Err(MailboxFull);
+                return Err(PushError::Full);
             }
             queue.extend_from_slice(envelope);
         }
@@ -80,31 +153,42 @@ impl Room {
         Ok(())
     }
 
-    /// Everything queued for `role`, waiting up to `wait` for something to come.
-    pub async fn take(&self, role: Role, wait: Duration) -> Taken {
-        let mailbox = &self.mailboxes[role.index()];
+    /// Everything queued in `inbox`, waiting up to `wait` for something to come.
+    pub async fn take(&self, inbox: Inbox<'_>, wait: Duration) -> Result<Taken, PushError> {
+        let mailbox = self.mailbox(inbox)?;
         let deadline = tokio::time::Instant::now() + wait;
-        loop {
+        let taken = loop {
             // Registered before the checks, so a push in between still wakes us
             let notified = mailbox.notify.notified();
             if self.is_closed() {
-                return Taken::Closed;
+                break Taken::Closed;
             }
             {
                 let mut queue = lock(&mailbox.queue);
                 if !queue.is_empty() {
-                    return Taken::Frames(std::mem::take(&mut *queue));
+                    break Taken::Frames(std::mem::take(&mut *queue));
                 }
             }
             if tokio::time::timeout_at(deadline, notified).await.is_err() {
-                return Taken::Empty;
+                break Taken::Empty;
             }
-        }
+        };
+        // Still in use while the poll was held
+        *lock(&mailbox.last_used) = Instant::now();
+        Ok(taken)
     }
 }
 
 #[derive(Debug, PartialEq)]
 pub struct ServerFull;
+
+/// A new room: its id and the secret of each role.
+#[derive(Debug, PartialEq)]
+pub struct Created {
+    pub id: String,
+    pub desktop_secret: String,
+    pub phone_secret: String,
+}
 
 pub struct Rooms {
     map: Mutex<HashMap<String, Arc<Room>>>,
@@ -148,25 +232,29 @@ impl Rooms {
         self.len() == 0
     }
 
-    /// `(id, secret)` of a new room.
-    pub fn create(&self) -> Result<(String, String), ServerFull> {
+    pub fn create(&self) -> Result<Created, ServerFull> {
         let mut map = lock(&self.map);
         if map.len() >= self.max {
             return Err(ServerFull);
         }
-        let id = random_token(ID_BYTES);
-        let secret = random_token(SECRET_BYTES);
-        map.insert(
-            id.clone(),
-            Arc::new(Room::new(secret.clone(), Instant::now())),
+        let created = Created {
+            id: random_token(ID_BYTES),
+            desktop_secret: random_token(SECRET_BYTES),
+            phone_secret: random_token(SECRET_BYTES),
+        };
+        let room = Room::new(
+            created.desktop_secret.clone(),
+            created.phone_secret.clone(),
+            Instant::now(),
         );
-        Ok((id, secret))
+        map.insert(created.id.clone(), Arc::new(room));
+        Ok(created)
     }
 
-    /// The room, if it exists and `secret` matches. Counts as activity.
-    pub fn open(&self, id: &str, secret: &str) -> Option<Arc<Room>> {
+    /// The room, if it exists and `secret` is the one of `role`. Counts as activity.
+    pub fn open(&self, id: &str, role: Role, secret: &str) -> Option<Arc<Room>> {
         let room = lock(&self.map).get(id).cloned()?;
-        match same_secret(&room.secret, secret) && !room.is_closed() {
+        match same_secret(room.secret(role), secret) && !room.is_closed() {
             true => {
                 room.touch();
                 Some(room)
@@ -201,72 +289,120 @@ impl Rooms {
 mod tests {
     use super::*;
 
+    const TAG_A: &str = "AAAAAAAAAAAAAAAAAAAAAA";
+    const TAG_B: &str = "BBBBBBBBBBBBBBBBBBBBBB";
+
+    fn room(rooms: &Rooms) -> (Created, Arc<Room>) {
+        let created = rooms.create().unwrap();
+        let room = rooms
+            .open(&created.id, Role::Desktop, &created.desktop_secret)
+            .unwrap();
+        (created, room)
+    }
+
     #[tokio::test]
-    async fn frames_reach_the_other_side_only() {
+    async fn frames_reach_their_inbox_only() {
         let rooms = Rooms::new(10);
-        let (id, secret) = rooms.create().unwrap();
-        assert_eq!((id.len(), secret.len()), (16, 24));
-        let room = rooms.open(&id, &secret).unwrap();
-        room.push(Role::Desktop, b"ab").unwrap();
-        room.push(Role::Desktop, b"cd").unwrap();
+        let (created, room) = room(&rooms);
+        assert_eq!(created.id.len(), 16);
+        assert_eq!(created.desktop_secret.len(), 24);
+        assert_ne!(created.desktop_secret, created.phone_secret);
+        room.push(Inbox::Desktop, b"ab").unwrap();
+        room.push(Inbox::Desktop, b"cd").unwrap();
+        room.push(Inbox::Phone(TAG_A), b"a").unwrap();
         let short = Duration::from_millis(10);
-        assert_eq!(room.take(Role::Phone, short).await, Taken::Empty);
         assert_eq!(
-            room.take(Role::Desktop, short).await,
-            Taken::Frames(b"abcd".to_vec())
+            room.take(Inbox::Phone(TAG_B), short).await,
+            Ok(Taken::Empty)
         );
-        assert_eq!(room.take(Role::Desktop, short).await, Taken::Empty);
+        assert_eq!(
+            room.take(Inbox::Phone(TAG_A), short).await,
+            Ok(Taken::Frames(b"a".to_vec()))
+        );
+        assert_eq!(
+            room.take(Inbox::Desktop, short).await,
+            Ok(Taken::Frames(b"abcd".to_vec()))
+        );
+        assert_eq!(room.take(Inbox::Desktop, short).await, Ok(Taken::Empty));
     }
 
     #[tokio::test]
     async fn a_waiting_poll_wakes_on_push_and_on_close() {
         let rooms = Arc::new(Rooms::new(10));
-        let (id, secret) = rooms.create().unwrap();
-        let room = rooms.open(&id, &secret).unwrap();
-        let poll = {
-            let room = room.clone();
-            tokio::spawn(async move { room.take(Role::Phone, Duration::from_secs(5)).await })
+        let (created, room) = room(&rooms);
+        let poll = |room: Arc<Room>| {
+            tokio::spawn(
+                async move { room.take(Inbox::Phone(TAG_A), Duration::from_secs(5)).await },
+            )
         };
+        let waiting = poll(room.clone());
         tokio::time::sleep(Duration::from_millis(20)).await;
-        room.push(Role::Phone, b"x").unwrap();
-        assert_eq!(poll.await.unwrap(), Taken::Frames(b"x".to_vec()));
+        room.push(Inbox::Phone(TAG_A), b"x").unwrap();
+        assert_eq!(waiting.await.unwrap(), Ok(Taken::Frames(b"x".to_vec())));
 
-        let poll = {
-            let room = room.clone();
-            tokio::spawn(async move { room.take(Role::Phone, Duration::from_secs(5)).await })
-        };
+        let waiting = poll(room.clone());
         tokio::time::sleep(Duration::from_millis(20)).await;
-        rooms.close(&id);
-        assert_eq!(poll.await.unwrap(), Taken::Closed);
-        assert!(rooms.open(&id, &secret).is_none());
+        rooms.close(&created.id);
+        assert_eq!(waiting.await.unwrap(), Ok(Taken::Closed));
+        assert!(rooms
+            .open(&created.id, Role::Desktop, &created.desktop_secret)
+            .is_none());
     }
 
     #[test]
-    fn wrong_secret_and_caps() {
+    fn each_role_needs_its_own_secret() {
         let rooms = Rooms::new(1);
-        let (id, secret) = rooms.create().unwrap();
-        assert!(rooms.open(&id, "nope").is_none());
-        assert!(rooms.open(&id, &secret[..23]).is_none());
-        assert!(rooms.open("unknown", &secret).is_none());
+        let created = rooms.create().unwrap();
+        let (id, desktop, phone) = (&created.id, &created.desktop_secret, &created.phone_secret);
+        assert!(rooms.open(id, Role::Desktop, desktop).is_some());
+        assert!(rooms.open(id, Role::Phone, phone).is_some());
+        assert!(rooms.open(id, Role::Desktop, phone).is_none());
+        assert!(rooms.open(id, Role::Phone, desktop).is_none());
+        assert!(rooms.open(id, Role::Phone, "nope").is_none());
+        assert!(rooms.open(id, Role::Phone, &phone[..23]).is_none());
+        assert!(rooms.open("unknown", Role::Phone, phone).is_none());
         assert_eq!(rooms.create(), Err(ServerFull));
-        let room = rooms.open(&id, &secret).unwrap();
+    }
+
+    #[test]
+    fn mailbox_and_phone_caps() {
+        let rooms = Rooms::new(1);
+        let (_, room) = room(&rooms);
         assert_eq!(
-            room.push(Role::Phone, &vec![0; MAILBOX_CAP + 1]),
-            Err(MailboxFull)
+            room.push(Inbox::Phone(TAG_A), &vec![0; MAILBOX_CAP + 1]),
+            Err(PushError::Full)
         );
-        room.push(Role::Phone, &vec![0; MAILBOX_CAP]).unwrap();
-        assert_eq!(room.push(Role::Phone, &[0]), Err(MailboxFull));
+        room.push(Inbox::Phone(TAG_A), &vec![0; MAILBOX_CAP])
+            .unwrap();
+        assert_eq!(room.push(Inbox::Phone(TAG_A), &[0]), Err(PushError::Full));
+        let tags: Vec<String> = (1..MAX_PHONE_INBOXES)
+            .map(|i| format!("{i:0>22}"))
+            .collect();
+        for tag in &tags {
+            room.push(Inbox::Phone(tag), b"x").unwrap();
+        }
+        assert_eq!(
+            room.push(Inbox::Phone(TAG_B), b"x"),
+            Err(PushError::TooManyPhones)
+        );
+        // Idle inboxes make room for a new phone
+        for m in lock(&room.phones).values() {
+            *lock(&m.last_used) = Instant::now() - 2 * PHONE_INBOX_IDLE;
+        }
+        room.push(Inbox::Phone(TAG_B), b"x").unwrap();
     }
 
     #[test]
     fn idle_and_old_rooms_are_reaped() {
         let rooms = Rooms::new(10);
-        let (id, secret) = rooms.create().unwrap();
+        let created = rooms.create().unwrap();
         let (minute, hour) = (Duration::from_secs(60), Duration::from_secs(3600));
         assert_eq!(rooms.reap(Instant::now(), minute, hour), 0);
         let later = Instant::now() + 2 * minute;
         assert_eq!(rooms.reap(later, minute, hour), 1);
-        assert!(rooms.open(&id, &secret).is_none());
+        assert!(rooms
+            .open(&created.id, Role::Phone, &created.phone_secret)
+            .is_none());
         rooms.create().unwrap();
         assert_eq!(rooms.reap(Instant::now() + 2 * hour, 10 * hour, hour), 1);
         assert!(rooms.is_empty());

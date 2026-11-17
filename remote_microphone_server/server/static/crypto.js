@@ -19,6 +19,11 @@ export function fromB64(s) {
     return Uint8Array.from(bin, (c) => c.charCodeAt(0));
 }
 
+/** bytes -> base64url without padding. */
+export function toB64url(bytes) {
+    return toB64(bytes).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
 /** base64url without padding (the QR link) -> bytes. */
 export function fromB64url(s) {
     const std = s.replace(/-/g, '+').replace(/_/g, '/');

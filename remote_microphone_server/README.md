@@ -6,9 +6,9 @@ This directory holds everything that runs on the server side of the Plumed remot
 
 How it works:
 
-1. Plumed (desktop) creates a room on the relay and shows a QR code: `https://turn.plumed.fr/#{room}.{secret}.{desktop public key}`.
-2. The phone opens the page, generates its own key and posts a `hello` with its public key. Both screens show the same pairing code (for example `524C-F8E8-D5A4-2D82`) and the desktop user confirms it.
-3. From then on every audio frame is encrypted end to end (ECDH P-256, HKDF-SHA256, AES-256-GCM). The relay only forwards opaque bytes between two mailboxes: it cannot hear anything, keeps everything in RAM, and logs no IP or room id.
+1. Plumed (desktop) creates a room on the relay and shows a QR code: `https://turn.plumed.fr/#{room}.{phone secret}.{desktop public key}`. The room has one secret per side, and the QR code only carries the phone's: whoever photographs it cannot read what phones send to the desktop nor close the room.
+2. The phone opens the page, generates its own key and posts a `hello` with its public key and the random name of its own inbox (so phones of the same room never take each other's frames). Both screens show the same pairing code (for example `524C-F8E8-D5A4-2D82`) and the desktop user confirms it.
+3. From then on every audio frame is encrypted end to end (ECDH P-256, HKDF-SHA256, AES-256-GCM). The relay only forwards opaque bytes between inboxes: it cannot hear anything, keeps everything in RAM, and logs no IP or room id.
 
 Transport is plain HTTPS long-polling (no WebSocket, no WebRTC, no TURN server), so it works behind any proxy or firewall that lets HTTPS through.
 
@@ -36,13 +36,15 @@ The phone's `wire.js` and `crypto.js` mirror the Rust code (`protocol/src/lib.rs
 
 | Request | Answer |
 | --- | --- |
-| `POST /api/rooms` | `201 {"room","secret"}`, `429` (per-IP limit) or `503` (server full) |
-| `POST /api/rooms/{room}/{desktop\|phone}` + `x-room-secret` | Appends an envelope to the other side's mailbox: `204`, `400` (malformed), `429` (mailbox full, 4 MiB) |
-| `GET /api/rooms/{room}/{desktop\|phone}` + `x-room-secret` | Long-poll (25 s): `200` with the queued envelopes, `204` if nothing came, `404` once the room is closed |
-| `DELETE /api/rooms/{room}` + `x-room-secret` | `204` |
+| `POST /api/rooms` | `201 {"room","desktop","phone"}` (one secret per side), `429` (per-IP limit) or `503` (server full) |
+| `POST /api/rooms/{room}/desktop` + phone secret | Appends an envelope to the desktop inbox: `204`, `400` (malformed), `429` (inbox full, 4 MiB) |
+| `GET /api/rooms/{room}/desktop` + desktop secret | Long-poll (25 s): `200` with the queued envelopes, `204` if nothing came, `404` once the room is closed |
+| `POST /api/rooms/{room}/phone/{tag}` + desktop secret | Appends an envelope to that phone's inbox (`tag`: 16 to 43 base64url characters chosen by the phone) |
+| `GET /api/rooms/{room}/phone/{tag}` + phone secret | Long-poll of that phone's inbox. At most 8 phone inboxes per room: inboxes idle for a minute make room, otherwise `429` |
+| `DELETE /api/rooms/{room}` + desktop secret | `204` |
 | `GET /healthz` | `ok` |
 
-Unknown room and wrong secret both answer `404`. Rooms are dropped after 10 minutes without polling or 24 hours of age.
+Secrets go in the `x-room-secret` header. Unknown room and wrong secret (including the other side's) both answer `404`. Rooms are dropped after 10 minutes without polling or 24 hours of age.
 
 ## Configuration
 

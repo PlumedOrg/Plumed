@@ -10,15 +10,16 @@ mod assets;
 pub mod limiter;
 pub mod rooms;
 
-use axum::body::Bytes;
 use axum::extract::{ConnectInfo, DefaultBodyLimit, Path, Request, State};
 use axum::http::{header, HeaderMap, HeaderName, HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{delete, get, post};
 use axum::{middleware, Router};
 use limiter::Limiter;
-use plumed_relay_protocol::{validate, Role, MAX_BODY, POLL_WAIT_SECS, ROOMS_PATH, SECRET_HEADER};
-use rooms::{Room, Rooms, Taken};
+use plumed_relay_protocol::{
+    valid_inbox_tag, validate, Role, MAX_BODY, POLL_WAIT_SECS, ROOMS_PATH, SECRET_HEADER,
+};
+use rooms::{Inbox, PushError, Room, Rooms, Taken};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -56,8 +57,12 @@ pub fn app(config: &Config) -> (Router, AppState) {
         .route(ROOMS_PATH, post(create_room))
         .route(&format!("{ROOMS_PATH}/{{id}}"), delete(close_room))
         .route(
-            &format!("{ROOMS_PATH}/{{id}}/{{role}}"),
-            get(poll).post(send),
+            &format!("{ROOMS_PATH}/{{id}}/desktop"),
+            get(poll_desktop).post(send_desktop),
+        )
+        .route(
+            &format!("{ROOMS_PATH}/{{id}}/phone/{{tag}}"),
+            get(poll_phone).post(send_phone),
         )
         .merge(assets::router())
         .layer(DefaultBodyLimit::max(MAX_BODY))
@@ -139,83 +144,131 @@ async fn create_room(State(state): State<AppState>, req: Request) -> Response {
         return retry_after(StatusCode::TOO_MANY_REQUESTS, secs);
     }
     match state.0.rooms.create() {
-        Ok((id, secret)) => (
+        Ok(created) => (
             StatusCode::CREATED,
             [(header::CONTENT_TYPE, "application/json")],
-            format!(r#"{{"room":"{id}","secret":"{secret}"}}"#),
+            format!(
+                r#"{{"room":"{}","desktop":"{}","phone":"{}"}}"#,
+                created.id, created.desktop_secret, created.phone_secret
+            ),
         )
             .into_response(),
         Err(rooms::ServerFull) => retry_after(StatusCode::SERVICE_UNAVAILABLE, 60),
     }
 }
 
-/// The room for this request. Unknown room and wrong secret both answer 404.
-fn open_room(state: &AppState, id: &str, headers: &HeaderMap) -> Result<Arc<Room>, StatusCode> {
+/// The room, if the request carries the secret of `role`. Unknown room and
+/// wrong secret both answer 404.
+fn open_room(
+    state: &AppState,
+    id: &str,
+    role: Role,
+    headers: &HeaderMap,
+) -> Result<Arc<Room>, Response> {
     let secret = headers
         .get(SECRET_HEADER)
         .and_then(|v| v.to_str().ok())
         .unwrap_or_default();
-    state.0.rooms.open(id, secret).ok_or(StatusCode::NOT_FOUND)
+    state
+        .0
+        .rooms
+        .open(id, role, secret)
+        .ok_or_else(|| StatusCode::NOT_FOUND.into_response())
 }
 
-fn open_mailbox(
-    state: &AppState,
-    id: &str,
-    role: &str,
-    headers: &HeaderMap,
-) -> Result<(Arc<Room>, Role), StatusCode> {
-    let role = Role::parse(role).ok_or(StatusCode::NOT_FOUND)?;
-    Ok((open_room(state, id, headers)?, role))
+fn push_error(e: PushError) -> Response {
+    match e {
+        // The reader is not polling (asleep, offline): slow down
+        PushError::Full => retry_after(StatusCode::TOO_MANY_REQUESTS, 1),
+        PushError::TooManyPhones => retry_after(StatusCode::TOO_MANY_REQUESTS, 30),
+    }
 }
 
-async fn send(
-    State(state): State<AppState>,
-    Path((id, role)): Path<(String, String)>,
-    headers: HeaderMap,
-    body: Bytes,
-) -> Response {
-    let (room, role) = match open_mailbox(&state, &id, &role, &headers) {
-        Ok(found) => found,
-        Err(status) => return status.into_response(),
+/// Appends the body to `inbox`: only the other role may write to it. The
+/// secret is checked before the body is read.
+async fn send(state: AppState, id: &str, inbox: Inbox<'_>, req: Request) -> Response {
+    let room = match open_room(&state, id, inbox.owner().peer(), req.headers()) {
+        Ok(room) => room,
+        Err(resp) => return resp,
+    };
+    let body = match axum::body::to_bytes(req.into_body(), MAX_BODY).await {
+        Ok(body) => body,
+        Err(_) => return StatusCode::PAYLOAD_TOO_LARGE.into_response(),
     };
     if validate(&body).is_err() {
         return StatusCode::BAD_REQUEST.into_response();
     }
-    match room.push(role.peer(), &body) {
+    match room.push(inbox, &body) {
         Ok(()) => StatusCode::NO_CONTENT.into_response(),
-        // The other end is not polling (asleep, offline): slow down
-        Err(rooms::MailboxFull) => retry_after(StatusCode::TOO_MANY_REQUESTS, 1),
+        Err(e) => push_error(e),
     }
 }
 
-async fn poll(
-    State(state): State<AppState>,
-    Path((id, role)): Path<(String, String)>,
-    headers: HeaderMap,
-) -> Response {
-    let (room, role) = match open_mailbox(&state, &id, &role, &headers) {
-        Ok(found) => found,
-        Err(status) => return status.into_response(),
+/// Empties `inbox`: only its owner may read it.
+async fn poll(state: AppState, id: &str, inbox: Inbox<'_>, headers: &HeaderMap) -> Response {
+    let room = match open_room(&state, id, inbox.owner(), headers) {
+        Ok(room) => room,
+        Err(resp) => return resp,
     };
-    match room.take(role, Duration::from_secs(POLL_WAIT_SECS)).await {
-        Taken::Frames(bytes) => {
+    match room.take(inbox, Duration::from_secs(POLL_WAIT_SECS)).await {
+        Ok(Taken::Frames(bytes)) => {
             ([(header::CONTENT_TYPE, "application/octet-stream")], bytes).into_response()
         }
-        Taken::Empty => StatusCode::NO_CONTENT.into_response(),
-        Taken::Closed => StatusCode::NOT_FOUND.into_response(),
+        Ok(Taken::Empty) => StatusCode::NO_CONTENT.into_response(),
+        Ok(Taken::Closed) => StatusCode::NOT_FOUND.into_response(),
+        Err(e) => push_error(e),
     }
 }
 
+async fn send_desktop(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    req: Request,
+) -> Response {
+    send(state, &id, Inbox::Desktop, req).await
+}
+
+async fn poll_desktop(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    headers: HeaderMap,
+) -> Response {
+    poll(state, &id, Inbox::Desktop, &headers).await
+}
+
+async fn send_phone(
+    State(state): State<AppState>,
+    Path((id, tag)): Path<(String, String)>,
+    req: Request,
+) -> Response {
+    match valid_inbox_tag(&tag) {
+        true => send(state, &id, Inbox::Phone(&tag), req).await,
+        false => StatusCode::NOT_FOUND.into_response(),
+    }
+}
+
+async fn poll_phone(
+    State(state): State<AppState>,
+    Path((id, tag)): Path<(String, String)>,
+    headers: HeaderMap,
+) -> Response {
+    match valid_inbox_tag(&tag) {
+        true => poll(state, &id, Inbox::Phone(&tag), &headers).await,
+        false => StatusCode::NOT_FOUND.into_response(),
+    }
+}
+
+/// Only the desktop may close its room.
 async fn close_room(
     State(state): State<AppState>,
     Path(id): Path<String>,
     headers: HeaderMap,
-) -> StatusCode {
-    match open_room(&state, &id, &headers) {
+) -> Response {
+    match open_room(&state, &id, Role::Desktop, &headers) {
         Ok(_) => {
             state.0.rooms.close(&id);
-            StatusCode::NO_CONTENT
+            StatusCode::NO_CONTENT.into_response()
         }
-        Err(status) => status,
+        Err(resp) => resp,
     }
 }

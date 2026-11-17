@@ -2,7 +2,9 @@
 //! Requests go through `reqwest`, which honors the system proxy: hospital
 //! networks often force an HTTP proxy that would break a WebSocket.
 
-use plumed_relay_protocol::{decode, encode, mailbox_path, Frame, Role, ROOMS_PATH, SECRET_HEADER};
+use plumed_relay_protocol::{
+    decode, desktop_inbox_path, encode, phone_inbox_path, Frame, ROOMS_PATH, SECRET_HEADER,
+};
 use reqwest::{header, Client, Response, StatusCode};
 use serde::Deserialize;
 use std::time::Duration;
@@ -31,12 +33,16 @@ impl From<reqwest::Error> for ClientError {
     }
 }
 
-/// A room on the relay: id + secret, as encoded in the QR link.
+/// A room on the relay: its id and the secret of each side. Only the phone
+/// secret goes into the QR link.
 #[derive(Clone, Deserialize)]
 pub struct Room {
     #[serde(rename = "room")]
     pub id: String,
-    pub secret: String,
+    #[serde(rename = "desktop")]
+    pub desktop_secret: String,
+    #[serde(rename = "phone")]
+    pub phone_secret: String,
 }
 
 #[derive(Clone)]
@@ -57,11 +63,11 @@ pub fn origin_of(server_url: &str) -> Result<String, String> {
     }
 }
 
-/// The link the phone scans: `<origin>/#<room>.<secret>.<desktop public key>`.
+/// The link the phone scans: `<origin>/#<room>.<phone secret>.<desktop public key>`.
 pub fn phone_link(origin: &str, room: &Room, desktop_key_b64url: &str) -> String {
     format!(
         "{}/#{}.{}.{}",
-        origin, room.id, room.secret, desktop_key_b64url
+        origin, room.id, room.phone_secret, desktop_key_b64url
     )
 }
 
@@ -107,27 +113,23 @@ impl RelayClient {
         &self.origin
     }
 
-    fn mailbox_url(&self, room: &Room, role: Role) -> String {
-        format!("{}{}", self.origin, mailbox_path(&room.id, role))
-    }
-
     pub async fn create_room(&self) -> Result<Room, ClientError> {
         let url = format!("{}{}", self.origin, ROOMS_PATH);
         let resp = check(self.http.post(url).send().await?).await?;
         Ok(resp.json().await?)
     }
 
-    /// Posts frames to the other side, as `role`.
-    pub async fn send_as(
+    /// Posts frames to the inbox at `path`, proving `secret`.
+    pub async fn send_to(
         &self,
-        room: &Room,
-        role: Role,
+        path: &str,
+        secret: &str,
         frames: &[Frame],
     ) -> Result<(), ClientError> {
         let resp = self
             .http
-            .post(self.mailbox_url(room, role))
-            .header(SECRET_HEADER, &room.secret)
+            .post(format!("{}{}", self.origin, path))
+            .header(SECRET_HEADER, secret)
             .header(header::CONTENT_TYPE, "application/octet-stream")
             .body(encode(frames))
             .send()
@@ -135,12 +137,12 @@ impl RelayClient {
         check(resp).await.map(|_| ())
     }
 
-    /// Waits up to 25 s for frames addressed to `role` (empty: nothing came).
-    pub async fn poll_as(&self, room: &Room, role: Role) -> Result<Vec<Frame>, ClientError> {
+    /// Waits up to 25 s for frames in the inbox at `path` (empty: nothing came).
+    pub async fn poll_from(&self, path: &str, secret: &str) -> Result<Vec<Frame>, ClientError> {
         let req = self
             .http
-            .get(self.mailbox_url(room, role))
-            .header(SECRET_HEADER, &room.secret);
+            .get(format!("{}{}", self.origin, path))
+            .header(SECRET_HEADER, secret);
         let resp = check(req.send().await?).await?;
         if resp.status() == StatusCode::NO_CONTENT {
             return Ok(Vec::new());
@@ -148,12 +150,16 @@ impl RelayClient {
         decode(&resp.bytes().await?).map_err(|e| ClientError::Invalid(e.to_string()))
     }
 
-    pub async fn send(&self, room: &Room, frames: &[Frame]) -> Result<(), ClientError> {
-        self.send_as(room, Role::Desktop, frames).await
+    /// Posts frames to the phone that polls the inbox `tag`.
+    pub async fn send(&self, room: &Room, tag: &str, frames: &[Frame]) -> Result<(), ClientError> {
+        let path = phone_inbox_path(&room.id, tag);
+        self.send_to(&path, &room.desktop_secret, frames).await
     }
 
+    /// Waits for frames from the phones.
     pub async fn poll(&self, room: &Room) -> Result<Vec<Frame>, ClientError> {
-        self.poll_as(room, Role::Desktop).await
+        self.poll_from(&desktop_inbox_path(&room.id), &room.desktop_secret)
+            .await
     }
 
     /// Best effort: the relay drops idle rooms anyway.
@@ -162,7 +168,7 @@ impl RelayClient {
         let _ = self
             .http
             .delete(url)
-            .header(SECRET_HEADER, &room.secret)
+            .header(SECRET_HEADER, &room.desktop_secret)
             .send()
             .await;
     }
@@ -219,7 +225,8 @@ mod tests {
     fn phone_link_layout() {
         let room = Room {
             id: "AbC-_9".into(),
-            secret: "s3cr_et".into(),
+            desktop_secret: "d3sk".into(),
+            phone_secret: "s3cr_et".into(),
         };
         assert_eq!(
             phone_link("https://turn.plumed.fr", &room, "BKEY"),

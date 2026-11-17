@@ -1,4 +1,6 @@
-// HTTPS long-poll transport to the relay (see the server's lib.rs for the API).
+// HTTPS long-poll transport to the relay (see the protocol crate for the API).
+// The phone posts to the desktop inbox and polls its own inbox, named by a
+// random tag so phones of the same room never take each other's frames.
 // Network errors are retried forever with backoff: a phone that loses the
 // network picks up where it stopped. Duplicated POSTs are harmless, the
 // desktop drops frames whose sequence number it has already seen.
@@ -13,8 +15,10 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export class Relay {
     /** handlers: {onFrames(frames) async, onClosed(), onOnline(boolean)} */
-    constructor(room, secret, handlers) {
-        this.url = `/api/rooms/${encodeURIComponent(room)}/phone`;
+    constructor(room, secret, inbox, handlers) {
+        const base = `/api/rooms/${encodeURIComponent(room)}`;
+        this.postUrl = `${base}/desktop`;
+        this.pollUrl = `${base}/phone/${encodeURIComponent(inbox)}`;
         this.secret = secret;
         this.handlers = handlers;
         this.queue = [];
@@ -50,8 +54,8 @@ export class Relay {
         this.handlers.onClosed();
     }
 
-    request(method, body) {
-        return fetch(this.url, {
+    request(method, url, body) {
+        return fetch(url, {
             method,
             body,
             cache: 'no-store',
@@ -85,7 +89,7 @@ export class Relay {
             const { n, body } = this.nextBatch();
             let wait = backoff;
             try {
-                const r = await this.request('POST', body);
+                const r = await this.request('POST', this.postUrl, body);
                 switch (r.status) {
                     case 204:
                     case 400: // malformed: a bug, retrying would block the queue
@@ -115,7 +119,7 @@ export class Relay {
         let backoff = 1;
         while (this.running) {
             try {
-                const r = await this.request('GET');
+                const r = await this.request('GET', this.pollUrl);
                 if (r.status === 200 || r.status === 204) {
                     this.setOnline(true);
                     backoff = 1;

@@ -8,7 +8,7 @@
 //! and QR code are opened.
 
 use super::client::{phone_link, ClientError, RelayClient, Room};
-use super::protocol::{Event, Pairing, Step, CANDIDATE_TTL};
+use super::protocol::{Event, Outgoing, Pairing, Step, CANDIDATE_TTL};
 use crate::smartmic::audio_bridge::transcribe_pcm;
 use log::{info, warn};
 use parking_lot::Mutex;
@@ -241,13 +241,24 @@ fn spawn_poller(
 
 /// Posts what the protocol produced. A lost reply is not fatal: `BOUND` is
 /// resent, and `RECEIVED`, `stale` or `denied` only update the phone screen.
-async fn post(client: &RelayClient, room: &Room, frames: &[Frame]) {
-    if frames.is_empty() {
-        return;
+async fn post(client: &RelayClient, room: &Room, outgoing: Vec<Outgoing>) {
+    for (inbox, frames) in by_inbox(outgoing) {
+        if let Err(e) = client.send(room, &inbox, &frames).await {
+            warn!("Remote mic: could not reach the phone: {}", e);
+        }
     }
-    if let Err(e) = client.send(room, frames).await {
-        warn!("Remote mic: could not reach the phone: {}", e);
+}
+
+/// Runs of consecutive frames for the same inbox, in order: one request each.
+fn by_inbox(outgoing: Vec<Outgoing>) -> Vec<(String, Vec<Frame>)> {
+    let mut runs: Vec<(String, Vec<Frame>)> = Vec::new();
+    for Outgoing { inbox, frame } in outgoing {
+        match runs.last_mut() {
+            Some((last, frames)) if *last == inbox => frames.push(frame),
+            _ => runs.push((inbox, vec![frame])),
+        }
     }
+    runs
 }
 
 async fn serve_room(
@@ -271,8 +282,8 @@ async fn serve_room(
         let step = tokio::select! {
             _ = resend.tick(), if bound_resends > 0 => {
                 bound_resends -= 1;
-                pairing.seal_op(op::BOUND).map(|frame| Step {
-                    send: frame.into_iter().collect(),
+                pairing.seal_op(op::BOUND).map(|out| Step {
+                    send: out.into_iter().collect(),
                     event: None,
                 })
             }
@@ -301,7 +312,7 @@ async fn serve_room(
         };
         match step {
             Ok(step) => {
-                post(client, room, &step.send).await;
+                post(client, room, step.send).await;
                 ui.show(client.origin(), room, &pairing);
             }
             Err(e) => break RoomOutcome::Failed(e.to_string()),
@@ -411,6 +422,24 @@ fn spawn_transcriber(app: AppHandle) -> RecordingQueue {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn replies_are_grouped_per_inbox_in_order() {
+        let out = |inbox: &str, n: u8| Outgoing {
+            inbox: inbox.into(),
+            frame: Frame::Binary(vec![n]),
+        };
+        let runs = by_inbox(vec![out("a", 1), out("a", 2), out("b", 3), out("a", 4)]);
+        let bin = |n: u8| Frame::Binary(vec![n]);
+        assert_eq!(
+            runs,
+            vec![
+                ("a".to_string(), vec![bin(1), bin(2)]),
+                ("b".to_string(), vec![bin(3)]),
+                ("a".to_string(), vec![bin(4)]),
+            ]
+        );
+    }
 
     #[test]
     fn the_queue_is_bounded() {

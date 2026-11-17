@@ -6,7 +6,9 @@ use axum::response::Response;
 use axum::Router;
 use http_body_util::BodyExt;
 use plumed_relay::{app, Config};
-use plumed_relay_protocol::{encode, Frame, ROOMS_PATH, SECRET_HEADER};
+use plumed_relay_protocol::{
+    desktop_inbox_path, encode, phone_inbox_path, Frame, ROOMS_PATH, SECRET_HEADER,
+};
 use tower::ServiceExt;
 
 fn router(max_rooms: usize, rooms_per_ip_per_hour: u32) -> Router {
@@ -37,13 +39,35 @@ async fn body(resp: Response) -> Vec<u8> {
         .to_vec()
 }
 
-/// -> (room, secret)
-async fn create(router: &Router) -> (String, String) {
+const TAG: &str = "AAAAAAAAAAAAAAAAAAAAAA";
+const OTHER_TAG: &str = "BBBBBBBBBBBBBBBBBBBBBB";
+
+struct Created {
+    room: String,
+    desktop: String,
+    phone: String,
+}
+
+impl Created {
+    fn desktop_inbox(&self) -> String {
+        desktop_inbox_path(&self.room)
+    }
+
+    fn phone_inbox(&self, tag: &str) -> String {
+        phone_inbox_path(&self.room, tag)
+    }
+}
+
+async fn create(router: &Router) -> Created {
     let resp = call(router, Method::POST, ROOMS_PATH, "", vec![]).await;
     assert_eq!(resp.status(), StatusCode::CREATED);
     let json: serde_json::Value = serde_json::from_slice(&body(resp).await).expect("json");
     let field = |name: &str| json[name].as_str().expect("string").to_owned();
-    (field("room"), field("secret"))
+    Created {
+        room: field("room"),
+        desktop: field("desktop"),
+        phone: field("phone"),
+    }
 }
 
 fn envelope() -> Vec<u8> {
@@ -79,57 +103,67 @@ async fn phone_page_is_served() {
 }
 
 #[tokio::test]
-async fn frames_go_to_the_peer_mailbox() {
+async fn frames_go_to_the_peer_inbox() {
     let r = router(10, 10);
-    let (room, secret) = create(&r).await;
-    let phone = format!("{ROOMS_PATH}/{room}/phone");
-    let desktop = format!("{ROOMS_PATH}/{room}/desktop");
-    let sent = call(&r, Method::POST, &phone, &secret, envelope()).await;
-    assert_eq!(sent.status(), StatusCode::NO_CONTENT);
-    let sent = call(&r, Method::POST, &phone, &secret, envelope()).await;
-    assert_eq!(sent.status(), StatusCode::NO_CONTENT);
-    let got = call(&r, Method::GET, &desktop, &secret, vec![]).await;
+    let c = create(&r).await;
+    for _ in 0..2 {
+        let sent = call(&r, Method::POST, &c.desktop_inbox(), &c.phone, envelope()).await;
+        assert_eq!(sent.status(), StatusCode::NO_CONTENT);
+    }
+    let got = call(&r, Method::GET, &c.desktop_inbox(), &c.desktop, vec![]).await;
     assert_eq!(got.status(), StatusCode::OK);
     // Both envelopes, concatenated
     assert_eq!(body(got).await, [envelope(), envelope()].concat());
+
+    let sent = call(
+        &r,
+        Method::POST,
+        &c.phone_inbox(TAG),
+        &c.desktop,
+        envelope(),
+    )
+    .await;
+    assert_eq!(sent.status(), StatusCode::NO_CONTENT);
+    let got = call(&r, Method::GET, &c.phone_inbox(TAG), &c.phone, vec![]).await;
+    assert_eq!(body(got).await, envelope());
+}
+
+#[tokio::test(start_paused = true)]
+async fn phones_do_not_share_an_inbox() {
+    let r = router(10, 10);
+    let c = create(&r).await;
+    call(
+        &r,
+        Method::POST,
+        &c.phone_inbox(TAG),
+        &c.desktop,
+        envelope(),
+    )
+    .await;
+    let other = call(&r, Method::GET, &c.phone_inbox(OTHER_TAG), &c.phone, vec![]).await;
+    assert_eq!(other.status(), StatusCode::NO_CONTENT);
+    let mine = call(&r, Method::GET, &c.phone_inbox(TAG), &c.phone, vec![]).await;
+    assert_eq!(body(mine).await, envelope());
 }
 
 #[tokio::test(start_paused = true)]
 async fn empty_poll_times_out_with_204() {
     let r = router(10, 10);
-    let (room, secret) = create(&r).await;
-    let got = call(
-        &r,
-        Method::GET,
-        &format!("{ROOMS_PATH}/{room}/phone"),
-        &secret,
-        vec![],
-    )
-    .await;
+    let c = create(&r).await;
+    let got = call(&r, Method::GET, &c.phone_inbox(TAG), &c.phone, vec![]).await;
     assert_eq!(got.status(), StatusCode::NO_CONTENT);
 }
 
 #[tokio::test]
 async fn waiting_poll_wakes_up_on_send() {
     let r = router(10, 10);
-    let (room, secret) = create(&r).await;
+    let c = create(&r).await;
     let poll = {
-        let (r, uri, secret) = (
-            r.clone(),
-            format!("{ROOMS_PATH}/{room}/desktop"),
-            secret.clone(),
-        );
+        let (r, uri, secret) = (r.clone(), c.desktop_inbox(), c.desktop.clone());
         tokio::spawn(async move { call(&r, Method::GET, &uri, &secret, vec![]).await })
     };
     tokio::task::yield_now().await;
-    call(
-        &r,
-        Method::POST,
-        &format!("{ROOMS_PATH}/{room}/phone"),
-        &secret,
-        envelope(),
-    )
-    .await;
+    call(&r, Method::POST, &c.desktop_inbox(), &c.phone, envelope()).await;
     let got = tokio::time::timeout(std::time::Duration::from_secs(5), poll)
         .await
         .expect("woken before the long-poll timeout")
@@ -138,55 +172,95 @@ async fn waiting_poll_wakes_up_on_send() {
 }
 
 #[tokio::test]
-async fn wrong_secret_bad_role_and_bad_envelope() {
+async fn each_role_only_does_its_part() {
     let r = router(10, 10);
-    let (room, secret) = create(&r).await;
-    let phone = format!("{ROOMS_PATH}/{room}/phone");
-    let wrong = call(&r, Method::POST, &phone, "nope", envelope()).await;
+    let c = create(&r).await;
+    let status = |method: Method, uri: String, secret: String, body: Vec<u8>| {
+        let r = r.clone();
+        async move { call(&r, method, &uri, &secret, body).await.status() }
+    };
+    let not_found = StatusCode::NOT_FOUND;
+    // The QR (phone secret) can neither read the desktop inbox nor close the room
+    assert_eq!(
+        status(Method::GET, c.desktop_inbox(), c.phone.clone(), vec![]).await,
+        not_found
+    );
+    let close = format!("{ROOMS_PATH}/{}", c.room);
+    assert_eq!(
+        status(Method::DELETE, close.clone(), c.phone.clone(), vec![]).await,
+        not_found
+    );
+    // Nobody writes to their own inbox
+    assert_eq!(
+        status(
+            Method::POST,
+            c.desktop_inbox(),
+            c.desktop.clone(),
+            envelope()
+        )
+        .await,
+        not_found
+    );
+    assert_eq!(
+        status(
+            Method::POST,
+            c.phone_inbox(TAG),
+            c.phone.clone(),
+            envelope()
+        )
+        .await,
+        not_found
+    );
+    assert_eq!(
+        status(Method::GET, c.phone_inbox(TAG), c.desktop.clone(), vec![]).await,
+        not_found
+    );
+    assert_eq!(
+        status(Method::DELETE, close, c.desktop.clone(), vec![]).await,
+        StatusCode::NO_CONTENT
+    );
+}
+
+#[tokio::test]
+async fn wrong_secret_bad_path_and_bad_envelope() {
+    let r = router(10, 10);
+    let c = create(&r).await;
+    let inbox = c.desktop_inbox();
+    let wrong = call(&r, Method::POST, &inbox, "nope", envelope()).await;
     assert_eq!(wrong.status(), StatusCode::NOT_FOUND);
     let unknown = call(
         &r,
         Method::POST,
-        &format!("{ROOMS_PATH}/zzz/phone"),
-        &secret,
+        &desktop_inbox_path("zzz"),
+        &c.phone,
         envelope(),
     )
     .await;
     assert_eq!(unknown.status(), StatusCode::NOT_FOUND);
-    let role = call(
+    let role = format!("{ROOMS_PATH}/{}/tv", c.room);
+    let role = call(&r, Method::POST, &role, &c.phone, envelope()).await;
+    assert_eq!(role.status(), StatusCode::NOT_FOUND);
+    let short_tag = call(
         &r,
         Method::POST,
-        &format!("{ROOMS_PATH}/{room}/tv"),
-        &secret,
+        &c.phone_inbox("abc"),
+        &c.desktop,
         envelope(),
     )
     .await;
-    assert_eq!(role.status(), StatusCode::NOT_FOUND);
-    let bad = call(&r, Method::POST, &phone, &secret, vec![9, 0, 0, 0, 0]).await;
+    assert_eq!(short_tag.status(), StatusCode::NOT_FOUND);
+    let bad = call(&r, Method::POST, &inbox, &c.phone, vec![9, 0, 0, 0, 0]).await;
     assert_eq!(bad.status(), StatusCode::BAD_REQUEST);
 }
 
 #[tokio::test]
 async fn closed_room_answers_404() {
     let r = router(10, 10);
-    let (room, secret) = create(&r).await;
-    let closed = call(
-        &r,
-        Method::DELETE,
-        &format!("{ROOMS_PATH}/{room}"),
-        &secret,
-        vec![],
-    )
-    .await;
+    let c = create(&r).await;
+    let close = format!("{ROOMS_PATH}/{}", c.room);
+    let closed = call(&r, Method::DELETE, &close, &c.desktop, vec![]).await;
     assert_eq!(closed.status(), StatusCode::NO_CONTENT);
-    let got = call(
-        &r,
-        Method::GET,
-        &format!("{ROOMS_PATH}/{room}/phone"),
-        &secret,
-        vec![],
-    )
-    .await;
+    let got = call(&r, Method::GET, &c.phone_inbox(TAG), &c.phone, vec![]).await;
     assert_eq!(got.status(), StatusCode::NOT_FOUND);
 }
 

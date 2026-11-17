@@ -1,7 +1,7 @@
 // Phone page of the Plumed remote microphone.
 //
-// The QR code opens {origin}/#{room}.{secret}.{desktop public key}. The phone
-// sends its own public key in a "hello", the desktop user checks the pairing
+// The QR code opens {origin}/#{room}.{phone secret}.{desktop public key}. The
+// phone sends its own public key and its inbox tag in a "hello", the desktop user checks the pairing
 // code on both screens and confirms, then every frame is AES-GCM encrypted:
 // IV || AES-GCM(seq || op || payload). The relay never sees the key.
 
@@ -25,6 +25,8 @@ const ui = { view: 'loading', error: null, state: 'state_idle', notice: null };
 
 const session = {
     relay: null,
+    // Random name of the inbox this phone polls
+    inbox: null,
     storeKey: null,
     key: null,
     rawKey: null,
@@ -103,7 +105,12 @@ function showLevel(db) {
 /** Survives a reload (sessionStorage, this tab only) so the phone reconnects without a new pairing. */
 function save() {
     if (!session.bound) return;
-    const saved = { key: crypto.toB64(session.rawKey), seqOut: session.seqOut, seqIn: session.seqIn };
+    const saved = {
+        key: crypto.toB64(session.rawKey),
+        inbox: session.inbox,
+        seqOut: session.seqOut,
+        seqIn: session.seqIn,
+    };
     sessionStorage.setItem(session.storeKey, JSON.stringify(saved));
 }
 
@@ -188,6 +195,8 @@ async function restore(storeKey) {
     try {
         const saved = JSON.parse(raw);
         session.rawKey = crypto.fromB64(saved.key);
+        if (typeof saved.inbox !== 'string') throw new Error('no inbox');
+        session.inbox = saved.inbox;
         session.key = await crypto.aesKey(session.rawKey);
         session.seqOut = saved.seqOut;
         session.seqIn = saved.seqIn;
@@ -205,7 +214,7 @@ async function pair(desktopRaw) {
     session.key = await crypto.aesKey(session.rawKey);
     $('fingerprint').textContent = await crypto.fingerprint(desktopRaw, mine.publicRaw);
     session.publicB64 = crypto.toB64(mine.publicRaw);
-    const hello = { type: 'hello', key: session.publicB64, to: crypto.toB64(desktopRaw) };
+    const hello = { type: 'hello', key: session.publicB64, to: crypto.toB64(desktopRaw), inbox: session.inbox };
     session.relay.send([{ text: JSON.stringify(hello) }]);
     show('pairing');
 }
@@ -221,14 +230,15 @@ async function start() {
     if (link === null) return fail('no_link');
     if (globalThis.crypto?.subtle === undefined) return fail('unsupported');
     session.storeKey = `plumed-mic:${link.room}`;
-    session.relay = new Relay(link.room, link.secret, {
+    const restored = await restore(session.storeKey);
+    if (!restored) session.inbox = crypto.toB64url(globalThis.crypto.getRandomValues(new Uint8Array(16)));
+    session.relay = new Relay(link.room, link.secret, session.inbox, {
         onFrames,
         onClosed: () => fail('closed'),
         onOnline: (online) => {
             $('banner').hidden = online;
         },
     });
-    const restored = await restore(session.storeKey);
     session.relay.start();
     if (restored) showConnected();
     else await pair(link.desktopRaw);

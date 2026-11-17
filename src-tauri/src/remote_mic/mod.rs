@@ -11,16 +11,21 @@ pub mod session;
 /// `PLUMED_RELAY_E2E_URL=http://127.0.0.1:5174 cargo test --lib relay_e2e -- --ignored`
 #[cfg(test)]
 mod e2e {
-    use super::client::{origin_of, phone_link, RelayClient, Room};
+    use super::client::{origin_of, phone_link, RelayClient};
     use super::crypto::KeyPair;
     use super::protocol::{Event, Pairing};
     use base64::engine::general_purpose::{STANDARD, URL_SAFE_NO_PAD};
     use base64::Engine;
-    use plumed_relay_protocol::{op, open_inner, seal_inner, Frame, Role};
+    use plumed_relay_protocol::{
+        desktop_inbox_path, op, open_inner, phone_inbox_path, seal_inner, Frame,
+    };
 
-    async fn next(c: &RelayClient, room: &Room, role: Role) -> Vec<Frame> {
+    const TAG: &str = "e2e-phone-inbox-tag-00";
+
+    /// Polls `path` (as the desktop or, with the phone secret, as the phone).
+    async fn next(c: &RelayClient, path: &str, secret: &str) -> Vec<Frame> {
         loop {
-            let frames = c.poll_as(room, role).await.unwrap();
+            let frames = c.poll_from(path, secret).await.unwrap();
             if !frames.is_empty() {
                 return frames;
             }
@@ -47,14 +52,22 @@ mod e2e {
             "type": "hello",
             "key": phone_kp.public_b64(),
             "to": STANDARD.encode(&desktop_raw),
+            "inbox": TAG,
         });
         let phone_key = phone_kp.derive(&desktop_raw).unwrap();
         let send_phone = |frame: Frame| {
             let (c, room) = (client.clone(), room.clone());
-            async move { c.send_as(&room, Role::Phone, &[frame]).await.unwrap() }
+            let path = desktop_inbox_path(&room.id);
+            async move {
+                c.send_to(&path, &room.phone_secret, &[frame])
+                    .await
+                    .unwrap()
+            }
         };
+        let desktop_inbox = desktop_inbox_path(&room.id);
+        let phone_inbox = phone_inbox_path(&room.id, TAG);
         send_phone(Frame::Text(hello.to_string())).await;
-        let frames = next(&client, &room, Role::Desktop).await;
+        let frames = next(&client, &desktop_inbox, &room.desktop_secret).await;
         let step = pairing.on_frame(frames[0].clone()).unwrap();
         let Some(Event::Fingerprint(code)) = step.event else {
             panic!("expected a fingerprint");
@@ -62,8 +75,11 @@ mod e2e {
 
         // The desktop user confirms: the phone gets BOUND
         let step = pairing.confirm(&code, true).unwrap();
-        client.send(&room, &step.send).await.unwrap();
-        let Frame::Binary(packet) = &next(&client, &room, Role::Phone).await[0] else {
+        let bound = step.send.into_iter().next().unwrap();
+        assert_eq!(bound.inbox, TAG);
+        client.send(&room, TAG, &[bound.frame]).await.unwrap();
+        let Frame::Binary(packet) = &next(&client, &phone_inbox, &room.phone_secret).await[0]
+        else {
             panic!("expected BOUND");
         };
         let plain = phone_key.decrypt(packet).unwrap();
@@ -81,7 +97,7 @@ mod e2e {
         }
         let mut recording = None;
         while recording.is_none() {
-            for frame in next(&client, &room, Role::Desktop).await {
+            for frame in next(&client, &desktop_inbox, &room.desktop_secret).await {
                 recording = recording.or(pairing.on_frame(frame).unwrap().event);
             }
         }
