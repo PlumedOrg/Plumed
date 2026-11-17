@@ -12,7 +12,7 @@ use std::path::Path;
 
 use super::boost_tree::{BiasCandidate, BoostTree};
 use super::helpers::{load_tokenizer, tokenize_word_to_ids, word_variants};
-use super::phrase_boost::{add_phrase_bonuses, BoostingTrie};
+use super::phrase_boost::{add_phrase_bonuses, BoostingTrie, NodeId};
 use super::types::{DecoderState, ParakeetError, ParakeetModel, TimestampedResult};
 
 /// Tokens, frame timestamps and raw-logit probabilities of one decoded
@@ -724,28 +724,7 @@ impl ParakeetModel {
             let (vocab_logits, dur_logits) = Self::tdt_logits(&probs, self.vocab_size)?;
 
             let candidates = tree.map_or_else(Vec::new, |tree| tree.bias(boost_state));
-            let mut boosted = vocab_logits.to_vec();
-            if !candidates.is_empty() {
-                let tight = top_k_threshold(vocab_logits, BOOST_TOP_K);
-                let deep = top_k_threshold(vocab_logits, BOOST_TOP_K_DEEP);
-                for cand in &candidates {
-                    let idx = cand.token as usize;
-                    let threshold = if top_k_for_depth(cand.depth) == BOOST_TOP_K_DEEP {
-                        deep
-                    } else {
-                        tight
-                    };
-                    if cand.token != self.blank_idx
-                        && idx < boosted.len()
-                        && vocab_logits[idx] >= threshold
-                    {
-                        boosted[idx] += self.boost_alpha * cand.score;
-                    }
-                }
-            }
-            if let Some(trie) = trie {
-                add_phrase_bonuses(trie, vocab_logits, &active, self.blank_idx, &mut boosted);
-            }
+            let boosted = self.boosted_logits(vocab_logits, &candidates, trie, &active);
             let token = argmax_token(&boosted, self.blank_idx);
             if log::log_enabled!(log::Level::Trace)
                 && token != self.blank_idx
@@ -781,6 +760,42 @@ impl ParakeetModel {
         }
 
         Ok((tokens, timestamps, token_probs))
+    }
+
+    /// `vocab_logits` plus both boosts: the dictionary tree's `candidates`
+    /// (gated by the top-K guard, scaled by `boost_alpha`), then the phrase
+    /// trie's bonuses for the `active` set. Shared by the greedy and beam
+    /// decoders, so both boost a hypothesis exactly the same way.
+    pub(super) fn boosted_logits(
+        &self,
+        vocab_logits: &[f32],
+        candidates: &[BiasCandidate],
+        trie: Option<&BoostingTrie>,
+        active: &[NodeId],
+    ) -> Vec<f32> {
+        let mut boosted = vocab_logits.to_vec();
+        if !candidates.is_empty() {
+            let tight = top_k_threshold(vocab_logits, BOOST_TOP_K);
+            let deep = top_k_threshold(vocab_logits, BOOST_TOP_K_DEEP);
+            for cand in candidates {
+                let idx = cand.token as usize;
+                let threshold = if top_k_for_depth(cand.depth) == BOOST_TOP_K_DEEP {
+                    deep
+                } else {
+                    tight
+                };
+                if cand.token != self.blank_idx
+                    && idx < boosted.len()
+                    && vocab_logits[idx] >= threshold
+                {
+                    boosted[idx] += self.boost_alpha * cand.score;
+                }
+            }
+        }
+        if let Some(trie) = trie {
+            add_phrase_bonuses(trie, vocab_logits, active, self.blank_idx, &mut boosted);
+        }
+        boosted
     }
 
     fn decode_tokens(
