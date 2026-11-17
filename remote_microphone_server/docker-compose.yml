@@ -1,0 +1,36 @@
+# Plumed remote microphone relay, behind a reverse proxy that terminates TLS
+# (Caddy on the VPS: turn.plumed.fr -> 127.0.0.1:5174). See README.md.
+name: plumed_relay
+
+services:
+  plumed-relay:
+    build: .
+    container_name: plumed-relay
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5174:5174"
+    environment:
+      - PLUMED_RELAY_BIND=0.0.0.0:5174
+      # Caddy sets X-Forwarded-For, the per-IP limit needs the real client IP
+      - PLUMED_RELAY_TRUST_PROXY=true
+      - PLUMED_RELAY_MAX_ROOMS=${PLUMED_RELAY_MAX_ROOMS:-500}
+      - PLUMED_RELAY_ROOMS_PER_IP_PER_HOUR=${PLUMED_RELAY_ROOMS_PER_IP_PER_HOUR:-60}
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 256m
+    cpus: "1.0"
+    pids_limit: 64
+    healthcheck:
+      test: ["CMD", "/plumed-relay", "--healthcheck"]
+      interval: 30s
+      timeout: 6s
+      retries: 3
+      start_period: 5s
+    logging:
+      driver: json-file
+      options:
+        max-size: "1m"
+        max-file: "3"

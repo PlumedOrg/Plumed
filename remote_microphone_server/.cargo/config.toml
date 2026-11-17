@@ -1,0 +1,3 @@
+# Build output goes to the gitignored, backup-excluded folder of the repo
+[build]
+target-dir = "../plumed_build_ignore_backups/relay-target"

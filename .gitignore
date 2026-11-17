@@ -56,3 +56,7 @@ AGENTS.local.md
 
 # Local build artifacts, releases and benchmarks (Plumed fork)
 /plumed_build_ignore_backups/
+
+# Plumed remote microphone relay: local deploy script and secrets
+/remote_microphone_server/deploy.sh
+/remote_microphone_server/.env
