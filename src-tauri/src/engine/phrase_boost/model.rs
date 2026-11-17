@@ -37,15 +37,17 @@ mod tests {
     use super::*;
     use crate::audio::pipeline::pad_with_silence;
     use crate::engine::transcription_engine::TranscriptionEngine;
+    use crate::engine::types::ParakeetInferenceParams;
     use std::path::Path;
 
     /// Decoding benchmark harness: transcribes every 16 kHz mono wav listed
     /// (one path per line) in PLUMED_BENCH_WAVS and prints one
     /// `HYP<TAB>path<TAB>text` line each. Optional boosting, combinable:
     /// PLUMED_BOOST_WORDS_FILE (dictionary words, one per line) and
-    /// PLUMED_BOOST_LIST (a ParakeetWeb phrase list). Clips are padded
-    /// with silence like the app does: unpadded, the model drifts into
-    /// English (WER 50% instead of 18% on French medical clips).
+    /// PLUMED_BOOST_LIST (a ParakeetWeb phrase list). PLUMED_BEAM_WIDTH sets
+    /// the beam (default: the app's final transcription width, 1 is greedy).
+    /// Clips are padded with silence like the app does: unpadded, the model
+    /// drifts into English (WER 50% instead of 18% on French medical clips).
     /// `PLUMED_MODEL_DIR=... PLUMED_BENCH_WAVS=... cargo test --release
     /// --lib phrase_boost::model::tests::bench_transcribe -- --ignored --nocapture`
     #[test]
@@ -64,6 +66,10 @@ mod tests {
         if let Some(path) = env("PLUMED_BOOST_LIST") {
             engine.set_boost_list(&read(path));
         }
+        let mut params = ParakeetInferenceParams::default();
+        if let Some(width) = env("PLUMED_BEAM_WIDTH") {
+            params.beam_width = width.parse().expect("PLUMED_BEAM_WIDTH");
+        }
         let wavs = read(env("PLUMED_BENCH_WAVS").expect("PLUMED_BENCH_WAVS"));
         let start = std::time::Instant::now();
         for wav in wavs.lines() {
@@ -73,7 +79,7 @@ mod tests {
                 .map(|s| s.expect("sample") as f32 / 32768.0)
                 .collect();
             let result = engine
-                .transcribe_samples(pad_with_silence(&samples, 16000), None)
+                .transcribe_samples(pad_with_silence(&samples, 16000), Some(params.clone()))
                 .expect("transcribe");
             println!("HYP\t{}\t{}", wav, result.text);
         }
