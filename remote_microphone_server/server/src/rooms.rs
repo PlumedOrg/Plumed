@@ -3,7 +3,8 @@
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD as B64, Engine};
 use plumed_relay_protocol::{Role, MAILBOX_CAP, MAX_PHONE_INBOXES};
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::net::IpAddr;
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use tokio::sync::Notify;
@@ -15,21 +16,55 @@ const SECRET_BYTES: usize = 18;
 /// new phone (a polling phone touches its inbox every 25 s).
 const PHONE_INBOX_IDLE: Duration = Duration::from_secs(60);
 
+/// Bytes queued in every mailbox of the relay together: a full server stays
+/// well inside the container memory limit (256 MiB in docker-compose.yml).
+pub const QUEUE_BUDGET: usize = 64 * 1024 * 1024;
+
+/// Bytes queued across all mailboxes, against a maximum.
+struct Budget {
+    used: AtomicUsize,
+    max: usize,
+}
+
+impl Budget {
+    fn reserve(&self, n: usize) -> bool {
+        self.used
+            .try_update(Ordering::AcqRel, Ordering::Acquire, |used| {
+                (used + n <= self.max).then_some(used + n)
+            })
+            .is_ok()
+    }
+
+    fn release(&self, n: usize) {
+        self.used.fetch_sub(n, Ordering::AcqRel);
+    }
+}
+
 /// One inbox: request bodies appended as they come (envelopes concatenate),
 /// taken all at once by the next poll.
 struct Mailbox {
     queue: Mutex<Vec<u8>>,
     notify: Notify,
     last_used: Mutex<Instant>,
+    budget: Arc<Budget>,
 }
 
 impl Mailbox {
-    fn new(now: Instant) -> Self {
+    fn new(now: Instant, budget: Arc<Budget>) -> Self {
         Self {
             queue: Mutex::new(Vec::new()),
             notify: Notify::new(),
             last_used: Mutex::new(now),
+            budget,
         }
+    }
+}
+
+/// A dropped inbox (reaped room, evicted phone) gives its bytes back.
+impl Drop for Mailbox {
+    fn drop(&mut self) {
+        let queue = self.queue.get_mut().unwrap_or_else(|e| e.into_inner());
+        self.budget.release(queue.len());
     }
 }
 
@@ -52,6 +87,8 @@ impl Inbox<'_> {
 }
 
 pub struct Room {
+    /// Who created it (see `limiter::bucket`), for the per-client room cap.
+    owner: IpAddr,
     desktop_secret: String,
     phone_secret: String,
     created: Instant,
@@ -59,6 +96,7 @@ pub struct Room {
     closed: AtomicBool,
     desktop: Arc<Mailbox>,
     phones: Mutex<HashMap<String, Arc<Mailbox>>>,
+    budget: Arc<Budget>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -71,22 +109,31 @@ pub enum Taken {
 
 #[derive(Debug, PartialEq)]
 pub enum PushError {
-    /// The reader is not polling (asleep, offline): slow down.
+    /// The reader is not polling (asleep, offline), or the relay as a whole
+    /// holds too much: slow down.
     Full,
     /// Too many phone inboxes in use.
     TooManyPhones,
 }
 
 impl Room {
-    fn new(desktop_secret: String, phone_secret: String, now: Instant) -> Self {
+    fn new(
+        owner: IpAddr,
+        desktop_secret: String,
+        phone_secret: String,
+        now: Instant,
+        budget: Arc<Budget>,
+    ) -> Self {
         Self {
+            owner,
             desktop_secret,
             phone_secret,
             created: now,
             last_seen: Mutex::new(now),
             closed: AtomicBool::new(false),
-            desktop: Arc::new(Mailbox::new(now)),
+            desktop: Arc::new(Mailbox::new(now, budget.clone())),
             phones: Mutex::new(HashMap::new()),
+            budget,
         }
     }
 
@@ -131,7 +178,7 @@ impl Room {
                 }
                 phones
                     .entry(tag.to_string())
-                    .or_insert_with(|| Arc::new(Mailbox::new(now)))
+                    .or_insert_with(|| Arc::new(Mailbox::new(now, self.budget.clone())))
                     .clone()
             }
         };
@@ -144,7 +191,8 @@ impl Room {
         let mailbox = self.mailbox(inbox)?;
         {
             let mut queue = lock(&mailbox.queue);
-            if queue.len() + envelope.len() > MAILBOX_CAP {
+            if queue.len() + envelope.len() > MAILBOX_CAP || !mailbox.budget.reserve(envelope.len())
+            {
                 return Err(PushError::Full);
             }
             queue.extend_from_slice(envelope);
@@ -166,7 +214,9 @@ impl Room {
             {
                 let mut queue = lock(&mailbox.queue);
                 if !queue.is_empty() {
-                    break Taken::Frames(std::mem::take(&mut *queue));
+                    let bytes = std::mem::take(&mut *queue);
+                    mailbox.budget.release(bytes.len());
+                    break Taken::Frames(bytes);
                 }
             }
             if tokio::time::timeout_at(deadline, notified).await.is_err() {
@@ -180,7 +230,11 @@ impl Room {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct ServerFull;
+pub enum Refused {
+    ServerFull,
+    /// This client already has its share of the open rooms.
+    TooManyForClient,
+}
 
 /// A new room: its id and the secret of each role.
 #[derive(Debug, PartialEq)]
@@ -193,6 +247,8 @@ pub struct Created {
 pub struct Rooms {
     map: Mutex<HashMap<String, Arc<Room>>>,
     max: usize,
+    per_owner: usize,
+    budget: Arc<Budget>,
 }
 
 /// A poisoned lock only means another request panicked: the data is still usable.
@@ -217,10 +273,17 @@ fn same_secret(a: &str, b: &str) -> bool {
 }
 
 impl Rooms {
-    pub fn new(max: usize) -> Self {
+    /// At most `max` rooms, `per_owner` of them for one client, and
+    /// `queue_budget` bytes queued in all of them together.
+    pub fn new(max: usize, per_owner: usize, queue_budget: usize) -> Self {
         Self {
             map: Mutex::new(HashMap::new()),
             max,
+            per_owner,
+            budget: Arc::new(Budget {
+                used: AtomicUsize::new(0),
+                max: queue_budget,
+            }),
         }
     }
 
@@ -232,10 +295,13 @@ impl Rooms {
         self.len() == 0
     }
 
-    pub fn create(&self) -> Result<Created, ServerFull> {
+    pub fn create(&self, owner: IpAddr) -> Result<Created, Refused> {
         let mut map = lock(&self.map);
         if map.len() >= self.max {
-            return Err(ServerFull);
+            return Err(Refused::ServerFull);
+        }
+        if map.values().filter(|r| r.owner == owner).count() >= self.per_owner {
+            return Err(Refused::TooManyForClient);
         }
         let created = Created {
             id: random_token(ID_BYTES),
@@ -243,9 +309,11 @@ impl Rooms {
             phone_secret: random_token(SECRET_BYTES),
         };
         let room = Room::new(
+            owner,
             created.desktop_secret.clone(),
             created.phone_secret.clone(),
             Instant::now(),
+            self.budget.clone(),
         );
         map.insert(created.id.clone(), Arc::new(room));
         Ok(created)
@@ -292,8 +360,10 @@ mod tests {
     const TAG_A: &str = "AAAAAAAAAAAAAAAAAAAAAA";
     const TAG_B: &str = "BBBBBBBBBBBBBBBBBBBBBB";
 
+    const IP: IpAddr = IpAddr::V4(std::net::Ipv4Addr::LOCALHOST);
+
     fn room(rooms: &Rooms) -> (Created, Arc<Room>) {
-        let created = rooms.create().unwrap();
+        let created = rooms.create(IP).unwrap();
         let room = rooms
             .open(&created.id, Role::Desktop, &created.desktop_secret)
             .unwrap();
@@ -302,7 +372,7 @@ mod tests {
 
     #[tokio::test]
     async fn frames_reach_their_inbox_only() {
-        let rooms = Rooms::new(10);
+        let rooms = Rooms::new(10, 10, QUEUE_BUDGET);
         let (created, room) = room(&rooms);
         assert_eq!(created.id.len(), 16);
         assert_eq!(created.desktop_secret.len(), 24);
@@ -328,7 +398,7 @@ mod tests {
 
     #[tokio::test]
     async fn a_waiting_poll_wakes_on_push_and_on_close() {
-        let rooms = Arc::new(Rooms::new(10));
+        let rooms = Arc::new(Rooms::new(10, 10, QUEUE_BUDGET));
         let (created, room) = room(&rooms);
         let poll = |room: Arc<Room>| {
             tokio::spawn(
@@ -351,8 +421,8 @@ mod tests {
 
     #[test]
     fn each_role_needs_its_own_secret() {
-        let rooms = Rooms::new(1);
-        let created = rooms.create().unwrap();
+        let rooms = Rooms::new(1, 1, QUEUE_BUDGET);
+        let created = rooms.create(IP).unwrap();
         let (id, desktop, phone) = (&created.id, &created.desktop_secret, &created.phone_secret);
         assert!(rooms.open(id, Role::Desktop, desktop).is_some());
         assert!(rooms.open(id, Role::Phone, phone).is_some());
@@ -361,12 +431,41 @@ mod tests {
         assert!(rooms.open(id, Role::Phone, "nope").is_none());
         assert!(rooms.open(id, Role::Phone, &phone[..23]).is_none());
         assert!(rooms.open("unknown", Role::Phone, phone).is_none());
-        assert_eq!(rooms.create(), Err(ServerFull));
+        assert_eq!(rooms.create(IP), Err(Refused::ServerFull));
+    }
+
+    #[test]
+    fn each_client_gets_a_share_of_the_rooms() {
+        let rooms = Rooms::new(10, 2, QUEUE_BUDGET);
+        let other = IpAddr::V4(std::net::Ipv4Addr::new(10, 0, 0, 2));
+        rooms.create(IP).unwrap();
+        let second = rooms.create(IP).unwrap();
+        assert_eq!(rooms.create(IP), Err(Refused::TooManyForClient));
+        rooms.create(other).unwrap();
+        rooms.close(&second.id);
+        rooms.create(IP).unwrap();
+    }
+
+    #[tokio::test]
+    async fn queued_bytes_count_against_the_relay_budget() {
+        let rooms = Rooms::new(10, 10, 10);
+        let (_, a) = room(&rooms);
+        let (b_created, b) = room(&rooms);
+        a.push(Inbox::Desktop, &[0; 6]).unwrap();
+        // Room b has its own mailbox cap, but the relay is full
+        assert_eq!(b.push(Inbox::Desktop, &[0; 6]), Err(PushError::Full));
+        // Taking frees the bytes...
+        a.take(Inbox::Desktop, Duration::ZERO).await.unwrap();
+        b.push(Inbox::Desktop, &[0; 6]).unwrap();
+        // ...and so does dropping a room with bytes still queued
+        rooms.close(&b_created.id);
+        drop(b);
+        a.push(Inbox::Phone(TAG_A), &[0; 10]).unwrap();
     }
 
     #[test]
     fn mailbox_and_phone_caps() {
-        let rooms = Rooms::new(1);
+        let rooms = Rooms::new(1, 1, QUEUE_BUDGET);
         let (_, room) = room(&rooms);
         assert_eq!(
             room.push(Inbox::Phone(TAG_A), &vec![0; MAILBOX_CAP + 1]),
@@ -394,8 +493,8 @@ mod tests {
 
     #[test]
     fn idle_and_old_rooms_are_reaped() {
-        let rooms = Rooms::new(10);
-        let created = rooms.create().unwrap();
+        let rooms = Rooms::new(10, 10, QUEUE_BUDGET);
+        let created = rooms.create(IP).unwrap();
         let (minute, hour) = (Duration::from_secs(60), Duration::from_secs(3600));
         assert_eq!(rooms.reap(Instant::now(), minute, hour), 0);
         let later = Instant::now() + 2 * minute;
@@ -403,7 +502,7 @@ mod tests {
         assert!(rooms
             .open(&created.id, Role::Phone, &created.phone_secret)
             .is_none());
-        rooms.create().unwrap();
+        rooms.create(IP).unwrap();
         assert_eq!(rooms.reap(Instant::now() + 2 * hour, 10 * hour, hour), 1);
         assert!(rooms.is_empty());
     }

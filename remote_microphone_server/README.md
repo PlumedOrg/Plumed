@@ -36,8 +36,8 @@ The phone's `wire.js` and `crypto.js` mirror the Rust code (`protocol/src/lib.rs
 
 | Request | Answer |
 | --- | --- |
-| `POST /api/rooms` | `201 {"room","desktop","phone"}` (one secret per side), `429` (per-IP limit) or `503` (server full) |
-| `POST /api/rooms/{room}/desktop` + phone secret | Appends an envelope to the desktop inbox: `204`, `400` (malformed), `429` (inbox full, 4 MiB) |
+| `POST /api/rooms` | `201 {"room","desktop","phone"}` (one secret per side), `403` (sent by a browser: only the desktop app creates rooms), `429` (per-IP limits) or `503` (server full or busy) |
+| `POST /api/rooms/{room}/desktop` + phone secret | Appends an envelope to the desktop inbox: `204`, `400` (malformed), `429` (inbox full: 1 MiB, or 64 MiB for the whole relay) |
 | `GET /api/rooms/{room}/desktop` + desktop secret | Long-poll (25 s): `200` with the queued envelopes, `204` if nothing came, `404` once the room is closed |
 | `POST /api/rooms/{room}/phone/{tag}` + desktop secret | Appends an envelope to that phone's inbox (`tag`: 16 to 43 base64url characters chosen by the phone) |
 | `GET /api/rooms/{room}/phone/{tag}` + phone secret | Long-poll of that phone's inbox. At most 8 phone inboxes per room: inboxes idle for a minute make room, otherwise `429` |
@@ -51,8 +51,9 @@ Secrets go in the `x-room-secret` header. Unknown room and wrong secret (includi
 | Variable | Default | Meaning |
 | --- | --- | --- |
 | `PLUMED_RELAY_BIND` | `0.0.0.0:5174` | Listen address (set by `docker-compose.yml`) |
-| `PLUMED_RELAY_TRUST_PROXY` | `false` | Take the client IP from the last `X-Forwarded-For` entry. `docker-compose.yml` sets it to `true`: only enable it behind a reverse proxy |
+| `PLUMED_RELAY_TRUST_PROXY` | `false` | Take the client IP from the last `X-Forwarded-For` entry, only when the request comes from a loopback or private address (the reverse proxy). `docker-compose.yml` sets it to `true` |
 | `PLUMED_RELAY_MAX_ROOMS` | `500` | Rooms open at the same time |
+| `PLUMED_RELAY_ROOMS_PER_IP` | `20` | Rooms open at the same time for one client IP (IPv6: per /64). A hospital behind one NAT address shares it |
 | `PLUMED_RELAY_ROOMS_PER_IP_PER_HOUR` | `60` | Room creations per client IP per hour |
 
 The last two can be set in `.env` (copy `env.example`), `docker-compose.yml` passes them to the container.

@@ -14,6 +14,7 @@ fn config() -> Result<(SocketAddr, Config), String> {
     let bind = env_or("PLUMED_RELAY_BIND", SocketAddr::from(([0, 0, 0, 0], 5174)))?;
     let config = Config {
         max_rooms: env_or("PLUMED_RELAY_MAX_ROOMS", 500)?,
+        rooms_per_ip: env_or("PLUMED_RELAY_ROOMS_PER_IP", 20)?,
         rooms_per_ip_per_hour: env_or("PLUMED_RELAY_ROOMS_PER_IP_PER_HOUR", 60)?,
         trust_proxy: env_or("PLUMED_RELAY_TRUST_PROXY", false)?,
     };

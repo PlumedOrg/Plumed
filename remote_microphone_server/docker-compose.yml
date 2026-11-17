@@ -14,6 +14,7 @@ services:
       # Caddy sets X-Forwarded-For, the per-IP limit needs the real client IP
       - PLUMED_RELAY_TRUST_PROXY=true
       - PLUMED_RELAY_MAX_ROOMS=${PLUMED_RELAY_MAX_ROOMS:-500}
+      - PLUMED_RELAY_ROOMS_PER_IP=${PLUMED_RELAY_ROOMS_PER_IP:-20}
       - PLUMED_RELAY_ROOMS_PER_IP_PER_HOUR=${PLUMED_RELAY_ROOMS_PER_IP_PER_HOUR:-60}
     read_only: true
     cap_drop:
@@ -21,8 +22,15 @@ services:
     security_opt:
       - no-new-privileges:true
     mem_limit: 256m
+    # No swap: past the limit the relay restarts instead of crawling
+    memswap_limit: 256m
     cpus: "1.0"
     pids_limit: 64
+    # Above the relay's 2048 requests in flight
+    ulimits:
+      nofile:
+        soft: 4096
+        hard: 4096
     healthcheck:
       test: ["CMD", "/plumed-relay", "--healthcheck"]
       interval: 30s

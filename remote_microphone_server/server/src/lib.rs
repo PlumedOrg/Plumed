@@ -12,6 +12,7 @@ pub mod rooms;
 
 use axum::extract::{ConnectInfo, DefaultBodyLimit, Path, Request, State};
 use axum::http::{header, HeaderMap, HeaderName, HeaderValue, StatusCode};
+use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
 use axum::routing::{delete, get, post};
 use axum::{middleware, Router};
@@ -19,21 +20,29 @@ use limiter::Limiter;
 use plumed_relay_protocol::{
     valid_inbox_tag, validate, Role, MAX_BODY, POLL_WAIT_SECS, ROOMS_PATH, SECRET_HEADER,
 };
-use rooms::{Inbox, PushError, Room, Rooms, Taken};
+use rooms::{Inbox, PushError, Refused, Room, Rooms, Taken, QUEUE_BUDGET};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
+use tokio::sync::Semaphore;
 
 /// A room nobody polled for this long is dropped (both ends poll every 25 s).
 pub const ROOM_IDLE: Duration = Duration::from_secs(10 * 60);
 /// Hard cap on a room's life, even in use: Plumed then opens a new one.
 pub const ROOM_MAX_AGE: Duration = Duration::from_secs(24 * 3600);
 const REAP_EVERY: Duration = Duration::from_secs(30);
+/// Requests handled at once (a poll holds one for up to 25 s): past that the
+/// relay answers 503 rather than piling up connections. Below the file
+/// descriptor limit set in docker-compose.yml.
+const MAX_IN_FLIGHT: usize = 2048;
 
 pub struct Config {
     pub max_rooms: usize,
+    /// Rooms open at once for one client IP (an IPv6 /64).
+    pub rooms_per_ip: usize,
     pub rooms_per_ip_per_hour: u32,
-    /// Take the client IP from the last `X-Forwarded-For` entry (behind Caddy).
+    /// Take the client IP from the last `X-Forwarded-For` entry (behind Caddy),
+    /// when the request comes from a loopback or private address.
     pub trust_proxy: bool,
 }
 
@@ -41,6 +50,7 @@ struct Inner {
     rooms: Rooms,
     limiter: Limiter,
     trust_proxy: bool,
+    in_flight: Arc<Semaphore>,
 }
 
 #[derive(Clone)]
@@ -48,9 +58,10 @@ pub struct AppState(Arc<Inner>);
 
 pub fn app(config: &Config) -> (Router, AppState) {
     let state = AppState(Arc::new(Inner {
-        rooms: Rooms::new(config.max_rooms),
+        rooms: Rooms::new(config.max_rooms, config.rooms_per_ip, QUEUE_BUDGET),
         limiter: Limiter::new(config.rooms_per_ip_per_hour),
         trust_proxy: config.trust_proxy,
+        in_flight: Arc::new(Semaphore::new(MAX_IN_FLIGHT)),
     }));
     let router = Router::new()
         .route("/healthz", get(|| async { "ok" }))
@@ -67,6 +78,10 @@ pub fn app(config: &Config) -> (Router, AppState) {
         .merge(assets::router())
         .layer(DefaultBodyLimit::max(MAX_BODY))
         .layer(middleware::map_response(security_headers))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            limit_in_flight,
+        ))
         .with_state(state.clone());
     (router, state)
 }
@@ -109,7 +124,26 @@ async fn security_headers(mut resp: Response) -> Response {
     resp
 }
 
-fn client_ip(req: &Request, trust_proxy: bool) -> IpAddr {
+async fn limit_in_flight(State(state): State<AppState>, req: Request, next: Next) -> Response {
+    match state.0.in_flight.clone().try_acquire_owned() {
+        // Held until the response is ready
+        Ok(_permit) => next.run(req).await,
+        Err(_) => retry_after(StatusCode::SERVICE_UNAVAILABLE, 5),
+    }
+}
+
+/// A reverse proxy on this machine or in the container network.
+fn is_local(ip: IpAddr) -> bool {
+    match ip.to_canonical() {
+        IpAddr::V4(v4) => v4.is_loopback() || v4.is_private(),
+        IpAddr::V6(v6) => v6.is_loopback() || (v6.segments()[0] & 0xfe00) == 0xfc00,
+    }
+}
+
+/// The client, as counted by the rate limits (see [`limiter::bucket`]).
+/// `X-Forwarded-For` is only believed when a local proxy sent it: exposed
+/// directly by mistake, the relay would otherwise let anyone pick their IP.
+fn client_key(req: &Request, trust_proxy: bool) -> IpAddr {
     let forwarded = || {
         req.headers()
             .get("x-forwarded-for")?
@@ -121,29 +155,33 @@ fn client_ip(req: &Request, trust_proxy: bool) -> IpAddr {
             .parse()
             .ok()
     };
-    let peer = || {
-        req.extensions()
-            .get::<ConnectInfo<SocketAddr>>()
-            .map(|c| c.0.ip())
+    let peer = req
+        .extensions()
+        .get::<ConnectInfo<SocketAddr>>()
+        .map(|c| c.0.ip());
+    let ip = match peer {
+        Some(p) if trust_proxy && is_local(p) => forwarded().or(peer),
+        _ => peer,
     };
-    match trust_proxy {
-        true => forwarded(),
-        false => peer(),
-    }
     // Unknown: every such client shares one bucket
-    .unwrap_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED))
+    limiter::bucket(ip.unwrap_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED)))
 }
 
 fn retry_after(status: StatusCode, secs: u64) -> Response {
     (status, [(header::RETRY_AFTER, secs.to_string())]).into_response()
 }
 
+/// Only for the desktop app, which sends no `Origin`: a browser always does
+/// on a POST, so a web page cannot make its visitors open rooms here.
 async fn create_room(State(state): State<AppState>, req: Request) -> Response {
-    let ip = client_ip(&req, state.0.trust_proxy);
-    if let Err(secs) = state.0.limiter.allow(ip, Instant::now()) {
+    if req.headers().contains_key(header::ORIGIN) {
+        return StatusCode::FORBIDDEN.into_response();
+    }
+    let client = client_key(&req, state.0.trust_proxy);
+    if let Err(secs) = state.0.limiter.allow(client, Instant::now()) {
         return retry_after(StatusCode::TOO_MANY_REQUESTS, secs);
     }
-    match state.0.rooms.create() {
+    match state.0.rooms.create(client) {
         Ok(created) => (
             StatusCode::CREATED,
             [(header::CONTENT_TYPE, "application/json")],
@@ -153,7 +191,8 @@ async fn create_room(State(state): State<AppState>, req: Request) -> Response {
             ),
         )
             .into_response(),
-        Err(rooms::ServerFull) => retry_after(StatusCode::SERVICE_UNAVAILABLE, 60),
+        Err(Refused::ServerFull) => retry_after(StatusCode::SERVICE_UNAVAILABLE, 60),
+        Err(Refused::TooManyForClient) => retry_after(StatusCode::TOO_MANY_REQUESTS, 60),
     }
 }
 
@@ -164,7 +203,7 @@ fn open_room(
     id: &str,
     role: Role,
     headers: &HeaderMap,
-) -> Result<Arc<Room>, Response> {
+) -> Result<Arc<Room>, StatusCode> {
     let secret = headers
         .get(SECRET_HEADER)
         .and_then(|v| v.to_str().ok())
@@ -173,7 +212,7 @@ fn open_room(
         .0
         .rooms
         .open(id, role, secret)
-        .ok_or_else(|| StatusCode::NOT_FOUND.into_response())
+        .ok_or(StatusCode::NOT_FOUND)
 }
 
 fn push_error(e: PushError) -> Response {
@@ -189,7 +228,7 @@ fn push_error(e: PushError) -> Response {
 async fn send(state: AppState, id: &str, inbox: Inbox<'_>, req: Request) -> Response {
     let room = match open_room(&state, id, inbox.owner().peer(), req.headers()) {
         Ok(room) => room,
-        Err(resp) => return resp,
+        Err(status) => return status.into_response(),
     };
     let body = match axum::body::to_bytes(req.into_body(), MAX_BODY).await {
         Ok(body) => body,
@@ -208,7 +247,7 @@ async fn send(state: AppState, id: &str, inbox: Inbox<'_>, req: Request) -> Resp
 async fn poll(state: AppState, id: &str, inbox: Inbox<'_>, headers: &HeaderMap) -> Response {
     let room = match open_room(&state, id, inbox.owner(), headers) {
         Ok(room) => room,
-        Err(resp) => return resp,
+        Err(status) => return status.into_response(),
     };
     match room.take(inbox, Duration::from_secs(POLL_WAIT_SECS)).await {
         Ok(Taken::Frames(bytes)) => {
@@ -269,6 +308,38 @@ async fn close_room(
             state.0.rooms.close(&id);
             StatusCode::NO_CONTENT.into_response()
         }
-        Err(resp) => resp,
+        Err(status) => status.into_response(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn request(peer: &str, xff: Option<&str>) -> Request {
+        let mut builder = Request::builder();
+        if let Some(xff) = xff {
+            builder = builder.header("x-forwarded-for", xff);
+        }
+        let mut req = builder.body(axum::body::Body::empty()).unwrap();
+        let peer: SocketAddr = peer.parse().unwrap();
+        req.extensions_mut().insert(ConnectInfo(peer));
+        req
+    }
+
+    #[test]
+    fn forwarded_for_is_only_believed_from_a_local_proxy() {
+        let ip = |s: &str| s.parse::<IpAddr>().unwrap();
+        // Caddy through the docker bridge
+        let via_proxy = request("172.17.0.1:4000", Some("6.6.6.6, 1.2.3.4"));
+        assert_eq!(client_key(&via_proxy, true), ip("1.2.3.4"));
+        // Exposed directly: a client cannot pick its own IP
+        let spoofed = request("9.9.9.9:4000", Some("1.2.3.4"));
+        assert_eq!(client_key(&spoofed, true), ip("9.9.9.9"));
+        // Not behind a proxy at all
+        let local = request("127.0.0.1:4000", Some("1.2.3.4"));
+        assert_eq!(client_key(&local, false), ip("127.0.0.1"));
+        // A local proxy that sent no header
+        assert_eq!(client_key(&request("[::1]:4000", None), true), ip("::"));
     }
 }

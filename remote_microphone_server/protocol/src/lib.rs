@@ -37,7 +37,7 @@ pub const MAX_FRAME: usize = 256 * 1024;
 /// Largest request body (one envelope).
 pub const MAX_BODY: usize = 1024 * 1024;
 /// Bytes a mailbox may hold before senders get `429`.
-pub const MAILBOX_CAP: usize = 4 * 1024 * 1024;
+pub const MAILBOX_CAP: usize = MAX_BODY;
 /// Phone inboxes a room may hold at once (phones that scanned the QR code).
 pub const MAX_PHONE_INBOXES: usize = 8;
 /// Sample rates accepted in [`op::START`].

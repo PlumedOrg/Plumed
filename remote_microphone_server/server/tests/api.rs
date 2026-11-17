@@ -14,6 +14,7 @@ use tower::ServiceExt;
 fn router(max_rooms: usize, rooms_per_ip_per_hour: u32) -> Router {
     app(&Config {
         max_rooms,
+        rooms_per_ip: max_rooms,
         rooms_per_ip_per_hour,
         trust_proxy: false,
     })
@@ -272,6 +273,19 @@ async fn room_creation_is_rate_limited() {
     let resp = call(&r, Method::POST, ROOMS_PATH, "", vec![]).await;
     assert_eq!(resp.status(), StatusCode::TOO_MANY_REQUESTS);
     assert!(resp.headers().contains_key(header::RETRY_AFTER));
+}
+
+#[tokio::test]
+async fn browsers_cannot_create_rooms() {
+    let r = router(10, 10);
+    let req = Request::builder()
+        .method(Method::POST)
+        .uri(ROOMS_PATH)
+        .header(header::ORIGIN, "https://evil.example")
+        .body(Body::empty())
+        .unwrap();
+    let resp = r.clone().oneshot(req).await.unwrap();
+    assert_eq!(resp.status(), StatusCode::FORBIDDEN);
 }
 
 #[tokio::test]
