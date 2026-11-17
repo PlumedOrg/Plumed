@@ -1,0 +1,23 @@
+{
+  "_comment": "Shared by protocol/src/lib.rs, src-tauri/src/remote_mic/crypto.rs and server/static/*.test.mjs. Generated with Node crypto.",
+  "envelope": {
+    "text": "{\"type\":\"stale\"}",
+    "binary": "010203",
+    "encoded": "00000000107b2274797065223a227374616c65227d0100000003010203"
+  },
+  "inner": {
+    "seq": 258,
+    "op": 2,
+    "payload": "aa",
+    "encoded": "000000000000010202aa"
+  },
+  "crypto": {
+    "desktop_public": "BG/wO5SSQc4drdQ1GeaWDgqFtBppoFwygQOqK84VlMoWPE91OlW/AdxT9sCwx+7ni0DG/30lqW4igrmJzvccFEo=",
+    "phone_public": "BFUPRxAD89+Xw99QaseX9nIfsaH7e49vg9IkSYplyI4kE2CT1wEuUJpzcVy9CwCjzA/0tcAbP/oZarH7MnA2uOY=",
+    "shared_x": "eb459a6b30d70eb4c0ddcd34ea96ed59e8f8d1843c22dd895ab603aa13d9a81d",
+    "aes_key": "7bfdce19038e4f943db4c2ac850d29fbcc407f0d4ed21cf6f174483e93bca710",
+    "packet": "0a0a0a0a0a0a0a0a0a0a0a0a4bf3b7c65bd6a1bdbdd48187bfdca095d1f5eab32dc2d5c86d38f3c57cf5df",
+    "packet_inner": "0000000000000001020000ff7f0080",
+    "fingerprint": "524C-F8E8-D5A4-2D82"
+  }
+}
