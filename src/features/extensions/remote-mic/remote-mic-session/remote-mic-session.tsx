@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { Check, Loader2, QrCode, ShieldCheck, Smartphone, X } from 'lucide-react';
+import { Check, FlaskConical, Loader2, QrCode, ShieldCheck, Smartphone, X } from 'lucide-react';
 import { SettingsUI } from '@/components/settings-ui';
 import { Typography } from '@/components/typography';
 import { Page } from '@/components/page';
@@ -15,14 +14,6 @@ interface RemoteMicSessionProps {
 
 const Fingerprint = ({ fingerprint, confirm }: { fingerprint: string; confirm: (accepted: boolean) => void }) => {
     const { t } = useTranslation();
-    // Confirmed fingerprint, so a new phone (new code) asks again
-    const [confirmed, setConfirmed] = useState<string | null>(null);
-
-    const accept = () => {
-        setConfirmed(fingerprint);
-        confirm(true);
-    };
-
     return (
         <div className="flex flex-col items-center gap-4">
             <Typography.Paragraph className="text-center">
@@ -31,26 +22,28 @@ const Fingerprint = ({ fingerprint, confirm }: { fingerprint: string; confirm: (
             <code className="text-2xl font-mono tracking-widest px-4 py-2 rounded-md border border-border">
                 {fingerprint}
             </code>
-            {confirmed === fingerprint ? (
-                <Typography.Paragraph className="flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    {t('Waiting for the confirmation on the phone')}
-                </Typography.Paragraph>
-            ) : (
-                <div className="flex gap-3">
-                    <Page.PrimaryButton size="sm" onClick={accept}>
-                        <Check className="w-4 h-4" />
-                        {t('Same code')}
-                    </Page.PrimaryButton>
-                    <Page.SecondaryButton size="sm" onClick={() => confirm(false)}>
-                        <X className="w-4 h-4" />
-                        {t('Different code')}
-                    </Page.SecondaryButton>
-                </div>
-            )}
+            <div className="flex gap-3">
+                <Page.PrimaryButton size="sm" onClick={() => confirm(true)}>
+                    <Check className="w-4 h-4" />
+                    {t('Same code')}
+                </Page.PrimaryButton>
+                <Page.SecondaryButton size="sm" onClick={() => confirm(false)}>
+                    <X className="w-4 h-4" />
+                    {t('Different code')}
+                </Page.SecondaryButton>
+            </div>
         </div>
     );
 };
+
+const PairingQr = ({ qr, hint }: { qr: string | null; hint: string }) => (
+    <>
+        {qr != null && (
+            <img src={qr} alt="QR code" className="w-[220px] h-[220px] rounded-lg border border-border bg-white" />
+        )}
+        <Typography.Paragraph className="text-center">{hint}</Typography.Paragraph>
+    </>
+);
 
 const Body = ({ snapshot, start, stop, confirm }: RemoteMicSessionProps) => {
     const { t } = useTranslation();
@@ -85,16 +78,7 @@ const Body = ({ snapshot, start, stop, confirm }: RemoteMicSessionProps) => {
         case 'waiting':
             return (
                 <>
-                    {snapshot.qr != null && (
-                        <img
-                            src={snapshot.qr}
-                            alt="QR code"
-                            className="w-[220px] h-[220px] rounded-lg border border-border bg-white"
-                        />
-                    )}
-                    <Typography.Paragraph className="text-center">
-                        {t('Scan this QR code with the phone camera. It expires after 10 minutes.')}
-                    </Typography.Paragraph>
+                    <PairingQr qr={snapshot.qr} hint={t('Scan this QR code with the phone camera.')} />
                     {stopButton}
                 </>
             );
@@ -114,6 +98,7 @@ const Body = ({ snapshot, start, stop, confirm }: RemoteMicSessionProps) => {
                         <ShieldCheck className="w-5 h-5 text-green-400" />
                         {t('Phone connected. Dictate on the phone: the text is pasted here.')}
                     </Typography.Paragraph>
+                    <PairingQr qr={snapshot.qr} hint={t('To switch to another phone, scan this QR code with it.')} />
                     {stopButton}
                 </>
             );
@@ -125,6 +110,10 @@ export const RemoteMicSession = (props: RemoteMicSessionProps) => {
     return (
         <SettingsUI.Section title={t('Connect a phone')} icon={QrCode}>
             <div className="flex flex-col items-center gap-4 p-6">
+                <Typography.Paragraph className="flex items-center gap-2 text-center text-yellow-300/90">
+                    <FlaskConical className="w-4 h-4 shrink-0" />
+                    {t('Alpha: this feature is a pre-release. Expect bugs, and update Plumed when asked.')}
+                </Typography.Paragraph>
                 <Body {...props} />
             </div>
         </SettingsUI.Section>
