@@ -293,7 +293,7 @@ async fn serve_room(
             cmd = commands.recv() => match cmd {
                 Some(Command::Confirm { fingerprint, accepted }) => {
                     let step = pairing.confirm(&fingerprint, accepted);
-                    if accepted && pairing.is_bound() {
+                    if matches!(&step, Ok(Step { event: Some(Event::Paired), .. })) {
                         // A new phone: what the previous one sent is not pasted
                         recordings.flush();
                         bound_resends = BOUND_RESENDS;

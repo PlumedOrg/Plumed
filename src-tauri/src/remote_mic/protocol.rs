@@ -46,6 +46,8 @@ pub enum Event {
     Fingerprint(String),
     /// A complete recording, mono pcm-s16 at `sample_rate`.
     Recording { pcm: Vec<i16>, sample_rate: u32 },
+    /// The user's click bound a new phone.
+    Paired,
 }
 
 /// A frame for the phone inbox tagged `inbox`.
@@ -201,7 +203,7 @@ impl Pairing {
         let Some(Candidate { mut peer, .. }) = self.candidate.take() else {
             return Ok(Step::default());
         };
-        let send = match accepted {
+        let (send, event) = match accepted {
             true => {
                 let replaced = match self.active.take() {
                     Some(mut old) => Some(old.seal(op::REPLACED, &[])?),
@@ -209,11 +211,12 @@ impl Pairing {
                 };
                 let bound = peer.seal(op::BOUND, &[])?;
                 self.active = Some(peer);
-                replaced.into_iter().chain([bound]).collect()
+                let send = replaced.into_iter().chain([bound]).collect();
+                (send, Some(Event::Paired))
             }
-            false => vec![peer.seal(op::DENIED, &[])?],
+            false => (vec![peer.seal(op::DENIED, &[])?], None),
         };
-        Ok(Step { send, event: None })
+        Ok(Step { send, event })
     }
 
     /// Refuses a candidate waiting since more than [`CANDIDATE_TTL`] at `now`.
@@ -564,6 +567,7 @@ mod tests {
             panic!("no fingerprint")
         };
         let step = p.confirm(&code, true).unwrap();
+        assert_eq!(step.event, Some(Event::Paired));
         // The old phone learns it was replaced, the new one is bound
         assert_eq!(old.open(&step.send[0]), Some((2, op::REPLACED)));
         assert_eq!(new.open(&step.send[1]), Some((1, op::BOUND)));
@@ -571,6 +575,18 @@ mod tests {
             .unwrap();
         p.on_frame(new.op(op::AUDIO, &[2, 0])).unwrap();
         assert!(p.on_frame(new.op(op::END, &[])).unwrap().event.is_some());
+    }
+
+    #[test]
+    fn an_ignored_click_does_not_report_a_new_phone() {
+        // The session flushes queued recordings on `Paired`: a stale click
+        // while a phone is bound must not throw away that phone's audio
+        let (mut p, _active) = bound();
+        p.on_frame(Phone::scan(&p).hello()).unwrap();
+        let shown = p.fingerprint().unwrap().to_string();
+        p.on_frame(Phone::scan(&p).hello()).unwrap();
+        assert!(p.is_bound());
+        assert_eq!(p.confirm(&shown, true).unwrap().event, None);
     }
 
     #[test]
