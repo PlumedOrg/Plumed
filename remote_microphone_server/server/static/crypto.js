@@ -1,9 +1,12 @@
 // End-to-end crypto of the phone, mirror of src-tauri/src/remote_mic/crypto.rs
 // (ECDH P-256, HKDF-SHA256, AES-256-GCM, pairing fingerprint). Both are pinned
 // by protocol/test-vectors.json (see crypto.test.mjs): change them together.
+// One key per direction, bound to both public keys: a packet cannot be
+// reflected back to its sender, nor replayed into another pairing.
 
-const HKDF_SALT = new TextEncoder().encode('Plumed-RemoteMic-v1');
-const HKDF_INFO = new TextEncoder().encode('AES-GCM-256-key');
+const HKDF_SALT = new TextEncoder().encode('Plumed-RemoteMic-v2');
+const PHONE_TO_DESKTOP = new TextEncoder().encode('phone-to-desktop');
+const DESKTOP_TO_PHONE = new TextEncoder().encode('desktop-to-phone');
 const IV_LEN = 12;
 const FINGERPRINT_BYTES = 8;
 const subtle = globalThis.crypto.subtle;
@@ -42,11 +45,24 @@ export async function sharedSecret(privateKey, peerRaw) {
     return new Uint8Array(await subtle.deriveBits({ name: 'ECDH', public: peer }, privateKey, 256));
 }
 
-/** HKDF-SHA256(shared x) -> 32-byte AES key. */
-export async function hkdf(shared) {
+/** HKDF-SHA256(shared x, info = label || desktop || phone) -> 32-byte AES key. */
+export async function hkdf(shared, label, desktopRaw, phoneRaw) {
+    const info = new Uint8Array(label.length + desktopRaw.length + phoneRaw.length);
+    info.set(label);
+    info.set(desktopRaw, label.length);
+    info.set(phoneRaw, label.length + desktopRaw.length);
     const ikm = await subtle.importKey('raw', shared, 'HKDF', false, ['deriveBits']);
-    const bits = await subtle.deriveBits({ name: 'HKDF', hash: 'SHA-256', salt: HKDF_SALT, info: HKDF_INFO }, ikm, 256);
+    const bits = await subtle.deriveBits({ name: 'HKDF', hash: 'SHA-256', salt: HKDF_SALT, info }, ikm, 256);
     return new Uint8Array(bits);
+}
+
+/** The phone's keys: `send` seals phone -> desktop, `recv` opens desktop -> phone. */
+export async function phoneKeys(shared, desktopRaw, phoneRaw) {
+    const [send, recv] = await Promise.all([
+        hkdf(shared, PHONE_TO_DESKTOP, desktopRaw, phoneRaw).then(aesKey),
+        hkdf(shared, DESKTOP_TO_PHONE, desktopRaw, phoneRaw).then(aesKey),
+    ]);
+    return { send, recv };
 }
 
 export function aesKey(raw) {

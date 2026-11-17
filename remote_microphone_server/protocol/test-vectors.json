@@ -1,5 +1,5 @@
 {
-  "_comment": "Shared by protocol/src/lib.rs, src-tauri/src/remote_mic/crypto.rs and server/static/*.test.mjs. Generated with Node crypto.",
+  "_comment": "Shared by protocol/src/lib.rs, src-tauri/src/remote_mic/crypto.rs and server/static/*.test.mjs. Generated with Node crypto. The packet is sealed with key_phone_to_desktop.",
   "envelope": {
     "text": "{\"type\":\"stale\"}",
     "binary": "010203",
@@ -15,8 +15,9 @@
     "desktop_public": "BG/wO5SSQc4drdQ1GeaWDgqFtBppoFwygQOqK84VlMoWPE91OlW/AdxT9sCwx+7ni0DG/30lqW4igrmJzvccFEo=",
     "phone_public": "BFUPRxAD89+Xw99QaseX9nIfsaH7e49vg9IkSYplyI4kE2CT1wEuUJpzcVy9CwCjzA/0tcAbP/oZarH7MnA2uOY=",
     "shared_x": "eb459a6b30d70eb4c0ddcd34ea96ed59e8f8d1843c22dd895ab603aa13d9a81d",
-    "aes_key": "7bfdce19038e4f943db4c2ac850d29fbcc407f0d4ed21cf6f174483e93bca710",
-    "packet": "0a0a0a0a0a0a0a0a0a0a0a0a4bf3b7c65bd6a1bdbdd48187bfdca095d1f5eab32dc2d5c86d38f3c57cf5df",
+    "key_phone_to_desktop": "38703c7e93e8ce3d97c01c6e222b27cb6b90ecc87bab96f645ab709a77d068f8",
+    "key_desktop_to_phone": "f4ad84f1cb9f55c7f65a09236a32abffc5642f772f3ae2ad4faa58093855308b",
+    "packet": "0a0a0a0a0a0a0a0a0a0a0a0a3129c9d73ff76640535075f45102665bec8bf72e9374eb5b57d6a2df96a34f",
     "packet_inner": "0000000000000001020000ff7f0080",
     "fingerprint": "524C-F8E8-D5A4-2D82"
   }

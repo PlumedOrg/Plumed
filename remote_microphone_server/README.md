@@ -8,7 +8,7 @@ How it works:
 
 1. Plumed (desktop) creates a room on the relay and shows a QR code: `https://turn.plumed.fr/#{room}.{phone secret}.{desktop public key}`. The room has one secret per side, and the QR code only carries the phone's: whoever photographs it cannot read what phones send to the desktop nor close the room.
 2. The phone opens the page, generates its own key and posts a `hello` with its public key and the random name of its own inbox (so phones of the same room never take each other's frames). Both screens show the same pairing code (for example `524C-F8E8-D5A4-2D82`) and the desktop user confirms it.
-3. From then on every audio frame is encrypted end to end (ECDH P-256, HKDF-SHA256, AES-256-GCM). The relay only forwards opaque bytes between inboxes: it cannot hear anything, keeps everything in RAM, and logs no IP or room id.
+3. From then on every frame is encrypted end to end (ECDH P-256, HKDF-SHA256, AES-256-GCM), with one key per direction bound to both public keys, so a packet can be neither reflected back to its sender nor replayed into another pairing. Refusals and "another phone took over" notices are encrypted too, so the relay cannot forge them. The relay only forwards opaque bytes between inboxes: it cannot hear anything, keeps everything in RAM, and logs no IP or room id.
 
 Transport is plain HTTPS long-polling (no WebSocket, no WebRTC, no TURN server), so it works behind any proxy or firewall that lets HTTPS through.
 
@@ -30,7 +30,7 @@ The phone's `wire.js` and `crypto.js` mirror the Rust code (`protocol/src/lib.rs
 - Hands-free mode: the phone listens continuously and only sends speech. An energy VAD with an adaptive noise floor (20 ms frames) opens an utterance after 60 ms of speech, includes the 400 ms heard before it, closes it after 900 ms of silence, and drops it when it held less than 250 ms of speech. Silence never leaves the phone.
 - Pause and resume, sending an audio file (20 minutes max).
 - Screen wake lock while connected, so the phone does not fall asleep.
-- Reconnects by itself after a network loss or a page reload, without a new pairing (the session key stays in `sessionStorage` of that tab only).
+- Reconnects by itself after a network loss. The session keys live in memory only and the room secret is removed from the address bar once read: a page reload needs a new scan of the QR code.
 
 ## HTTP API
 

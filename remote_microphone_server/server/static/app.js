@@ -27,9 +27,8 @@ const session = {
     relay: null,
     // Random name of the inbox this phone polls
     inbox: null,
-    storeKey: null,
-    key: null,
-    rawKey: null,
+    // {send, recv} AES keys, in memory only: a reload means a new pairing
+    keys: null,
     // Our public key while pairing: the desktop's answers name the phone they are for
     publicB64: null,
     bound: false,
@@ -90,7 +89,6 @@ function notice(key, vars = {}) {
 function fail(key, vars = {}) {
     stopMic();
     session.relay?.stop();
-    if (session.storeKey !== null) sessionStorage.removeItem(session.storeKey);
     ui.error = { key, vars };
     show('error');
 }
@@ -102,24 +100,11 @@ function showLevel(db) {
 
 // ----------------------------------------------------------------- session
 
-/** Survives a reload (sessionStorage, this tab only) so the phone reconnects without a new pairing. */
-function save() {
-    if (!session.bound) return;
-    const saved = {
-        key: crypto.toB64(session.rawKey),
-        inbox: session.inbox,
-        seqOut: session.seqOut,
-        seqIn: session.seqIn,
-    };
-    sessionStorage.setItem(session.storeKey, JSON.stringify(saved));
-}
-
 /** Encrypts and queues one frame. Chained so the sequence numbers leave in order. */
 function sendOp(op, payload) {
     session.chain = session.chain.then(async () => {
         session.seqOut += 1;
-        const packet = await crypto.seal(session.key, sealInner(session.seqOut, op, payload));
-        save();
+        const packet = await crypto.seal(session.keys.send, sealInner(session.seqOut, op, payload));
         session.relay.send([{ binary: packet }]);
     });
     return session.chain;
@@ -133,7 +118,7 @@ async function onFrames(frames) {
         }
         let plain;
         try {
-            plain = await crypto.open(session.key, frame.binary);
+            plain = await crypto.open(session.keys.recv, frame.binary);
         } catch {
             continue; // for another phone of the same room, or forged
         }
@@ -150,14 +135,19 @@ async function onFrames(frames) {
             case OP.RECEIVED:
                 setState('state_received');
                 break;
+            case OP.DENIED:
+                if (!session.bound) fail('denied');
+                break;
+            case OP.REPLACED:
+                fail('replaced');
+                break;
             default:
                 break;
         }
-        save();
     }
 }
 
-/** Unencrypted answers to the hello, meaningless once paired. */
+/** The only unencrypted answer: our hello used an old QR code. */
 function onText(text) {
     if (session.bound) return;
     let msg;
@@ -168,9 +158,6 @@ function onText(text) {
     }
     if (msg.to !== session.publicB64) return; // for another phone of the room
     switch (msg.type) {
-        case 'denied':
-            fail('denied');
-            break;
         case 'stale':
             fail('stale');
             break;
@@ -189,29 +176,10 @@ function parseLink() {
     }
 }
 
-async function restore(storeKey) {
-    const raw = sessionStorage.getItem(storeKey);
-    if (raw === null) return false;
-    try {
-        const saved = JSON.parse(raw);
-        session.rawKey = crypto.fromB64(saved.key);
-        if (typeof saved.inbox !== 'string') throw new Error('no inbox');
-        session.inbox = saved.inbox;
-        session.key = await crypto.aesKey(session.rawKey);
-        session.seqOut = saved.seqOut;
-        session.seqIn = saved.seqIn;
-        session.bound = true;
-        return true;
-    } catch {
-        sessionStorage.removeItem(storeKey);
-        return false;
-    }
-}
-
 async function pair(desktopRaw) {
     const mine = await crypto.generateKeyPair();
-    session.rawKey = await crypto.hkdf(await crypto.sharedSecret(mine.privateKey, desktopRaw));
-    session.key = await crypto.aesKey(session.rawKey);
+    const shared = await crypto.sharedSecret(mine.privateKey, desktopRaw);
+    session.keys = await crypto.phoneKeys(shared, desktopRaw, mine.publicRaw);
     $('fingerprint').textContent = await crypto.fingerprint(desktopRaw, mine.publicRaw);
     session.publicB64 = crypto.toB64(mine.publicRaw);
     const hello = { type: 'hello', key: session.publicB64, to: crypto.toB64(desktopRaw), inbox: session.inbox };
@@ -227,11 +195,11 @@ function showConnected() {
 async function start() {
     render();
     const link = parseLink();
+    // The room secret leaves the address bar (and the tab history) once read
+    history.replaceState(null, '', location.pathname);
     if (link === null) return fail('no_link');
     if (globalThis.crypto?.subtle === undefined) return fail('unsupported');
-    session.storeKey = `plumed-mic:${link.room}`;
-    const restored = await restore(session.storeKey);
-    if (!restored) session.inbox = crypto.toB64url(globalThis.crypto.getRandomValues(new Uint8Array(16)));
+    session.inbox = crypto.toB64url(globalThis.crypto.getRandomValues(new Uint8Array(16)));
     session.relay = new Relay(link.room, link.secret, session.inbox, {
         onFrames,
         onClosed: () => fail('closed'),
@@ -240,8 +208,7 @@ async function start() {
         },
     });
     session.relay.start();
-    if (restored) showConnected();
-    else await pair(link.desktopRaw);
+    await pair(link.desktopRaw);
 }
 
 // --------------------------------------------------------------- recording

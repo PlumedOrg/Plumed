@@ -17,7 +17,7 @@ mod e2e {
     use base64::engine::general_purpose::{STANDARD, URL_SAFE_NO_PAD};
     use base64::Engine;
     use plumed_relay_protocol::{
-        desktop_inbox_path, op, open_inner, phone_inbox_path, seal_inner, Frame,
+        desktop_inbox_path, op, open_inner, phone_inbox_path, seal_inner, Frame, Role,
     };
 
     const TAG: &str = "e2e-phone-inbox-tag-00";
@@ -54,7 +54,7 @@ mod e2e {
             "to": STANDARD.encode(&desktop_raw),
             "inbox": TAG,
         });
-        let phone_key = phone_kp.derive(&desktop_raw).unwrap();
+        let phone_key = phone_kp.derive(&desktop_raw, Role::Phone).unwrap();
         let send_phone = |frame: Frame| {
             let (c, room) = (client.clone(), room.clone());
             let path = desktop_inbox_path(&room.id);

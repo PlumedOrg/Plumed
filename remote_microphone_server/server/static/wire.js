@@ -9,6 +9,8 @@ export const OP = Object.freeze({
     CANCEL: 4,
     BOUND: 0x10,
     RECEIVED: 0x11,
+    DENIED: 0x12,
+    REPLACED: 0x13,
 });
 
 export const MAX_FRAME = 256 * 1024;

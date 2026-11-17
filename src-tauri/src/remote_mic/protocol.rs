@@ -3,7 +3,8 @@
 //! The QR code carries the public key of `pending`. A phone that scanned it posts
 //! `{"type":"hello","key":<phone pub>,"to":<that key>,"inbox":<tag>}`: it becomes the
 //! `candidate`, both screens show the same fingerprint, and only the desktop user
-//! confirms. The confirmed phone becomes `active` and gets an encrypted `BOUND`.
+//! confirms. The confirmed phone becomes `active` and gets an encrypted `BOUND`
+//! (a refused one gets an encrypted `DENIED`, a replaced one `REPLACED`).
 //! From then on every frame is `IV || AES-GCM(seq || op || payload)`.
 //! Every answer goes to the inbox the phone named in its hello.
 //!
@@ -14,10 +15,10 @@
 //! Sequence numbers must be contiguous inside a recording: a gap (the relay
 //! withheld a chunk or the END of the previous one) drops the recording.
 
-use super::crypto::{decode_public_key, pair_fingerprint, CryptoError, KeyPair, SessionKey};
+use super::crypto::{decode_public_key, pair_fingerprint, CryptoError, KeyPair, SessionKeys};
 use crate::smartmic::audio_bridge::accumulate_pcm;
 use plumed_relay_protocol::{
-    op, open_inner, seal_inner, valid_inbox_tag, Frame, MAX_FRAME, SAMPLE_RATES,
+    op, open_inner, seal_inner, valid_inbox_tag, Frame, Role, MAX_FRAME, SAMPLE_RATES,
 };
 use serde::Deserialize;
 use std::time::{Duration, Instant};
@@ -74,22 +75,21 @@ impl Step {
 }
 
 struct Candidate {
-    key: SessionKey,
-    phone_b64: String,
-    inbox: String,
+    peer: Peer,
     fingerprint: String,
     since: Instant,
 }
 
-struct Active {
-    key: SessionKey,
+/// A phone we share keys with.
+struct Peer {
+    key: SessionKeys,
     inbox: String,
     seq_in: u64,
     seq_out: u64,
     recording: Option<(Vec<i16>, u32)>,
 }
 
-impl Active {
+impl Peer {
     fn seal(&mut self, op: u8, payload: &[u8]) -> Result<Outgoing, CryptoError> {
         self.seq_out += 1;
         let packet = self.key.seal(&seal_inner(self.seq_out, op, payload))?;
@@ -103,13 +103,13 @@ impl Active {
 pub struct Pairing {
     pending: KeyPair,
     candidate: Option<Candidate>,
-    active: Option<Active>,
+    active: Option<Peer>,
 }
 
-/// Unencrypted answer to one phone's hello, in its inbox. `to` names the key
-/// it answers, so a reloaded page reusing the inbox ignores an old answer.
-fn reply(kind: &str, inbox: &str, phone_b64: &str) -> Step {
-    let text = serde_json::json!({ "type": kind, "to": phone_b64 }).to_string();
+/// Unencrypted answer to a hello on an old QR code (no key to seal it with).
+/// `to` names the key it answers: the phone ignores it otherwise.
+fn stale(inbox: &str, phone_b64: &str) -> Step {
+    let text = serde_json::json!({ "type": "stale", "to": phone_b64 }).to_string();
     Step::send(inbox, Frame::Text(text))
 }
 
@@ -166,18 +166,22 @@ impl Pairing {
             return Ok(Step::default());
         };
         if to != self.pending.public_b64() {
-            return Ok(reply("stale", &inbox, &phone_b64));
+            return Ok(stale(&inbox, &phone_b64));
         }
         let ours = std::mem::replace(&mut self.pending, KeyPair::generate()?);
         let fingerprint = pair_fingerprint(ours.public_raw(), &phone_raw);
         // Not on the curve: a forged hello, the QR code simply changes
-        let Ok(key) = ours.derive(&phone_raw) else {
+        let Ok(key) = ours.derive(&phone_raw, Role::Desktop) else {
             return Ok(Step::default());
         };
         self.candidate = Some(Candidate {
-            key,
-            phone_b64,
-            inbox,
+            peer: Peer {
+                key,
+                inbox,
+                seq_in: 0,
+                seq_out: 0,
+                recording: None,
+            },
             fingerprint: fingerprint.clone(),
             since: Instant::now(),
         });
@@ -194,27 +198,22 @@ impl Pairing {
         if self.fingerprint() != Some(fingerprint) {
             return Ok(Step::default());
         }
-        let Some(candidate) = self.candidate.take() else {
+        let Some(Candidate { mut peer, .. }) = self.candidate.take() else {
             return Ok(Step::default());
         };
-        match accepted {
+        let send = match accepted {
             true => {
-                let mut active = Active {
-                    key: candidate.key,
-                    inbox: candidate.inbox,
-                    seq_in: 0,
-                    seq_out: 0,
-                    recording: None,
+                let replaced = match self.active.take() {
+                    Some(mut old) => Some(old.seal(op::REPLACED, &[])?),
+                    None => None,
                 };
-                let bound = active.seal(op::BOUND, &[])?;
-                self.active = Some(active);
-                Ok(Step {
-                    send: vec![bound],
-                    event: None,
-                })
+                let bound = peer.seal(op::BOUND, &[])?;
+                self.active = Some(peer);
+                replaced.into_iter().chain([bound]).collect()
             }
-            false => Ok(reply("denied", &candidate.inbox, &candidate.phone_b64)),
-        }
+            false => vec![peer.seal(op::DENIED, &[])?],
+        };
+        Ok(Step { send, event: None })
     }
 
     /// Refuses a candidate waiting since more than [`CANDIDATE_TTL`] at `now`.
@@ -304,7 +303,7 @@ mod tests {
         public_b64: String,
         desktop_b64: String,
         inbox: String,
-        key: SessionKey,
+        key: SessionKeys,
         seq: u64,
     }
 
@@ -315,7 +314,7 @@ mod tests {
             let public_b64 = kp.public_b64();
             let inbox = B64URL.encode(&kp.public_raw()[1..17]);
             let desktop_b64 = base64::engine::general_purpose::STANDARD.encode(&desktop_raw);
-            let key = kp.derive(&desktop_raw).unwrap();
+            let key = kp.derive(&desktop_raw, Role::Phone).unwrap();
             Phone {
                 public_b64,
                 desktop_b64,
@@ -405,16 +404,13 @@ mod tests {
     }
 
     #[test]
-    fn refusal_sends_an_addressed_denied() {
+    fn refusal_sends_an_authenticated_denied() {
         let mut p = Pairing::new().unwrap();
         let phone = Phone::scan(&p);
         p.on_frame(phone.hello()).unwrap();
         let code = p.fingerprint().unwrap().to_string();
         let step = p.confirm(&code, false).unwrap();
-        assert_eq!(step.send[0].inbox, phone.inbox);
-        let answer = text(&step.send[0]);
-        assert_eq!(answer["type"], "denied");
-        assert_eq!(answer["to"], phone.public_b64.as_str());
+        assert_eq!(phone.open(&step.send[0]), Some((1, op::DENIED)));
         assert!(!p.is_bound() && !p.awaits_confirmation());
         // Nothing left to confirm
         assert_eq!(p.confirm(&code, true).unwrap(), Step::default());
@@ -444,7 +440,7 @@ mod tests {
         assert!(p.awaits_confirmation());
         let later = now + CANDIDATE_TTL + Duration::from_secs(1);
         let step = p.expire_candidate(later).unwrap();
-        assert_eq!(text(&step.send[0])["type"], "denied");
+        assert_eq!(phone.open(&step.send[0]), Some((1, op::DENIED)));
         assert!(!p.awaits_confirmation());
     }
 
@@ -562,13 +558,15 @@ mod tests {
 
     #[test]
     fn scanning_the_new_code_replaces_the_active_phone() {
-        let (mut p, _old) = bound();
+        let (mut p, old) = bound();
         let mut new = Phone::scan(&p);
         let Some(Event::Fingerprint(code)) = p.on_frame(new.hello()).unwrap().event else {
             panic!("no fingerprint")
         };
         let step = p.confirm(&code, true).unwrap();
-        assert_eq!(new.open(&step.send[0]), Some((1, op::BOUND)));
+        // The old phone learns it was replaced, the new one is bound
+        assert_eq!(old.open(&step.send[0]), Some((2, op::REPLACED)));
+        assert_eq!(new.open(&step.send[1]), Some((1, op::BOUND)));
         p.on_frame(new.op(op::START, &16000u32.to_be_bytes()))
             .unwrap();
         p.on_frame(new.op(op::AUDIO, &[2, 0])).unwrap();

@@ -24,11 +24,22 @@ async function phonePrivateKey() {
 test('ECDH and HKDF match the vectors', async () => {
     const shared = await c.sharedSecret(await phonePrivateKey(), c.fromB64(v.desktop_public));
     assert.equal(toHex(shared), v.shared_x);
-    assert.equal(toHex(await c.hkdf(shared)), v.aes_key);
+    const desktop = c.fromB64(v.desktop_public);
+    const phone = c.fromB64(v.phone_public);
+    const label = (s) => new TextEncoder().encode(s);
+    assert.equal(toHex(await c.hkdf(shared, label('phone-to-desktop'), desktop, phone)), v.key_phone_to_desktop);
+    assert.equal(toHex(await c.hkdf(shared, label('desktop-to-phone'), desktop, phone)), v.key_desktop_to_phone);
+});
+
+test('phone keys: we seal with send, a reflected packet does not open', async () => {
+    const shared = await c.sharedSecret(await phonePrivateKey(), c.fromB64(v.desktop_public));
+    const keys = await c.phoneKeys(shared, c.fromB64(v.desktop_public), c.fromB64(v.phone_public));
+    assert.equal(toHex(await c.open(keys.send, hex(v.packet))), v.packet_inner);
+    await assert.rejects(c.open(keys.recv, hex(v.packet)));
 });
 
 test('opens the reference packet and round-trips', async () => {
-    const key = await c.aesKey(hex(v.aes_key));
+    const key = await c.aesKey(hex(v.key_phone_to_desktop));
     assert.equal(toHex(await c.open(key, hex(v.packet))), v.packet_inner);
     const sealed = await c.seal(key, hex(v.packet_inner));
     assert.equal(toHex(await c.open(key, sealed)), v.packet_inner);

@@ -19,7 +19,8 @@
 //!
 //! # Application messages (what the two ends exchange)
 //! - phone -> desktop, plain text: `{"type":"hello","key":<phone pub>,"to":<desktop pub>,"inbox":<tag>}`,
-//! - desktop -> phone, plain text: `{"type":"stale","to":<phone pub>}`,
+//! - desktop -> phone, plain text: `{"type":"stale","to":<phone pub>}` (the
+//!   desktop has no key for that phone: only desktop-secret holders can post it),
 //! - everything else is a binary frame `IV(12) || AES-GCM(inner) || tag(16)`,
 //!   where `inner` is [`seal_inner`]: a sequence number then an [`op`].
 
@@ -221,6 +222,10 @@ pub mod op {
     pub const BOUND: u8 = 0x10;
     /// desktop -> phone: a recording was received and is being transcribed.
     pub const RECEIVED: u8 = 0x11;
+    /// desktop -> phone: the user refused this pairing (or let it expire).
+    pub const DENIED: u8 = 0x12;
+    /// desktop -> phone: the user paired another phone instead of this one.
+    pub const REPLACED: u8 = 0x13;
 }
 
 const SEQ_LEN: usize = 8;

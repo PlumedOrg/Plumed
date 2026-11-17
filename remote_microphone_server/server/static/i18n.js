@@ -16,6 +16,8 @@ const STRINGS = {
         pairing_wait: "Puis confirmez sur l'ordinateur.",
         denied: "Appairage refusé sur l'ordinateur. Scannez à nouveau le QR code pour réessayer.",
         stale: "Ce QR code n'est plus valide. Scannez le nouveau QR code affiché sur l'ordinateur.",
+        replaced:
+            'Un autre téléphone a été appairé à la place de celui-ci. Scannez à nouveau le QR code pour le reprendre.',
         closed: "La session est terminée sur l'ordinateur. Scannez le nouveau QR code pour vous reconnecter.",
         mic_error: "Impossible d'accéder au micro : {error}",
         mode_manual: 'Manuel',
@@ -54,6 +56,7 @@ const STRINGS = {
         pairing_wait: 'Then confirm on the computer.',
         denied: 'Pairing refused on the computer. Scan the QR code again to retry.',
         stale: 'This QR code is no longer valid. Scan the new QR code shown on the computer.',
+        replaced: 'Another phone was paired instead of this one. Scan the QR code again to take over.',
         closed: 'The session ended on the computer. Scan the new QR code to reconnect.',
         mic_error: 'Cannot access the microphone: {error}',
         mode_manual: 'Manual',

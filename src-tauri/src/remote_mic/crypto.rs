@@ -2,19 +2,26 @@
 //! AES-256-GCM), byte-compatible with the phone page
 //! (`remote_microphone_server/server/static/crypto.js`).
 //!
+//! Each direction has its own key, bound to both public keys:
+//! `HKDF(salt, shared x, info = label || desktop pub || phone pub)` with the
+//! labels `phone-to-desktop` and `desktop-to-phone`. A packet can then never be
+//! reflected back to its sender, and the key only exists for that exact pair.
+//!
 //! The JS side duplicates this on purpose (a browser cannot run Rust). Both are
 //! pinned by `remote_microphone_server/protocol/test-vectors.json`, generated with
 //! Node `crypto`: if either side changes, these tests must fail.
 
 use base64::engine::general_purpose::{STANDARD as B64, URL_SAFE_NO_PAD as B64URL};
 use base64::Engine;
+use plumed_relay_protocol::Role;
 use ring::aead::{Aad, LessSafeKey, Nonce, UnboundKey, AES_256_GCM};
 use ring::agreement::{agree_ephemeral, EphemeralPrivateKey, UnparsedPublicKey, ECDH_P256};
 use ring::rand::{SecureRandom, SystemRandom};
 use ring::{digest, hkdf};
 
-const HKDF_SALT: &[u8] = b"Plumed-RemoteMic-v1";
-const HKDF_INFO: &[u8] = b"AES-GCM-256-key";
+const HKDF_SALT: &[u8] = b"Plumed-RemoteMic-v2";
+const PHONE_TO_DESKTOP: &[u8] = b"phone-to-desktop";
+const DESKTOP_TO_PHONE: &[u8] = b"desktop-to-phone";
 const PUBLIC_KEY_LEN: usize = 65;
 const IV_LEN: usize = 12;
 const TAG_LEN: usize = 16;
@@ -65,12 +72,27 @@ impl KeyPair {
         B64URL.encode(&self.public)
     }
 
-    /// ECDH with the peer's raw public key, then HKDF into the session key.
-    pub fn derive(self, peer_raw: &[u8]) -> Result<SessionKey, CryptoError> {
+    /// ECDH with the peer's raw public key, then HKDF into the two keys of
+    /// the session, seen from `us`.
+    pub fn derive(self, peer_raw: &[u8], us: Role) -> Result<SessionKeys, CryptoError> {
+        let (desktop, phone) = match us {
+            Role::Desktop => (self.public.as_slice(), peer_raw),
+            Role::Phone => (peer_raw, self.public.as_slice()),
+        };
         let peer = UnparsedPublicKey::new(&ECDH_P256, peer_raw);
-        let key = agree_ephemeral(self.private, &peer, derive_key_bytes)
-            .map_err(|_| CryptoError::Agreement)?;
-        SessionKey::from_bytes(&key)
+        let [to_desktop, to_phone] = agree_ephemeral(self.private, &peer, |shared| {
+            [PHONE_TO_DESKTOP, DESKTOP_TO_PHONE]
+                .map(|label| derive_key_bytes(shared, label, desktop, phone))
+        })
+        .map_err(|_| CryptoError::Agreement)?;
+        let (send, recv) = match us {
+            Role::Desktop => (to_phone, to_desktop),
+            Role::Phone => (to_desktop, to_phone),
+        };
+        Ok(SessionKeys {
+            send: SessionKey::from_bytes(&send)?,
+            recv: SessionKey::from_bytes(&recv)?,
+        })
     }
 }
 
@@ -94,19 +116,37 @@ pub fn decode_public_key(b64: &str) -> Result<Vec<u8>, CryptoError> {
     }
 }
 
-/// HKDF-SHA256(shared secret) -> 32-byte AES key.
-fn derive_key_bytes(shared: &[u8]) -> [u8; 32] {
+/// HKDF-SHA256(shared secret, info = label || desktop || phone) -> 32-byte AES key.
+fn derive_key_bytes(shared: &[u8], label: &[u8], desktop: &[u8], phone: &[u8]) -> [u8; 32] {
     let mut out = [0u8; 32];
     hkdf::Salt::new(hkdf::HKDF_SHA256, HKDF_SALT)
         .extract(shared)
-        .expand(&[HKDF_INFO], &AES_256_GCM)
+        .expand(&[label, desktop, phone], &AES_256_GCM)
         .and_then(|okm| okm.fill(&mut out))
         .expect("32 bytes is a valid HKDF-SHA256 output length");
     out
 }
 
-/// The AES-256-GCM key shared with the phone (same key both directions).
-pub struct SessionKey(LessSafeKey);
+/// The two AES-256-GCM keys of a session: one to seal, one to open.
+pub struct SessionKeys {
+    send: SessionKey,
+    recv: SessionKey,
+}
+
+impl SessionKeys {
+    /// `IV(12) || ciphertext || tag(16)` for the peer, with a random IV.
+    pub fn seal(&self, plain: &[u8]) -> Result<Vec<u8>, CryptoError> {
+        self.send.seal(plain)
+    }
+
+    /// Opens a packet from the peer.
+    pub fn decrypt(&self, packet: &[u8]) -> Result<Vec<u8>, CryptoError> {
+        self.recv.decrypt(packet)
+    }
+}
+
+/// One AES-256-GCM key.
+struct SessionKey(LessSafeKey);
 
 impl SessionKey {
     fn from_bytes(key: &[u8]) -> Result<Self, CryptoError> {
@@ -115,7 +155,7 @@ impl SessionKey {
     }
 
     /// Decrypts `IV(12) || ciphertext || tag(16)` (no AAD).
-    pub fn decrypt(&self, packet: &[u8]) -> Result<Vec<u8>, CryptoError> {
+    fn decrypt(&self, packet: &[u8]) -> Result<Vec<u8>, CryptoError> {
         if packet.len() < IV_LEN + TAG_LEN {
             return Err(CryptoError::Decrypt);
         }
@@ -132,7 +172,7 @@ impl SessionKey {
     }
 
     /// `IV(12) || ciphertext || tag(16)` with a random IV.
-    pub fn seal(&self, plain: &[u8]) -> Result<Vec<u8>, CryptoError> {
+    fn seal(&self, plain: &[u8]) -> Result<Vec<u8>, CryptoError> {
         let mut iv = [0u8; IV_LEN];
         SystemRandom::new()
             .fill(&mut iv)
@@ -186,9 +226,16 @@ mod tests {
 
     #[test]
     fn hkdf_matches_the_js_vector() {
+        let d = decode_public_key(&vector("desktop_public")).unwrap();
+        let p = decode_public_key(&vector("phone_public")).unwrap();
+        let shared = unhex(&vector("shared_x"));
         assert_eq!(
-            derive_key_bytes(&unhex(&vector("shared_x"))).to_vec(),
-            unhex(&vector("aes_key"))
+            derive_key_bytes(&shared, PHONE_TO_DESKTOP, &d, &p).to_vec(),
+            unhex(&vector("key_phone_to_desktop"))
+        );
+        assert_eq!(
+            derive_key_bytes(&shared, DESKTOP_TO_PHONE, &d, &p).to_vec(),
+            unhex(&vector("key_desktop_to_phone"))
         );
     }
 
@@ -203,7 +250,7 @@ mod tests {
 
     #[test]
     fn decrypts_the_js_packet() {
-        let key = SessionKey::from_bytes(&unhex(&vector("aes_key"))).unwrap();
+        let key = SessionKey::from_bytes(&unhex(&vector("key_phone_to_desktop"))).unwrap();
         assert_eq!(
             key.decrypt(&unhex(&vector("packet"))).unwrap(),
             unhex(&vector("packet_inner"))
@@ -212,7 +259,7 @@ mod tests {
 
     #[test]
     fn rejects_tampered_or_short_packets() {
-        let key = SessionKey::from_bytes(&unhex(&vector("aes_key"))).unwrap();
+        let key = SessionKey::from_bytes(&unhex(&vector("key_phone_to_desktop"))).unwrap();
         let mut packet = unhex(&vector("packet"));
         *packet.last_mut().unwrap() ^= 1;
         assert_eq!(key.decrypt(&packet), Err(CryptoError::Decrypt));
@@ -225,11 +272,16 @@ mod tests {
         assert_eq!(a.public_b64().len(), 88);
         assert_eq!(B64URL.decode(a.public_b64url()).unwrap(), a.public_raw());
         let (a_pub, b_pub) = (a.public_raw().to_vec(), b.public_raw().to_vec());
-        let ka = a.derive(&b_pub).unwrap();
-        let kb = b.derive(&a_pub).unwrap();
-        let (p1, p2) = (kb.seal(b"hello").unwrap(), kb.seal(b"hello").unwrap());
+        let desktop = a.derive(&b_pub, Role::Desktop).unwrap();
+        let phone = b.derive(&a_pub, Role::Phone).unwrap();
+        let (p1, p2) = (phone.seal(b"hello").unwrap(), phone.seal(b"hello").unwrap());
         assert_ne!(p1[..IV_LEN], p2[..IV_LEN]);
-        assert_eq!(ka.decrypt(&p1).unwrap(), b"hello");
+        assert_eq!(desktop.decrypt(&p1).unwrap(), b"hello");
+        let back = desktop.seal(b"bound").unwrap();
+        assert_eq!(phone.decrypt(&back).unwrap(), b"bound");
+        // Reflected to its sender, a packet does not open
+        assert_eq!(phone.decrypt(&p1), Err(CryptoError::Decrypt));
+        assert_eq!(desktop.decrypt(&back), Err(CryptoError::Decrypt));
     }
 
     #[test]
@@ -243,6 +295,6 @@ mod tests {
         // Right shape, not on the curve: refused at agreement time
         let off_curve = [[0x04u8].as_slice(), &[0x01u8; 64]].concat();
         let kp = KeyPair::generate().unwrap();
-        assert!(kp.derive(&off_curve).is_err());
+        assert!(kp.derive(&off_curve, Role::Desktop).is_err());
     }
 }
