@@ -2,6 +2,7 @@ use crate::audio::helpers::resample;
 use crate::audio::types::{AudioState, RecordingTrigger};
 use crate::audio::vad::{AdaptiveVad, VoiceActivity};
 use crate::engine::transcription_engine::TranscriptionEngine;
+use crate::engine::types::ParakeetInferenceParams;
 use crate::shortcuts::types::{recording_state, RecordingSource};
 use crate::wake_word::types::{WakeWordAction, WakeWordEntry, WakeWordState};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
@@ -721,7 +722,7 @@ fn transcribe_segment(app: &AppHandle, samples: Vec<f32>) -> anyhow::Result<Stri
     );
 
     let result = engine
-        .transcribe_samples(samples, None)
+        .transcribe_samples(samples, Some(ParakeetInferenceParams::greedy()))
         .map_err(|e| anyhow::anyhow!("Transcription failed: {}", e))?;
 
     Ok(result.text)

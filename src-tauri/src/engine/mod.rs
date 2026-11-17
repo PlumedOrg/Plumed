@@ -1,3 +1,4 @@
+pub mod beam;
 pub mod boost_tree;
 pub mod engine;
 pub mod helpers;

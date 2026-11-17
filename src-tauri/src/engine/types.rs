@@ -3,6 +3,7 @@ use ort::session::Session;
 use serde::{Deserialize, Serialize};
 use tokenizers::Tokenizer;
 
+use super::beam::DEFAULT_BEAM_WIDTH;
 use super::boost_tree::BoostTree;
 use super::phrase_boost::BoostingTrie;
 
@@ -123,12 +124,26 @@ impl ParakeetModelParams {
 #[derive(Debug, Clone)]
 pub struct ParakeetInferenceParams {
     pub timestamp_granularity: TimestampGranularity,
+    /// Hypotheses kept by the beam search; 1 decodes greedily.
+    pub beam_width: usize,
 }
 
 impl Default for ParakeetInferenceParams {
     fn default() -> Self {
         Self {
             timestamp_granularity: TimestampGranularity::Token,
+            beam_width: DEFAULT_BEAM_WIDTH,
+        }
+    }
+}
+
+impl ParakeetInferenceParams {
+    /// Greedy decoding, several times cheaper than the default beam: for
+    /// previews and detection that must keep up with live audio.
+    pub fn greedy() -> Self {
+        Self {
+            beam_width: 1,
+            ..Self::default()
         }
     }
 }

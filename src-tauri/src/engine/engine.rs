@@ -17,7 +17,7 @@ use super::types::{DecoderState, ParakeetError, ParakeetModel, TimestampedResult
 
 /// Tokens, frame timestamps and raw-logit probabilities of one decoded
 /// sequence, kept index-aligned by the decode loops.
-type DecodedSequence = (Vec<i32>, Vec<usize>, Vec<f32>);
+pub(super) type DecodedSequence = (Vec<i32>, Vec<usize>, Vec<f32>);
 
 const SUBSAMPLING_FACTOR: usize = 8;
 const WINDOW_SIZE: f32 = 0.01;
@@ -163,7 +163,7 @@ fn argmax_token(logits: &[f32], blank_idx: i32) -> i32 {
 }
 
 /// Index of the maximum value (first on ties). Returns 0 on an empty slice.
-fn argmax_index(logits: &[f32]) -> usize {
+pub(super) fn argmax_index(logits: &[f32]) -> usize {
     let mut best = 0;
     let mut best_val = f32::NEG_INFINITY;
     for (i, &v) in logits.iter().enumerate() {
@@ -568,6 +568,7 @@ impl ParakeetModel {
         &mut self,
         waveforms: &ArrayViewD<f32>,
         waveforms_len: &ArrayViewD<i64>,
+        beam_width: usize,
     ) -> Result<Vec<TimestampedResult>, ParakeetError> {
         // Preprocess and encode
         let (features, features_lens) = self.preprocess(waveforms, waveforms_len)?;
@@ -578,7 +579,7 @@ impl ParakeetModel {
         let mut results = Vec::new();
         for (encodings, &encodings_len) in encoder_out.outer_iter().zip(encoder_out_lens.iter()) {
             let (tokens, timestamps, probs) =
-                self.decode_sequence(&encodings.view(), encodings_len as usize)?;
+                self.decode_sequence(&encodings.view(), encodings_len as usize, beam_width)?;
             let result = self.decode_tokens(tokens, timestamps, probs);
             results.push(result);
         }
@@ -590,15 +591,22 @@ impl ParakeetModel {
         &mut self,
         encodings: &ArrayViewD<f32>, // [time_steps, 1024]
         encodings_len: usize,
+        beam_width: usize,
     ) -> Result<DecodedSequence, ParakeetError> {
         // Logit boosting only runs when a boost tree is active. With no boost
         // tree the greedy path must stay bit-exact (default path, streaming),
         // so it lives in its own function with no boost code on it.
         if self.boost_tree.is_some() || self.phrase_trie.is_some() {
-            let boosted = self.decode_sequence_boosted(encodings, encodings_len)?;
+            let boosted = self.decode_sequence_boosted(encodings, encodings_len, beam_width)?;
             // Encoder already ran: replay the light greedy decode and use it
             // when the boost diverged too far (flipped language). A genuine
             // other-language utterance decodes the same both ways, so it stays.
+            // A boosted beam is also checked against unboosted GREEDY, not
+            // unboosted beam: greedy needs several times fewer joint steps,
+            // and unboosted beam and greedy differ by a few percent
+            // of tokens, far below GUARD_DIVERGENCE, so only a boost-induced
+            // flip still crosses it. The rare fallback then reruns unboosted
+            // at the requested width.
             if boosted.0.len() >= GUARD_MIN_TOKENS {
                 let greedy = self.decode_sequence_greedy(encodings, encodings_len)?;
                 let divergence = token_divergence(&boosted.0, &greedy.0);
@@ -608,12 +616,27 @@ impl ParakeetModel {
                         divergence,
                         boosted.0.len()
                     );
-                    return Ok(greedy);
+                    return match beam_width {
+                        0 | 1 => Ok(greedy),
+                        width => self.decode_sequence_unboosted(encodings, encodings_len, width),
+                    };
                 }
             }
             Ok(boosted)
         } else {
-            self.decode_sequence_greedy(encodings, encodings_len)
+            self.decode_sequence_unboosted(encodings, encodings_len, beam_width)
+        }
+    }
+
+    fn decode_sequence_unboosted(
+        &mut self,
+        encodings: &ArrayViewD<f32>,
+        encodings_len: usize,
+        beam_width: usize,
+    ) -> Result<DecodedSequence, ParakeetError> {
+        match beam_width {
+            0 | 1 => self.decode_sequence_greedy(encodings, encodings_len),
+            width => self.decode_sequence_beam(encodings, encodings_len, width, None, None),
         }
     }
 
@@ -663,7 +686,7 @@ impl ParakeetModel {
 
     // Split a (possibly TDT) decoder output into (vocab_logits, duration_logits);
     // the duration slice is empty for a plain RNN-T joint.
-    fn tdt_logits(
+    pub(super) fn tdt_logits(
         probs: &ArrayD<f32>,
         vocab_size: usize,
     ) -> Result<(&[f32], &[f32]), ParakeetError> {
@@ -688,11 +711,22 @@ impl ParakeetModel {
         &mut self,
         encodings: &ArrayViewD<f32>,
         encodings_len: usize,
+        beam_width: usize,
     ) -> Result<DecodedSequence, ParakeetError> {
         let tree = self.boost_tree.take();
         let trie = self.phrase_trie.take();
-        let result =
-            self.run_boosted_decode(encodings, encodings_len, tree.as_ref(), trie.as_ref());
+        let result = match beam_width {
+            0 | 1 => {
+                self.run_boosted_decode(encodings, encodings_len, tree.as_ref(), trie.as_ref())
+            }
+            width => self.decode_sequence_beam(
+                encodings,
+                encodings_len,
+                width,
+                tree.as_ref(),
+                trie.as_ref(),
+            ),
+        };
         self.boost_tree = tree;
         self.phrase_trie = trie;
         result
@@ -830,9 +864,11 @@ impl ParakeetModel {
         }
     }
 
+    /// Transcribe `samples` with a beam of `beam_width` hypotheses (1: greedy).
     pub fn transcribe_samples(
         &mut self,
         samples: Vec<f32>,
+        beam_width: usize,
     ) -> Result<TimestampedResult, ParakeetError> {
         let batch_size = 1;
         let samples_len = samples.len();
@@ -844,7 +880,8 @@ impl ParakeetModel {
         let waveforms_lens = Array1::from_vec(vec![samples_len as i64]).into_dyn();
 
         // Run recognition to get detailed results
-        let results = self.recognize_batch(&waveforms.view(), &waveforms_lens.view())?;
+        let results =
+            self.recognize_batch(&waveforms.view(), &waveforms_lens.view(), beam_width)?;
 
         // Extract the first (and only) result
         let timestamped_result = results.into_iter().next().ok_or_else(|| {
@@ -859,6 +896,7 @@ impl ParakeetModel {
 }
 
 // TranscriptionEngine trait implementation
+use super::beam::DEFAULT_BEAM_WIDTH;
 use super::helpers::convert_timestamps;
 use super::transcription_engine::{TranscriptionEngine, TranscriptionResult};
 use super::types::{
@@ -892,7 +930,9 @@ impl ParakeetEngine {
         samples: Vec<f32>,
         from_secs: f32,
     ) -> Result<TranscriptionResult, Box<dyn std::error::Error>> {
-        let full = self.loaded_model()?.transcribe_samples(samples)?;
+        let full = self
+            .loaded_model()?
+            .transcribe_samples(samples, DEFAULT_BEAM_WIDTH)?;
         Ok(to_transcription_result(
             &words_from(&full, from_secs),
             TimestampGranularity::Token,
@@ -943,9 +983,14 @@ impl TranscriptionEngine for ParakeetEngine {
         samples: Vec<f32>,
         params: Option<Self::InferenceParams>,
     ) -> Result<TranscriptionResult, Box<dyn std::error::Error>> {
-        let granularity = params.unwrap_or_default().timestamp_granularity;
-        let timestamped_result = self.loaded_model()?.transcribe_samples(samples)?;
-        Ok(to_transcription_result(&timestamped_result, granularity))
+        let params = params.unwrap_or_default();
+        let timestamped_result = self
+            .loaded_model()?
+            .transcribe_samples(samples, params.beam_width)?;
+        Ok(to_transcription_result(
+            &timestamped_result,
+            params.timestamp_granularity,
+        ))
     }
 }
 

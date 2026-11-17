@@ -3,6 +3,7 @@ use crate::audio::helpers::resample;
 use crate::audio::types::{AudioState, PreviewSnapshot};
 use crate::dictionary::{correct_transcription, sync_boost_words, Dictionary};
 use crate::engine::transcription_engine::TranscriptionEngine;
+use crate::engine::types::ParakeetInferenceParams;
 use crate::formatting_rules;
 use crate::formatting_rules::highlighter::{
     apply_formatting_with_highlights_and_original, HighlightRange,
@@ -155,7 +156,7 @@ fn transcribe_samples(
         return None;
     };
     sync_boost_words(engine, dictionary);
-    match engine.transcribe_samples(resampled, None) {
+    match engine.transcribe_samples(resampled, Some(ParakeetInferenceParams::greedy())) {
         Ok(result) => {
             let cleaned = clean_transcription(result.text.trim(), remove_hesitations);
             if cleaned.is_empty() {
