@@ -328,10 +328,18 @@ fn handle_frames(
     frames: Vec<Frame>,
     recordings: &RecordingQueue,
 ) -> Result<Step, super::crypto::CryptoError> {
-    let mut send = Vec::new();
+    let mut send: Vec<Outgoing> = Vec::new();
     for frame in frames {
         let step = pairing.on_frame(frame)?;
-        send.extend(step.send);
+        // The only plain-text reply is `stale`, which anyone holding an old
+        // QR code can trigger: one per batch, or a 1 MiB envelope of hellos
+        // would make us post thousands of answers in a row
+        let answered = send.iter().any(|o| matches!(o.frame, Frame::Text(_)));
+        send.extend(
+            step.send
+                .into_iter()
+                .filter(|o| !(answered && matches!(o.frame, Frame::Text(_)))),
+        );
         if let Some(Event::Recording { pcm, sample_rate }) = step.event {
             if !recordings.push(pcm, sample_rate) {
                 warn!("Remote mic: transcription queue full, recording dropped");
@@ -439,6 +447,27 @@ mod tests {
                 ("a".to_string(), vec![bin(4)]),
             ]
         );
+    }
+
+    #[test]
+    fn one_stale_answer_per_batch() {
+        use base64::Engine;
+        // A well-formed point that is not the key on the QR code
+        let point: Vec<u8> = std::iter::once(4).chain([1; 64]).collect();
+        let key = base64::engine::general_purpose::STANDARD.encode(point);
+        let hellos = ["A", "B", "A", "B"]
+            .iter()
+            .map(|t| {
+                let hello = serde_json::json!({
+                    "type": "hello", "key": key, "to": "x", "inbox": t.repeat(22),
+                });
+                Frame::Text(hello.to_string())
+            })
+            .collect();
+        let mut pairing = Pairing::new().unwrap();
+        let (queue, _rx, _) = RecordingQueue::new();
+        let step = handle_frames(&mut pairing, hellos, &queue).unwrap();
+        assert_eq!(step.send.len(), 1);
     }
 
     #[test]
