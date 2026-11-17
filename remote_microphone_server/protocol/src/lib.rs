@@ -15,7 +15,7 @@
 //!
 //! # Application messages (what the two ends exchange)
 //! - phone -> desktop, plain text: `{"type":"hello","key":<phone pub>,"to":<desktop pub>}`,
-//! - desktop -> phone, plain text: `{"type":"denied"}` or `{"type":"stale"}`,
+//! - desktop -> phone, plain text: `{"type":"denied"|"stale","to":<phone pub>}`,
 //! - everything else is a binary frame `IV(12) || AES-GCM(inner) || tag(16)`,
 //!   where `inner` is [`seal_inner`]: a sequence number then an [`op`].
 

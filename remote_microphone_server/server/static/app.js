@@ -28,6 +28,8 @@ const session = {
     storeKey: null,
     key: null,
     rawKey: null,
+    // Our public key while pairing: the desktop's answers name the phone they are for
+    publicB64: null,
     bound: false,
     seqOut: 0,
     seqIn: 0,
@@ -157,6 +159,7 @@ function onText(text) {
     } catch {
         return;
     }
+    if (msg.to !== session.publicB64) return; // for another phone of the room
     switch (msg.type) {
         case 'denied':
             fail('denied');
@@ -201,7 +204,8 @@ async function pair(desktopRaw) {
     session.rawKey = await crypto.hkdf(await crypto.sharedSecret(mine.privateKey, desktopRaw));
     session.key = await crypto.aesKey(session.rawKey);
     $('fingerprint').textContent = await crypto.fingerprint(desktopRaw, mine.publicRaw);
-    const hello = { type: 'hello', key: crypto.toB64(mine.publicRaw), to: crypto.toB64(desktopRaw) };
+    session.publicB64 = crypto.toB64(mine.publicRaw);
+    const hello = { type: 'hello', key: session.publicB64, to: crypto.toB64(desktopRaw) };
     session.relay.send([{ text: JSON.stringify(hello) }]);
     show('pairing');
 }
