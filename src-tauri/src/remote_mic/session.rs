@@ -1,31 +1,30 @@
 //! One remote-mic session: room, QR code, pairing, then transcription of each
 //! recording sent by the phone. Everything stays in RAM and dies with the session.
 //!
-//! Lifecycle (`run`):
-//! - create a room, post the dummy offer, show the QR code,
-//! - claim a relay slot and pair (`run_slot`); when the phone leaves, pair again
-//!   on the same room with a fresh key (the same QR code keeps working),
-//! - the server deletes a room 10 min after its creation: if a phone was paired in
-//!   it we open a new room (new QR code), otherwise the session stops.
+//! Lifecycle (`run`): open a room, show its QR code, then serve it (`serve_room`)
+//! until the user stops. The QR code stays visible once a phone is connected:
+//! scanning it again pairs a new phone (it changes after each scan, see
+//! `protocol`). If the relay drops the room (restart, 24 h limit), a new room
+//! and QR code are opened.
 
-use super::client::{phone_link, ClientError, Frame, RelayClient, Room};
-use super::crypto::KeyPair;
-use super::protocol::{Event, Pairing};
-use super::sdp::dummy_offer;
+use super::client::{phone_link, ClientError, RelayClient, Room};
+use super::protocol::{Event, Pairing, Step};
 use crate::smartmic::audio_bridge::transcribe_pcm;
 use log::{info, warn};
 use parking_lot::Mutex;
+use plumed_relay_protocol::{op, Frame};
 use serde::Serialize;
 use std::time::Duration;
 use tauri::{AppHandle, Emitter};
 use tokio::sync::mpsc;
 
-/// Our `public-key` is resent at this pace until the phone answers.
-const KEY_RESEND: Duration = Duration::from_secs(2);
-/// Pause before retrying after a network error or a full room.
+/// After a confirmation, `BOUND` is sent again this often, `BOUND_RESENDS`
+/// times: a stale phone tab polling the same mailbox may swallow the first one.
+const BOUND_RESEND: Duration = Duration::from_secs(2);
+const BOUND_RESENDS: u32 = 5;
+/// Pause before polling again after a network error.
 const RETRY_DELAY: Duration = Duration::from_secs(3);
 pub const STATE_EVENT: &str = "remote-mic-state";
-
 #[derive(Serialize, Clone, Copy, Debug, PartialEq, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum Status {
@@ -103,21 +102,24 @@ impl Ui<'_> {
         let _ = self.app.emit(STATE_EVENT, snapshot);
     }
 
-    fn waiting(&self, origin: &str, room: &Room) {
-        let link = phone_link(origin, room);
-        let qr = crate::smartmic::qr::encode_svg_data_uri(&link).ok();
+    /// Reflects the pairing state; the QR code is only re-rendered when it changed.
+    fn show(&self, origin: &str, room: &Room, pairing: &Pairing) {
+        let link = phone_link(origin, room, &pairing.link_key());
+        let status = match (pairing.awaits_confirmation(), pairing.is_bound()) {
+            (true, _) => Status::Verify,
+            (false, true) => Status::Connected,
+            (false, false) => Status::Waiting,
+        };
+        let fingerprint = pairing.fingerprint().map(str::to_owned);
         self.update(|s| {
-            *s = Snapshot {
-                status: Status::Waiting,
-                qr,
-                link: Some(link),
-                ..Snapshot::default()
+            if s.link.as_deref() != Some(link.as_str()) {
+                s.qr = crate::smartmic::qr::encode_svg_data_uri(&link).ok();
+                s.link = Some(link);
             }
+            s.status = status;
+            s.fingerprint = fingerprint;
+            s.error = None;
         });
-    }
-
-    fn status(&self, status: Status) {
-        self.update(|s| s.status = status);
     }
 
     fn stopped(&self, error: Option<String>) {
@@ -130,16 +132,10 @@ impl Ui<'_> {
     }
 }
 
-/// How one pairing on a relay slot ended.
-enum SlotEnd {
-    /// Phone left, refused, or broke the protocol: pair again on the same room.
-    PhoneLeft {
-        was_bound: bool,
-    },
-    RoomGone {
-        was_bound: bool,
-    },
+enum RoomOutcome {
+    Gone,
     Stop,
+    Failed(String),
 }
 
 async fn run(app: AppHandle, client: RelayClient, mut commands: mpsc::UnboundedReceiver<Command>) {
@@ -152,18 +148,22 @@ async fn run(app: AppHandle, client: RelayClient, mut commands: mpsc::UnboundedR
     });
     let recordings = spawn_transcriber(app.clone());
     let error = loop {
-        let room = match open_room(&client).await {
-            Ok(room) => room,
+        let room = match open_room(&client, &mut commands).await {
+            Ok(Some(room)) => room,
+            Ok(None) => break None,
             Err(e) => break Some(e.to_string()),
         };
-        ui.waiting(client.origin(), &room);
-        match serve_room(&client, &room, &mut commands, &ui, &recordings).await {
-            RoomOutcome::Reopen => {
-                info!("Remote mic: room expired after a session, opening a new one")
+        let outcome = serve_room(&client, &room, &mut commands, &ui, &recordings).await;
+        match outcome {
+            RoomOutcome::Gone => info!("Remote mic: the relay dropped the room, opening a new one"),
+            RoomOutcome::Stop => {
+                client.close(&room).await;
+                break None;
             }
-            RoomOutcome::Expired => break Some("QR code expired: no phone joined".to_string()),
-            RoomOutcome::Stop => break None,
-            RoomOutcome::Failed(e) => break Some(e),
+            RoomOutcome::Failed(e) => {
+                client.close(&room).await;
+                break Some(e);
+            }
         }
     };
     // Close the channel so a new `start` is accepted before the UI hears "stopped"
@@ -171,74 +171,15 @@ async fn run(app: AppHandle, client: RelayClient, mut commands: mpsc::UnboundedR
     ui.stopped(error);
 }
 
-enum RoomOutcome {
-    Reopen,
-    Expired,
-    Stop,
-    Failed(String),
-}
-
-async fn serve_room(
+/// Creates a room, waiting while the relay is full or rate limits us.
+/// `Ok(None)` means the user stopped meanwhile.
+async fn open_room(
     client: &RelayClient,
-    room: &Room,
     commands: &mut mpsc::UnboundedReceiver<Command>,
-    ui: &Ui<'_>,
-    recordings: &mpsc::UnboundedSender<(Vec<i16>, u32)>,
-) -> RoomOutcome {
-    let mut paired_once = false;
+) -> Result<Option<Room>, ClientError> {
     loop {
-        let token = match claim_slot(client, room, commands).await {
-            Ok(Some(token)) => token,
-            Ok(None) => return RoomOutcome::Stop,
-            Err(ClientError::RoomGone) => {
-                return reopen_or_expire(paired_once);
-            }
-            Err(e) => return RoomOutcome::Failed(e.to_string()),
-        };
-        let end = run_slot(client, room, &token, commands, ui, recordings).await;
-        client.close_slot(room, &token).await;
-        match end {
-            SlotEnd::PhoneLeft { was_bound } => {
-                paired_once |= was_bound;
-                ui.waiting(client.origin(), room);
-            }
-            SlotEnd::RoomGone { was_bound } => return reopen_or_expire(paired_once || was_bound),
-            SlotEnd::Stop => return RoomOutcome::Stop,
-        }
-    }
-}
-
-fn reopen_or_expire(paired_once: bool) -> RoomOutcome {
-    match paired_once {
-        true => RoomOutcome::Reopen,
-        false => RoomOutcome::Expired,
-    }
-}
-
-async fn open_room(client: &RelayClient) -> Result<Room, ClientError> {
-    let room = loop {
-        match client.create_room().await {
-            Err(ClientError::RateLimited(secs)) => {
-                tokio::time::sleep(Duration::from_secs(secs.min(60))).await
-            }
-            other => break other?,
-        }
-    };
-    client.post_offer(&room, &dummy_offer()).await?;
-    Ok(room)
-}
-
-/// Claims a slot, waiting while the room is full (the old phone slot is reaped
-/// by the server after 60 s idle). `Ok(None)` means the user stopped meanwhile.
-async fn claim_slot(
-    client: &RelayClient,
-    room: &Room,
-    commands: &mut mpsc::UnboundedReceiver<Command>,
-) -> Result<Option<String>, ClientError> {
-    loop {
-        let delay = match client.claim_slot(room).await {
-            Ok(token) => return Ok(Some(token)),
-            Err(ClientError::SlotClosed) | Err(ClientError::Network(_)) => RETRY_DELAY,
+        let delay = match client.create_room().await {
+            Ok(room) => return Ok(Some(room)),
             Err(ClientError::RateLimited(secs)) => Duration::from_secs(secs.min(60)),
             Err(e) => return Err(e),
         };
@@ -252,111 +193,120 @@ async fn claim_slot(
 }
 
 /// Long-polls the relay into a channel. Network errors are retried so a flaky
-/// connection does not drop the pairing (the server keeps the slot 60 s).
+/// connection does not drop the session; only a closed room ends it.
 fn spawn_poller(
     client: RelayClient,
     room: Room,
-    token: String,
 ) -> (
-    mpsc::Receiver<Result<Frame, ClientError>>,
+    mpsc::Receiver<Result<Vec<Frame>, ClientError>>,
     tauri::async_runtime::JoinHandle<()>,
 ) {
-    let (tx, rx) = mpsc::channel(64);
+    let (tx, rx) = mpsc::channel(16);
     let task = tauri::async_runtime::spawn(async move {
         loop {
-            let item = match client.receive(&room, &token).await {
-                Ok(Some(frame)) => Ok(frame),
-                Ok(None) => continue,
-                Err(ClientError::RateLimited(secs)) => {
-                    tokio::time::sleep(Duration::from_secs(secs.min(60))).await;
-                    continue;
+            let delay = match client.poll(&room).await {
+                Ok(frames) if frames.is_empty() => continue,
+                Ok(frames) => match tx.send(Ok(frames)).await {
+                    Ok(()) => continue,
+                    Err(_) => break,
+                },
+                Err(ClientError::RoomGone) => {
+                    let _ = tx.send(Err(ClientError::RoomGone)).await;
+                    break;
                 }
-                Err(ClientError::Network(e)) => {
+                Err(ClientError::RateLimited(secs)) => Duration::from_secs(secs.min(60)),
+                Err(e) => {
                     warn!("Remote mic: relay poll failed, retrying: {}", e);
-                    tokio::time::sleep(RETRY_DELAY).await;
-                    continue;
+                    RETRY_DELAY
                 }
-                Err(e) => Err(e),
             };
-            let fatal = item.is_err();
-            if tx.send(item).await.is_err() || fatal {
-                break;
-            }
+            tokio::time::sleep(delay).await;
         }
     });
     (rx, task)
 }
 
-async fn run_slot(
+/// Posts what the protocol produced. A lost reply is not fatal: `BOUND` is
+/// resent, and `RECEIVED`, `stale` or `denied` only update the phone screen.
+async fn post(client: &RelayClient, room: &Room, frames: &[Frame]) {
+    if frames.is_empty() {
+        return;
+    }
+    if let Err(e) = client.send(room, frames).await {
+        warn!("Remote mic: could not reach the phone: {}", e);
+    }
+}
+
+async fn serve_room(
     client: &RelayClient,
     room: &Room,
-    token: &str,
     commands: &mut mpsc::UnboundedReceiver<Command>,
     ui: &Ui<'_>,
     recordings: &mpsc::UnboundedSender<(Vec<i16>, u32)>,
-) -> SlotEnd {
-    let keypair = match KeyPair::generate() {
-        Ok(kp) => kp,
-        Err(_) => return SlotEnd::Stop,
+) -> RoomOutcome {
+    let mut pairing = match Pairing::new() {
+        Ok(p) => p,
+        Err(e) => return RoomOutcome::Failed(e.to_string()),
     };
-    let mut pairing = Pairing::new(keypair);
-    let (mut frames, poller) = spawn_poller(client.clone(), room.clone(), token.to_string());
-    let mut resend = tokio::time::interval(KEY_RESEND);
-    let send = |text: String| client.send_text(room, token, text);
+    ui.show(client.origin(), room, &pairing);
+    let (mut incoming, poller) = spawn_poller(client.clone(), room.clone());
+    let mut resend = tokio::time::interval(BOUND_RESEND);
+    let mut bound_resends = 0;
 
-    let end = loop {
-        let was_bound = pairing.is_bound();
-        tokio::select! {
-            _ = resend.tick(), if !pairing.has_peer_key() => {
-                match send(pairing.public_key_message()).await {
-                    Err(ClientError::RoomGone) => break SlotEnd::RoomGone { was_bound },
-                    Err(ClientError::SlotClosed) => break SlotEnd::PhoneLeft { was_bound },
-                    // Network hiccup or rate limit: the next tick retries
-                    _ => {}
-                }
+    let outcome = loop {
+        let step = tokio::select! {
+            _ = resend.tick(), if bound_resends > 0 => {
+                bound_resends -= 1;
+                pairing.seal_op(op::BOUND).map(|frame| Step {
+                    send: frame.into_iter().collect(),
+                    event: None,
+                })
             }
             cmd = commands.recv() => match cmd {
-                Some(Command::Confirm(true)) if pairing.has_peer_key() => {
-                    let _ = send(r#"{"type":"verify-ok"}"#.to_string()).await;
-                    if pairing.confirm() == Some(Event::Bound) {
-                        ui.status(Status::Connected);
+                Some(Command::Confirm(accepted)) => {
+                    let step = pairing.confirm(accepted);
+                    if accepted && pairing.is_bound() {
+                        bound_resends = BOUND_RESENDS;
+                        resend.reset();
                     }
+                    step
                 }
-                Some(Command::Confirm(false)) if pairing.has_peer_key() => {
-                    let _ = send(r#"{"type":"verify-deny"}"#.to_string()).await;
-                    break SlotEnd::PhoneLeft { was_bound };
-                }
-                Some(Command::Confirm(_)) => {}
-                Some(Command::Stop) | None => break SlotEnd::Stop,
+                Some(Command::Stop) | None => break RoomOutcome::Stop,
             },
-            frame = frames.recv() => {
-                let event = match frame {
-                    Some(Ok(Frame::Text(text))) => pairing.on_text(&text),
-                    Some(Ok(Frame::Binary(packet))) => pairing.on_binary(&packet),
-                    Some(Err(ClientError::RoomGone)) => break SlotEnd::RoomGone { was_bound },
-                    Some(Err(_)) | None => break SlotEnd::PhoneLeft { was_bound },
-                };
-                match event {
-                    Some(Event::Fingerprint(fingerprint)) => ui.update(|s| {
-                        s.status = Status::Verify;
-                        s.fingerprint = Some(fingerprint);
-                    }),
-                    Some(Event::Bound) => ui.status(Status::Connected),
-                    Some(Event::Recording { pcm, sample_rate }) => {
-                        let _ = recordings.send((pcm, sample_rate));
-                    }
-                    Some(Event::Denied) => break SlotEnd::PhoneLeft { was_bound },
-                    Some(Event::ProtocolError(why)) => {
-                        warn!("Remote mic: dropping the phone: {}", why);
-                        break SlotEnd::PhoneLeft { was_bound };
-                    }
-                    None => {}
-                }
+            item = incoming.recv() => match item {
+                Some(Ok(frames)) => handle_frames(&mut pairing, frames, recordings),
+                Some(Err(ClientError::RoomGone)) => break RoomOutcome::Gone,
+                Some(Err(e)) => break RoomOutcome::Failed(e.to_string()),
+                None => break RoomOutcome::Failed("relay poller stopped".to_string()),
+            },
+        };
+        match step {
+            Ok(step) => {
+                post(client, room, &step.send).await;
+                ui.show(client.origin(), room, &pairing);
             }
+            Err(e) => break RoomOutcome::Failed(e.to_string()),
         }
     };
     poller.abort();
-    end
+    outcome
+}
+
+/// Feeds a batch to the protocol, queues the recordings, merges the replies.
+fn handle_frames(
+    pairing: &mut Pairing,
+    frames: Vec<Frame>,
+    recordings: &mpsc::UnboundedSender<(Vec<i16>, u32)>,
+) -> Result<Step, super::crypto::CryptoError> {
+    let mut send = Vec::new();
+    for frame in frames {
+        let step = pairing.on_frame(frame)?;
+        send.extend(step.send);
+        if let Some(Event::Recording { pcm, sample_rate }) = step.event {
+            let _ = recordings.send((pcm, sample_rate));
+        }
+    }
+    Ok(Step { send, event: None })
 }
 
 /// Transcribes and pastes recordings one at a time, in arrival order.

@@ -1,26 +1,26 @@
-//! HTTPS client for the ParakeetWeb signaling server, relay long-poll only.
-//! Long-poll goes through `reqwest`, which honors the system proxy: hospital
-//! networks often force an HTTP proxy that would break a raw WebSocket.
+//! HTTPS client for the Plumed relay (`remote_microphone_server/`), long-poll only.
+//! Requests go through `reqwest`, which honors the system proxy: hospital
+//! networks often force an HTTP proxy that would break a WebSocket.
 
+use plumed_relay_protocol::{decode, encode, mailbox_path, Frame, Role, ROOMS_PATH, SECRET_HEADER};
 use reqwest::{header, Client, Response, StatusCode};
 use serde::Deserialize;
 use std::time::Duration;
 
-/// The relay server holds a down-poll 25 s; leave room for slow proxies.
+/// The relay holds a poll `POLL_WAIT_SECS` (25 s): leave room for slow proxies.
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(45);
 
 #[derive(Debug, thiserror::Error)]
 pub enum ClientError {
-    /// Room expired or unknown (the server answers 401 for both).
+    /// Room closed or unknown (the relay answers 404 for both).
     #[error("room expired")]
     RoomGone,
-    /// Our relay slot was closed, usually because the phone left.
-    #[error("relay slot closed")]
-    SlotClosed,
     #[error("rate limited, retry in {0} s")]
     RateLimited(u64),
-    #[error("server error {0}")]
+    #[error("relay error {0}")]
     Status(StatusCode),
+    #[error("invalid answer from the relay: {0}")]
+    Invalid(String),
     #[error("network error: {0}")]
     Network(String),
 }
@@ -31,27 +31,10 @@ impl From<reqwest::Error> for ClientError {
     }
 }
 
-#[derive(Debug, PartialEq)]
-pub enum Frame {
-    Text(String),
-    Binary(Vec<u8>),
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct RoomCreated {
-    room_id: String,
-    secret: String,
-}
-
-#[derive(Deserialize)]
-struct SlotClaimed {
-    token: String,
-}
-
-/// A room on the signaling server: id + secret, as encoded in the QR link.
-#[derive(Clone)]
+/// A room on the relay: id + secret, as encoded in the QR link.
+#[derive(Clone, Deserialize)]
 pub struct Room {
+    #[serde(rename = "room")]
     pub id: String,
     pub secret: String,
 }
@@ -62,24 +45,29 @@ pub struct RelayClient {
     origin: String,
 }
 
-/// `https://turn.plumed.fr/` -> `https://turn.plumed.fr` (the origin the server allows).
+/// `https://turn.plumed.fr/` -> `https://turn.plumed.fr`. Plain http is only
+/// accepted for a relay on this machine (development and tests).
 pub fn origin_of(server_url: &str) -> Result<String, String> {
     let url = reqwest::Url::parse(server_url.trim()).map_err(|e| e.to_string())?;
+    let local = matches!(url.host_str(), Some("localhost" | "127.0.0.1" | "[::1]"));
     match (url.scheme(), url.host_str()) {
         ("https", Some(_)) => Ok(url.origin().ascii_serialization()),
+        ("http", Some(_)) if local => Ok(url.origin().ascii_serialization()),
         _ => Err("the relay URL must be https://".to_string()),
     }
 }
 
-/// The link the phone scans: `<origin>/remote-mic.html#<room>:<secret>`.
-pub fn phone_link(origin: &str, room: &Room) -> String {
-    format!("{}/remote-mic.html#{}:{}", origin, room.id, room.secret)
+/// The link the phone scans: `<origin>/#<room>.<secret>.<desktop public key>`.
+pub fn phone_link(origin: &str, room: &Room, desktop_key_b64url: &str) -> String {
+    format!(
+        "{}/#{}.{}.{}",
+        origin, room.id, room.secret, desktop_key_b64url
+    )
 }
 
-fn status_error(status: StatusCode, resp: &Response) -> ClientError {
-    match status {
-        StatusCode::UNAUTHORIZED | StatusCode::NOT_FOUND => ClientError::RoomGone,
-        StatusCode::GONE | StatusCode::CONFLICT => ClientError::SlotClosed,
+fn status_error(resp: &Response) -> ClientError {
+    match resp.status() {
+        StatusCode::NOT_FOUND => ClientError::RoomGone,
         StatusCode::TOO_MANY_REQUESTS | StatusCode::SERVICE_UNAVAILABLE => {
             let secs = resp
                 .headers()
@@ -94,24 +82,17 @@ fn status_error(status: StatusCode, resp: &Response) -> ClientError {
 }
 
 async fn check(resp: Response) -> Result<Response, ClientError> {
-    let status = resp.status();
-    match status.is_success() {
+    match resp.status().is_success() {
         true => Ok(resp),
-        false => Err(status_error(status, &resp)),
+        false => Err(status_error(&resp)),
     }
 }
 
 impl RelayClient {
     pub fn new(origin: String) -> Result<Self, ClientError> {
-        let mut headers = header::HeaderMap::new();
-        let origin_value = header::HeaderValue::from_str(&origin)
-            .map_err(|e| ClientError::Network(e.to_string()))?;
-        // The server refuses any request whose Origin is not in ALLOWED_ORIGINS
-        headers.insert(header::ORIGIN, origin_value);
         let http = Client::builder()
-            .default_headers(headers)
             .timeout(REQUEST_TIMEOUT)
-            .https_only(true)
+            .https_only(origin.starts_with("https://"))
             .build()?;
         Ok(Self { http, origin })
     }
@@ -120,101 +101,64 @@ impl RelayClient {
         &self.origin
     }
 
-    fn url(&self, path: &str) -> String {
-        format!("{}/api/signal{}", self.origin, path)
+    fn mailbox_url(&self, room: &Room, role: Role) -> String {
+        format!("{}{}", self.origin, mailbox_path(&room.id, role))
     }
 
     pub async fn create_room(&self) -> Result<Room, ClientError> {
-        let resp = check(self.http.post(self.url("/rooms")).send().await?).await?;
-        let created: RoomCreated = resp.json().await?;
-        Ok(Room {
-            id: created.room_id,
-            secret: created.secret,
-        })
+        let url = format!("{}{}", self.origin, ROOMS_PATH);
+        let resp = check(self.http.post(url).send().await?).await?;
+        Ok(resp.json().await?)
     }
 
-    pub async fn post_offer(&self, room: &Room, sdp: &str) -> Result<(), ClientError> {
-        let body = serde_json::json!({ "type": "offer", "sdp": sdp });
-        let req = self
-            .http
-            .post(self.url(&format!("/rooms/{}/offer", room.id)))
-            .header("X-Room-Secret", &room.secret)
-            .json(&body);
-        check(req.send().await?).await.map(|_| ())
-    }
-
-    /// Claims one of the room's two relay slots and returns its token.
-    pub async fn claim_slot(&self, room: &Room) -> Result<String, ClientError> {
-        let req = self
-            .http
-            .post(self.url(&format!("/rooms/{}/relay/handshake", room.id)))
-            .header("X-Room-Secret", &room.secret);
-        let claimed: SlotClaimed = check(req.send().await?).await?.json().await?;
-        Ok(claimed.token)
-    }
-
-    pub async fn send_text(
+    /// Posts frames to the other side, as `role`.
+    pub async fn send_as(
         &self,
         room: &Room,
-        token: &str,
-        text: String,
+        role: Role,
+        frames: &[Frame],
     ) -> Result<(), ClientError> {
-        let req = self
+        let resp = self
             .http
-            .post(self.url(&format!("/rooms/{}/relay/up", room.id)))
-            .header("X-Room-Secret", &room.secret)
-            .header("X-Slot-Token", token)
-            .header(header::CONTENT_TYPE, "text/plain; charset=utf-8")
-            .body(text);
-        check(req.send().await?).await.map(|_| ())
+            .post(self.mailbox_url(room, role))
+            .header(SECRET_HEADER, &room.secret)
+            .header(header::CONTENT_TYPE, "application/octet-stream")
+            .body(encode(frames))
+            .send()
+            .await?;
+        check(resp).await.map(|_| ())
     }
 
-    /// Waits up to 25 s for one frame from the phone. `None` means nothing arrived.
-    pub async fn receive(&self, room: &Room, token: &str) -> Result<Option<Frame>, ClientError> {
+    /// Waits up to 25 s for frames addressed to `role` (empty: nothing came).
+    pub async fn poll_as(&self, room: &Room, role: Role) -> Result<Vec<Frame>, ClientError> {
         let req = self
             .http
-            .get(self.url(&format!("/rooms/{}/relay/down?wait=true", room.id)))
-            .header("X-Room-Secret", &room.secret)
-            .header("X-Slot-Token", token);
+            .get(self.mailbox_url(room, role))
+            .header(SECRET_HEADER, &room.secret);
         let resp = check(req.send().await?).await?;
         if resp.status() == StatusCode::NO_CONTENT {
-            return Ok(None);
+            return Ok(Vec::new());
         }
-        let binary = resp
-            .headers()
-            .get(header::CONTENT_TYPE)
-            .and_then(|v| v.to_str().ok())
-            .is_some_and(|v| v.starts_with("application/octet-stream"));
-        let body = resp.bytes().await?.to_vec();
-        match binary {
-            true => Ok(Some(Frame::Binary(body))),
-            false => Ok(Some(Frame::Text(
-                String::from_utf8_lossy(&body).into_owned(),
-            ))),
-        }
+        decode(&resp.bytes().await?).map_err(|e| ClientError::Invalid(e.to_string()))
     }
 
-    /// What the phone sends: an encrypted audio packet.
-    #[cfg(test)]
-    pub async fn send_binary_for_test(&self, room: &Room, token: &str, packet: Vec<u8>) {
-        let req = self
-            .http
-            .post(self.url(&format!("/rooms/{}/relay/up", room.id)))
-            .header("X-Room-Secret", &room.secret)
-            .header("X-Slot-Token", token)
-            .header(header::CONTENT_TYPE, "application/octet-stream")
-            .body(packet);
-        check(req.send().await.unwrap()).await.unwrap();
+    pub async fn send(&self, room: &Room, frames: &[Frame]) -> Result<(), ClientError> {
+        self.send_as(room, Role::Desktop, frames).await
     }
 
-    /// Frees our slot (best effort: the server reaps idle slots after 60 s anyway).
-    pub async fn close_slot(&self, room: &Room, token: &str) {
-        let req = self
+    pub async fn poll(&self, room: &Room) -> Result<Vec<Frame>, ClientError> {
+        self.poll_as(room, Role::Desktop).await
+    }
+
+    /// Best effort: the relay drops idle rooms anyway.
+    pub async fn close(&self, room: &Room) {
+        let url = format!("{}{}/{}", self.origin, ROOMS_PATH, room.id);
+        let _ = self
             .http
-            .post(self.url(&format!("/rooms/{}/relay/close", room.id)))
-            .header("X-Room-Secret", &room.secret)
-            .header("X-Slot-Token", token);
-        let _ = req.send().await;
+            .delete(url)
+            .header(SECRET_HEADER, &room.secret)
+            .send()
+            .await;
     }
 }
 
@@ -223,7 +167,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn origin_strips_path_and_requires_https() {
+    fn origin_is_normalized_and_https_only_except_locally() {
         assert_eq!(
             origin_of("https://turn.plumed.fr/").unwrap(),
             "https://turn.plumed.fr"
@@ -236,19 +180,23 @@ mod tests {
             origin_of("https://h.example:8443").unwrap(),
             "https://h.example:8443"
         );
+        assert_eq!(
+            origin_of("http://127.0.0.1:5174").unwrap(),
+            "http://127.0.0.1:5174"
+        );
         assert!(origin_of("http://turn.plumed.fr").is_err());
         assert!(origin_of("turn.plumed.fr").is_err());
     }
 
     #[test]
-    fn phone_link_matches_parakeetweb_format() {
+    fn phone_link_layout() {
         let room = Room {
-            id: "ABC234".into(),
-            secret: "s3cr:et".into(),
+            id: "AbC-_9".into(),
+            secret: "s3cr_et".into(),
         };
         assert_eq!(
-            phone_link("https://turn.plumed.fr", &room),
-            "https://turn.plumed.fr/remote-mic.html#ABC234:s3cr:et"
+            phone_link("https://turn.plumed.fr", &room, "BKEY"),
+            "https://turn.plumed.fr/#AbC-_9.s3cr_et.BKEY"
         );
     }
 }

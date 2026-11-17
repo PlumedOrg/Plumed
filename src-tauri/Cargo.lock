@@ -3425,6 +3425,7 @@ dependencies = [
  "once_cell",
  "ort",
  "parking_lot",
+ "plumed-relay-protocol",
  "qrcode",
  "rayon",
  "rcgen",
@@ -4477,6 +4478,10 @@ dependencies = [
  "serde",
  "time",
 ]
+
+[[package]]
+name = "plumed-relay-protocol"
+version = "0.1.0"
 
 [[package]]
 name = "png"

@@ -1,21 +1,24 @@
-//! End-to-end crypto of the ParakeetWeb remote microphone, byte-compatible with
-//! `app/ui/src/lib/remote-crypto.js` (ECDH P-256, HKDF-SHA256, AES-256-GCM).
+//! End-to-end crypto of the Plumed remote microphone (ECDH P-256, HKDF-SHA256,
+//! AES-256-GCM), byte-compatible with the phone page
+//! (`remote_microphone_server/server/static/crypto.js`).
 //!
-//! This duplicates the JS protocol on purpose (the phone page is ParakeetWeb's).
-//! The test vectors below were generated with Node `crypto` and cross-checked with
-//! Python `cryptography`: if either side changes, these tests must fail.
+//! The JS side duplicates this on purpose (a browser cannot run Rust). Both are
+//! pinned by `remote_microphone_server/protocol/test-vectors.json`, generated with
+//! Node `crypto`: if either side changes, these tests must fail.
 
-use base64::{engine::general_purpose::STANDARD as B64, Engine};
+use base64::engine::general_purpose::{STANDARD as B64, URL_SAFE_NO_PAD as B64URL};
+use base64::Engine;
 use ring::aead::{Aad, LessSafeKey, Nonce, UnboundKey, AES_256_GCM};
 use ring::agreement::{agree_ephemeral, EphemeralPrivateKey, UnparsedPublicKey, ECDH_P256};
-use ring::{digest, hkdf, rand::SystemRandom};
+use ring::rand::{SecureRandom, SystemRandom};
+use ring::{digest, hkdf};
 
-const HKDF_SALT: &[u8] = b"ParakeetWeb-RemoteMic-v1";
+const HKDF_SALT: &[u8] = b"Plumed-RemoteMic-v1";
 const HKDF_INFO: &[u8] = b"AES-GCM-256-key";
 const PUBLIC_KEY_LEN: usize = 65;
 const IV_LEN: usize = 12;
 const TAG_LEN: usize = 16;
-/// Hex characters shown for the pairing fingerprint (64 bits, PW's floor).
+/// Hex characters shown for the pairing fingerprint (64 bits).
 const FINGERPRINT_HEX: usize = 16;
 
 #[derive(Debug, thiserror::Error, PartialEq)]
@@ -26,6 +29,8 @@ pub enum CryptoError {
     Agreement,
     #[error("audio packet failed authentication")]
     Decrypt,
+    #[error("encryption failed")]
+    Seal,
 }
 
 /// Our ephemeral ECDH key for one pairing. Consumed by `derive`.
@@ -50,9 +55,14 @@ impl KeyPair {
         &self.public
     }
 
-    /// Standard padded base64 of the raw 65-byte point (88 chars), as PW sends it.
+    /// Standard padded base64 of the raw 65-byte point (88 chars), as in a `hello`.
     pub fn public_b64(&self) -> String {
         B64.encode(&self.public)
+    }
+
+    /// Unpadded base64url of the raw point, for the QR link fragment.
+    pub fn public_b64url(&self) -> String {
+        B64URL.encode(&self.public)
     }
 
     /// ECDH with the peer's raw public key, then HKDF into the session key.
@@ -121,23 +131,25 @@ impl SessionKey {
         Ok(buf)
     }
 
-    /// What the phone does: `IV || ciphertext || tag` (fixed IV, tests only).
-    #[cfg(test)]
-    pub fn seal(&self, plain: &[u8]) -> Vec<u8> {
-        let iv = [3u8; IV_LEN];
+    /// `IV(12) || ciphertext || tag(16)` with a random IV.
+    pub fn seal(&self, plain: &[u8]) -> Result<Vec<u8>, CryptoError> {
+        let mut iv = [0u8; IV_LEN];
+        SystemRandom::new()
+            .fill(&mut iv)
+            .map_err(|_| CryptoError::Seal)?;
         let mut buf = plain.to_vec();
         self.0
             .seal_in_place_append_tag(Nonce::assume_unique_for_key(iv), Aad::empty(), &mut buf)
-            .expect("in-memory sealing cannot fail");
-        [iv.as_slice(), &buf].concat()
+            .map_err(|_| CryptoError::Seal)?;
+        Ok([iv.as_slice(), &buf].concat())
     }
 }
 
-/// `SHA-256(receiver || sender)`, first 16 uppercase hex, grouped by 4: `524C-F8E8-D5A4-2D82`.
-pub fn pair_fingerprint(receiver_raw: &[u8], sender_raw: &[u8]) -> String {
+/// `SHA-256(desktop || phone)`, first 16 uppercase hex, grouped by 4: `524C-F8E8-D5A4-2D82`.
+pub fn pair_fingerprint(desktop_raw: &[u8], phone_raw: &[u8]) -> String {
     let mut ctx = digest::Context::new(&digest::SHA256);
-    ctx.update(receiver_raw);
-    ctx.update(sender_raw);
+    ctx.update(desktop_raw);
+    ctx.update(phone_raw);
     let hex: String = ctx
         .finish()
         .as_ref()
@@ -156,14 +168,14 @@ pub fn pair_fingerprint(receiver_raw: &[u8], sender_raw: &[u8]) -> String {
 mod tests {
     use super::*;
 
-    // Section 6.2 of the protocol spec (receiver scalar 0x01.., sender scalar 0x02..).
-    const RECEIVER_PUB: &str =
-        "BG/wO5SSQc4drdQ1GeaWDgqFtBppoFwygQOqK84VlMoWPE91OlW/AdxT9sCwx+7ni0DG/30lqW4igrmJzvccFEo=";
-    const SENDER_PUB: &str =
-        "BFUPRxAD89+Xw99QaseX9nIfsaH7e49vg9IkSYplyI4kE2CT1wEuUJpzcVy9CwCjzA/0tcAbP/oZarH7MnA2uOY=";
-    const SHARED_X: &str = "eb459a6b30d70eb4c0ddcd34ea96ed59e8f8d1843c22dd895ab603aa13d9a81d";
-    const AES_KEY: &str = "1d25d99afad8b6841cf1a308707af01be945ee32ab9b6f38de1d9236a66fb97b";
-    const PACKET: &str = "0a0a0a0a0a0a0a0a0a0a0a0a7e2407b137661362dde247091ee245e64899bf475033";
+    /// Shared with the relay crate and the phone page tests.
+    fn vector(name: &str) -> String {
+        let all: serde_json::Value = serde_json::from_str(include_str!(
+            "../../../remote_microphone_server/protocol/test-vectors.json"
+        ))
+        .unwrap();
+        all["crypto"][name].as_str().unwrap().to_owned()
+    }
 
     fn unhex(s: &str) -> Vec<u8> {
         (0..s.len())
@@ -174,47 +186,55 @@ mod tests {
 
     #[test]
     fn hkdf_matches_the_js_vector() {
-        assert_eq!(derive_key_bytes(&unhex(SHARED_X)).to_vec(), unhex(AES_KEY));
+        assert_eq!(
+            derive_key_bytes(&unhex(&vector("shared_x"))).to_vec(),
+            unhex(&vector("aes_key"))
+        );
     }
 
     #[test]
     fn fingerprint_matches_the_js_vector() {
-        let r = decode_public_key(RECEIVER_PUB).unwrap();
-        let s = decode_public_key(SENDER_PUB).unwrap();
-        assert_eq!(pair_fingerprint(&r, &s), "524C-F8E8-D5A4-2D82");
-        // Order matters: receiver first
-        assert_ne!(pair_fingerprint(&s, &r), "524C-F8E8-D5A4-2D82");
+        let d = decode_public_key(&vector("desktop_public")).unwrap();
+        let p = decode_public_key(&vector("phone_public")).unwrap();
+        assert_eq!(pair_fingerprint(&d, &p), vector("fingerprint"));
+        // Order matters: desktop first
+        assert_ne!(pair_fingerprint(&p, &d), vector("fingerprint"));
     }
 
     #[test]
     fn decrypts_the_js_packet() {
-        let key = SessionKey::from_bytes(&unhex(AES_KEY)).unwrap();
-        assert_eq!(key.decrypt(&unhex(PACKET)).unwrap(), unhex("0000ff7f0080"));
+        let key = SessionKey::from_bytes(&unhex(&vector("aes_key"))).unwrap();
+        assert_eq!(
+            key.decrypt(&unhex(&vector("packet"))).unwrap(),
+            unhex(&vector("packet_inner"))
+        );
     }
 
     #[test]
     fn rejects_tampered_or_short_packets() {
-        let key = SessionKey::from_bytes(&unhex(AES_KEY)).unwrap();
-        let mut packet = unhex(PACKET);
+        let key = SessionKey::from_bytes(&unhex(&vector("aes_key"))).unwrap();
+        let mut packet = unhex(&vector("packet"));
         *packet.last_mut().unwrap() ^= 1;
         assert_eq!(key.decrypt(&packet), Err(CryptoError::Decrypt));
         assert_eq!(key.decrypt(&[0u8; 27]), Err(CryptoError::Decrypt));
     }
 
     #[test]
-    fn two_generated_keys_agree() {
+    fn two_generated_keys_agree_and_ivs_differ() {
         let (a, b) = (KeyPair::generate().unwrap(), KeyPair::generate().unwrap());
         assert_eq!(a.public_b64().len(), 88);
+        assert_eq!(B64URL.decode(a.public_b64url()).unwrap(), a.public_raw());
         let (a_pub, b_pub) = (a.public_raw().to_vec(), b.public_raw().to_vec());
         let ka = a.derive(&b_pub).unwrap();
         let kb = b.derive(&a_pub).unwrap();
-        // Seal with b's key, open with a's
-        assert_eq!(ka.decrypt(&kb.seal(b"hello")).unwrap(), b"hello");
+        let (p1, p2) = (kb.seal(b"hello").unwrap(), kb.seal(b"hello").unwrap());
+        assert_ne!(p1[..IV_LEN], p2[..IV_LEN]);
+        assert_eq!(ka.decrypt(&p1).unwrap(), b"hello");
     }
 
     #[test]
     fn public_key_validation_mirrors_js() {
-        assert!(decode_public_key(RECEIVER_PUB).is_ok());
+        assert!(decode_public_key(&vector("desktop_public")).is_ok());
         assert!(decode_public_key(&"A".repeat(201)).is_err());
         assert!(decode_public_key("not valid base64!!").is_err());
         assert!(decode_public_key(&B64.encode("too short")).is_err());
