@@ -9,10 +9,16 @@ interface RemoteMicSessionProps {
     snapshot: RemoteMicSnapshot;
     start: () => void;
     stop: () => void;
-    confirm: (accepted: boolean) => void;
+    confirm: (fingerprint: string, accepted: boolean) => void;
 }
 
-const Fingerprint = ({ fingerprint, confirm }: { fingerprint: string; confirm: (accepted: boolean) => void }) => {
+const Fingerprint = ({
+    fingerprint,
+    confirm,
+}: {
+    fingerprint: string;
+    confirm: (fingerprint: string, accepted: boolean) => void;
+}) => {
     const { t } = useTranslation();
     return (
         <div className="flex flex-col items-center gap-4">
@@ -23,11 +29,11 @@ const Fingerprint = ({ fingerprint, confirm }: { fingerprint: string; confirm: (
                 {fingerprint}
             </code>
             <div className="flex gap-3">
-                <Page.PrimaryButton size="sm" onClick={() => confirm(true)}>
+                <Page.PrimaryButton size="sm" onClick={() => confirm(fingerprint, true)}>
                     <Check className="w-4 h-4" />
                     {t('Same code')}
                 </Page.PrimaryButton>
-                <Page.SecondaryButton size="sm" onClick={() => confirm(false)}>
+                <Page.SecondaryButton size="sm" onClick={() => confirm(fingerprint, false)}>
                     <X className="w-4 h-4" />
                     {t('Different code')}
                 </Page.SecondaryButton>

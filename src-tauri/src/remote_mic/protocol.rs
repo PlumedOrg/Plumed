@@ -17,8 +17,12 @@ use super::crypto::{decode_public_key, pair_fingerprint, CryptoError, KeyPair, S
 use crate::smartmic::audio_bridge::accumulate_pcm;
 use plumed_relay_protocol::{op, open_inner, seal_inner, Frame, MAX_FRAME, SAMPLE_RATES};
 use serde::Deserialize;
+use std::time::{Duration, Instant};
 
 const MAX_TEXT_FRAME: usize = 4096;
+/// A phone not confirmed within this delay is refused: an unattended desktop
+/// must not keep a stranger's pairing request one click away.
+pub const CANDIDATE_TTL: Duration = Duration::from_secs(60);
 
 #[derive(Deserialize)]
 #[serde(tag = "type", rename_all = "kebab-case")]
@@ -59,6 +63,7 @@ struct Candidate {
     key: SessionKey,
     phone_b64: String,
     fingerprint: String,
+    since: Instant,
 }
 
 struct Active {
@@ -145,6 +150,7 @@ impl Pairing {
             key,
             phone_b64,
             fingerprint: fingerprint.clone(),
+            since: Instant::now(),
         });
         Ok(Step {
             send: vec![],
@@ -152,9 +158,13 @@ impl Pairing {
         })
     }
 
-    /// The local user compared the fingerprint: `true` binds the candidate
-    /// (replacing any active phone), `false` refuses it.
-    pub fn confirm(&mut self, accepted: bool) -> Result<Step, CryptoError> {
+    /// The local user compared `fingerprint`: `true` binds the candidate
+    /// (replacing any active phone), `false` refuses it. Ignored when another
+    /// phone said hello since the code was shown: the click was not about it.
+    pub fn confirm(&mut self, fingerprint: &str, accepted: bool) -> Result<Step, CryptoError> {
+        if self.fingerprint() != Some(fingerprint) {
+            return Ok(Step::default());
+        }
         let Some(candidate) = self.candidate.take() else {
             return Ok(Step::default());
         };
@@ -171,6 +181,17 @@ impl Pairing {
                 Ok(Step::send(bound))
             }
             false => Ok(Step::send(reply("denied", &candidate.phone_b64))),
+        }
+    }
+
+    /// Refuses a candidate waiting since more than [`CANDIDATE_TTL`] at `now`.
+    pub fn expire_candidate(&mut self, now: Instant) -> Result<Step, CryptoError> {
+        match &self.candidate {
+            Some(c) if now.duration_since(c.since) > CANDIDATE_TTL => {
+                let fingerprint = c.fingerprint.clone();
+                self.confirm(&fingerprint, false)
+            }
+            _ => Ok(Step::default()),
         }
     }
 
@@ -299,8 +320,10 @@ mod tests {
         let mut p = Pairing::new().unwrap();
         let phone = Phone::scan(&p);
         let step = p.on_frame(phone.hello()).unwrap();
-        assert!(matches!(step.event, Some(Event::Fingerprint(_))));
-        let step = p.confirm(true).unwrap();
+        let Some(Event::Fingerprint(code)) = step.event else {
+            panic!("no fingerprint")
+        };
+        let step = p.confirm(&code, true).unwrap();
         assert_eq!(phone.open(&step.send[0]), Some((1, op::BOUND)));
         assert!(p.is_bound());
         (p, phone)
@@ -344,13 +367,42 @@ mod tests {
         let mut p = Pairing::new().unwrap();
         let phone = Phone::scan(&p);
         p.on_frame(phone.hello()).unwrap();
-        let step = p.confirm(false).unwrap();
+        let code = p.fingerprint().unwrap().to_string();
+        let step = p.confirm(&code, false).unwrap();
         let answer = text(&step.send[0]);
         assert_eq!(answer["type"], "denied");
         assert_eq!(answer["to"], phone.public_b64.as_str());
         assert!(!p.is_bound() && !p.awaits_confirmation());
         // Nothing left to confirm
-        assert_eq!(p.confirm(true).unwrap(), Step::default());
+        assert_eq!(p.confirm(&code, true).unwrap(), Step::default());
+    }
+
+    #[test]
+    fn a_click_about_a_replaced_candidate_is_ignored() {
+        let mut p = Pairing::new().unwrap();
+        let first = Phone::scan(&p);
+        p.on_frame(first.hello()).unwrap();
+        let shown = p.fingerprint().unwrap().to_string();
+        // An attacker says hello on the new QR code right before the click
+        let attacker = Phone::scan(&p);
+        p.on_frame(attacker.hello()).unwrap();
+        assert_eq!(p.confirm(&shown, true).unwrap(), Step::default());
+        assert!(!p.is_bound());
+        assert!(p.awaits_confirmation());
+    }
+
+    #[test]
+    fn an_unconfirmed_candidate_expires() {
+        let mut p = Pairing::new().unwrap();
+        let phone = Phone::scan(&p);
+        p.on_frame(phone.hello()).unwrap();
+        let now = Instant::now();
+        assert_eq!(p.expire_candidate(now).unwrap(), Step::default());
+        assert!(p.awaits_confirmation());
+        let later = now + CANDIDATE_TTL + Duration::from_secs(1);
+        let step = p.expire_candidate(later).unwrap();
+        assert_eq!(text(&step.send[0])["type"], "denied");
+        assert!(!p.awaits_confirmation());
     }
 
     #[test]
@@ -441,7 +493,8 @@ mod tests {
                 .unwrap(),
             Step::default()
         );
-        p.confirm(true).unwrap();
+        let code = p.fingerprint().unwrap().to_string();
+        p.confirm(&code, true).unwrap();
         // A frame sealed with an unrelated key
         let mut stranger = Phone::scan(&Pairing::new().unwrap());
         assert_eq!(
@@ -462,11 +515,10 @@ mod tests {
     fn scanning_the_new_code_replaces_the_active_phone() {
         let (mut p, _old) = bound();
         let mut new = Phone::scan(&p);
-        assert!(matches!(
-            p.on_frame(new.hello()).unwrap().event,
-            Some(Event::Fingerprint(_))
-        ));
-        let step = p.confirm(true).unwrap();
+        let Some(Event::Fingerprint(code)) = p.on_frame(new.hello()).unwrap().event else {
+            panic!("no fingerprint")
+        };
+        let step = p.confirm(&code, true).unwrap();
         assert_eq!(new.open(&step.send[0]), Some((1, op::BOUND)));
         p.on_frame(new.op(op::START, &16000u32.to_be_bytes()))
             .unwrap();

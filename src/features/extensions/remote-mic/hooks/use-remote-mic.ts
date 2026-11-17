@@ -32,6 +32,6 @@ export const useRemoteMic = () => {
         snapshot,
         start,
         stop: () => invoke('remote_mic_stop'),
-        confirm: (accepted: boolean) => invoke('remote_mic_confirm', { accepted }),
+        confirm: (fingerprint: string, accepted: boolean) => invoke('remote_mic_confirm', { fingerprint, accepted }),
     };
 };

@@ -34,10 +34,14 @@ pub fn remote_mic_stop(state: State<'_, RemoteMicState>) {
     state.send(Command::Stop);
 }
 
-/// The user compared the fingerprint shown on both screens.
+/// The user compared the fingerprint shown on both screens. `fingerprint` is
+/// the code the UI displayed, so a click never applies to another phone.
 #[command]
-pub fn remote_mic_confirm(state: State<'_, RemoteMicState>, accepted: bool) {
-    state.send(Command::Confirm(accepted));
+pub fn remote_mic_confirm(state: State<'_, RemoteMicState>, fingerprint: String, accepted: bool) {
+    state.send(Command::Confirm {
+        fingerprint,
+        accepted,
+    });
 }
 
 #[command]

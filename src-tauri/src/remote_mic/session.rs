@@ -8,7 +8,7 @@
 //! and QR code are opened.
 
 use super::client::{phone_link, ClientError, RelayClient, Room};
-use super::protocol::{Event, Pairing, Step};
+use super::protocol::{Event, Pairing, Step, CANDIDATE_TTL};
 use crate::smartmic::audio_bridge::transcribe_pcm;
 use log::{info, warn};
 use parking_lot::Mutex;
@@ -57,8 +57,11 @@ pub struct Snapshot {
 }
 
 pub enum Command {
-    /// The user compared the fingerprint: `true` accepts, `false` refuses.
-    Confirm(bool),
+    /// The user compared `fingerprint`: `accepted` binds, otherwise refuses.
+    Confirm {
+        fingerprint: String,
+        accepted: bool,
+    },
     Stop,
 }
 
@@ -262,6 +265,7 @@ async fn serve_room(
     let (mut incoming, poller) = spawn_poller(client.clone(), room.clone());
     let mut resend = tokio::time::interval(BOUND_RESEND);
     let mut bound_resends = 0;
+    let mut expiry = tokio::time::interval(CANDIDATE_TTL / 6);
 
     let outcome = loop {
         let step = tokio::select! {
@@ -272,9 +276,12 @@ async fn serve_room(
                     event: None,
                 })
             }
+            _ = expiry.tick(), if pairing.awaits_confirmation() => {
+                pairing.expire_candidate(Instant::now())
+            }
             cmd = commands.recv() => match cmd {
-                Some(Command::Confirm(accepted)) => {
-                    let step = pairing.confirm(accepted);
+                Some(Command::Confirm { fingerprint, accepted }) => {
+                    let step = pairing.confirm(&fingerprint, accepted);
                     if accepted && pairing.is_bound() {
                         // A new phone: what the previous one sent is not pasted
                         recordings.flush();

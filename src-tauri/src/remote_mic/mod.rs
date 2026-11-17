@@ -56,10 +56,12 @@ mod e2e {
         send_phone(Frame::Text(hello.to_string())).await;
         let frames = next(&client, &room, Role::Desktop).await;
         let step = pairing.on_frame(frames[0].clone()).unwrap();
-        assert!(matches!(step.event, Some(Event::Fingerprint(_))));
+        let Some(Event::Fingerprint(code)) = step.event else {
+            panic!("expected a fingerprint");
+        };
 
         // The desktop user confirms: the phone gets BOUND
-        let step = pairing.confirm(true).unwrap();
+        let step = pairing.confirm(&code, true).unwrap();
         client.send(&room, &step.send).await.unwrap();
         let Frame::Binary(packet) = &next(&client, &room, Role::Phone).await[0] else {
             panic!("expected BOUND");
