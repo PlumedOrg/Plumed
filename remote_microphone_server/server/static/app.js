@@ -8,7 +8,7 @@
 import { OP, sealInner, openInner, u32be } from './wire.js';
 import * as crypto from './crypto.js';
 import { Relay } from './relay.js';
-import { Capture, decodeFile, toPcm16, TARGET_RATE } from './audio.js';
+import { Capture, decodeFile, FileTooLarge, toPcm16, TARGET_RATE } from './audio.js';
 import { Vad } from './vad.js';
 import { t, setLang, applyStatic } from './i18n.js';
 
@@ -357,6 +357,12 @@ function setMode(mode) {
     render();
 }
 
+function fileErrorKey(e) {
+    if (e instanceof FileTooLarge) return 'file_too_large';
+    if (e instanceof RangeError) return 'file_too_long';
+    return 'file_error';
+}
+
 async function sendFile(file) {
     if (rec.active || rec.sendingFile) return notice('busy');
     rec.sendingFile = true;
@@ -371,7 +377,7 @@ async function sendFile(file) {
         setState('state_idle');
     } catch (e) {
         setState('state_idle');
-        notice(e instanceof RangeError ? 'file_too_long' : 'file_error');
+        notice(fileErrorKey(e));
     } finally {
         rec.sendingFile = false;
     }

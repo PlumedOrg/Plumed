@@ -85,8 +85,16 @@ export class Capture {
     }
 }
 
-/** Any audio file the browser can decode -> mono Float32 at 16 kHz. */
+/** Checked before reading: a phone would run out of memory decoding a huge
+ * file just to learn it is too long (20 min of 48 kHz stereo WAV is 220 MiB). */
+export const MAX_FILE_BYTES = 256 * 1024 * 1024;
+
+export class FileTooLarge extends RangeError {}
+
+/** Any audio file the browser can decode -> mono Float32 at 16 kHz. Throws
+ * `FileTooLarge` past `MAX_FILE_BYTES`, `RangeError` past `maxSeconds`. */
 export async function decodeFile(file, maxSeconds) {
+    if (file.size > MAX_FILE_BYTES) throw new FileTooLarge('audio file too large');
     // decodeAudioData resamples to the context rate
     const ctx = new OfflineAudioContext(1, 1, TARGET_RATE);
     const decoded = await ctx.decodeAudioData(await file.arrayBuffer());
