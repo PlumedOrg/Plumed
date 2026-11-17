@@ -10,6 +10,7 @@ import * as crypto from './crypto.js';
 import { Relay } from './relay.js';
 import { Capture, decodeFile, FileTooLarge, toPcm16, TARGET_RATE } from './audio.js';
 import { Vad } from './vad.js';
+import * as store from './store.js';
 import { t, setLang, applyStatic } from './i18n.js';
 
 const PUSH_TO_TALK_MS = 500;
@@ -27,12 +28,17 @@ const session = {
     relay: null,
     // Random name of the inbox this phone polls
     inbox: null,
-    // {send, recv} AES keys, in memory only: a reload means a new pairing
+    // {send, recv} AES keys, non-extractable, kept in IndexedDB once bound (store.js)
     keys: null,
+    // The private room once bound: {room, secret}
+    room: null,
+    expiresAt: 0,
     // Our public key while pairing: the desktop's answers name the phone they are for
     publicB64: null,
     bound: false,
     seqOut: 0,
+    // Stored upper bound of seqOut (store.SEQ_BLOCK)
+    seqLimit: 0,
     seqIn: 0,
     chain: Promise.resolve(),
 };
@@ -87,6 +93,7 @@ function notice(key, vars = {}) {
 
 /** Terminal error: everything stops, the user has to scan a new QR code. */
 function fail(key, vars = {}) {
+    store.clear();
     stopMic();
     session.relay?.stop();
     ui.error = { key, vars };
@@ -104,6 +111,10 @@ function showLevel(db) {
 function sendOp(op, payload) {
     session.chain = session.chain.then(async () => {
         session.seqOut += 1;
+        if (session.seqOut > session.seqLimit) {
+            session.seqLimit = session.seqOut + store.SEQ_BLOCK;
+            await persist();
+        }
         const packet = await crypto.seal(session.keys.send, sealInner(session.seqOut, op, payload));
         session.relay.send([{ binary: packet }]);
     });
@@ -125,6 +136,7 @@ async function onFrames(frames) {
         const inner = openInner(plain);
         if (inner === null || inner.seq <= session.seqIn) continue; // replayed
         session.seqIn = inner.seq;
+        if (session.bound) persist();
         switch (inner.op) {
             case OP.BOUND:
                 if (!session.bound) bind(parseRoom(inner.payload));
@@ -192,8 +204,46 @@ async function pair(desktopRaw) {
 function bind(room) {
     if (room === null) return fail('closed');
     session.bound = true;
+    session.room = room;
+    session.expiresAt = Date.now() + store.LIFETIME_MS;
+    session.seqLimit = session.seqOut + store.SEQ_BLOCK;
+    persist();
     session.relay.stop();
     openRelay(room.room, room.secret);
+    showConnected();
+}
+
+/** Saves the bound session; the stored seqOut is the limit, ahead of every number sent. */
+function persist() {
+    if (session.room === null) return Promise.resolve();
+    return store.save({
+        room: session.room.room,
+        secret: session.room.secret,
+        inbox: session.inbox,
+        keys: session.keys,
+        seqOut: session.seqLimit,
+        seqIn: session.seqIn,
+        expiresAt: session.expiresAt,
+    });
+}
+
+/** No QR link in the address: a reload, picks up the stored session if it has not expired. */
+async function resume() {
+    const record = await store.load();
+    if (!store.resumable(record, Date.now())) return fail('no_link');
+    Object.assign(session, {
+        inbox: record.inbox,
+        keys: record.keys,
+        room: { room: record.room, secret: record.secret },
+        expiresAt: record.expiresAt,
+        bound: true,
+        seqOut: record.seqOut,
+        seqIn: record.seqIn,
+        seqLimit: record.seqOut + store.SEQ_BLOCK,
+    });
+    // Reserve the next block before sending anything
+    await persist();
+    openRelay(record.room, record.secret);
     showConnected();
 }
 
@@ -218,8 +268,10 @@ async function start() {
     const link = parseLink();
     // The room secret leaves the address bar (and the tab history) once read
     history.replaceState(null, '', location.pathname);
-    if (link === null) return fail('no_link');
     if (globalThis.crypto?.subtle === undefined) return fail('unsupported');
+    if (link === null) return resume();
+    // A new QR code replaces any stored session
+    await store.clear();
     session.inbox = crypto.toB64url(globalThis.crypto.getRandomValues(new Uint8Array(16)));
     openRelay(link.room, link.secret);
     await pair(link.desktopRaw);

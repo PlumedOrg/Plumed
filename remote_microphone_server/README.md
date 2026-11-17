@@ -30,7 +30,7 @@ The phone's `wire.js` and `crypto.js` mirror the Rust code (`protocol/src/lib.rs
 - Hands-free mode: the phone listens continuously and only sends speech. An energy VAD with an adaptive noise floor (20 ms frames) opens an utterance after 60 ms of speech, includes the 400 ms heard before it, closes it after 900 ms of silence, and drops it when it held less than 250 ms of speech. Silence never leaves the phone.
 - Pause and resume, sending an audio file (20 minutes max).
 - Screen wake lock while connected, so the phone does not fall asleep.
-- Reconnects by itself after a network loss. The session keys live in memory only and the room secret is removed from the address bar once read: a page reload needs a new scan of the QR code.
+- Reconnects by itself after a network loss. The room secret is removed from the address bar once read. Once bound, the phone keeps its session in IndexedDB (non-extractable AES keys, private room, sequence counters) for 12 h, the lifetime of the binding on the desktop: a page reload, or the phone killing the tab in the background, picks the session up again without a new scan. The record is deleted on any terminal error (room closed, phone replaced, pairing denied) and when a new QR code is scanned.
 
 ## HTTP API
 

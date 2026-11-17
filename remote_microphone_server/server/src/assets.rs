@@ -26,6 +26,7 @@ const ASSETS: &[(&str, &str, &[u8])] = &[
     asset!("/crypto.js", "crypto.js", JS),
     asset!("/i18n.js", "i18n.js", JS),
     asset!("/relay.js", "relay.js", JS),
+    asset!("/store.js", "store.js", JS),
     asset!("/vad.js", "vad.js", JS),
     asset!("/wire.js", "wire.js", JS),
     asset!("/worklet.js", "worklet.js", JS),
