@@ -8,7 +8,7 @@ How it works:
 
 1. Plumed (desktop) creates a room on the relay and shows a QR code: `https://turn.plumed.fr/#{room}.{phone secret}.{desktop public key}`. The room has one secret per side, and the QR code only carries the phone's: whoever photographs it cannot read what phones send to the desktop nor close the room.
 2. The phone opens the page, generates its own key and posts a `hello` with its public key and the random name of its own inbox (so phones of the same room never take each other's frames). Both screens show the same pairing code (for example `524C-F8E8-D5A4-2D82`) and the desktop user confirms it.
-3. From then on every frame is encrypted end to end (ECDH P-256, HKDF-SHA256, AES-256-GCM), with one key per direction bound to both public keys, so a packet can be neither reflected back to its sender nor replayed into another pairing. Refusals and "another phone took over" notices are encrypted too, so the relay cannot forge them. The relay only forwards opaque bytes between inboxes: it cannot hear anything, keeps everything in RAM, and logs no IP or room id.
+3. From then on every frame is encrypted end to end (ECDH P-256, HKDF-SHA256, AES-256-GCM), with one key per direction bound to both public keys, so a packet can be neither reflected back to its sender nor replayed into another pairing. Refusals and "another phone took over" notices are encrypted too, so the relay cannot forge them. The relay only forwards opaque bytes between inboxes: it cannot hear anything, keeps everything in RAM, and logs no IP or room id. This holds against the relay operator and the network as long as the phone page itself is honest: the same server serves the page and its crypto code, so a compromised relay could serve a modified page. Use a relay you or your institution trust, or host your own.
 
 Transport is plain HTTPS long-polling (no WebSocket, no WebRTC, no TURN server), so it works behind any proxy or firewall that lets HTTPS through.
 
@@ -77,6 +77,8 @@ turn.plumed.fr {
     reverse_proxy 127.0.0.1:5174
 }
 ```
+
+Keep Caddy's access log off (it is off unless a `log` directive is set): it would record client IPs and room ids, which the relay itself never logs.
 
 Then on the server, in a copy of this directory: `cp env.example .env && sudo docker compose up -d --build`. The container is read-only, unprivileged (distroless, non-root, no capabilities) and checks its own health with `plumed-relay --healthcheck`.
 

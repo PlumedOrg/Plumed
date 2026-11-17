@@ -8,7 +8,8 @@ const STRINGS = {
         page_title: 'Plumed : micro distant (alpha)',
         title: 'Micro distant Plumed',
         alpha_notice: 'Version alpha : fonctionnalité en cours de test, des problèmes sont possibles.',
-        privacy_notice: "L'audio est chiffré de bout en bout entre ce téléphone et votre ordinateur.",
+        privacy_notice:
+            "L'audio est chiffré de bout en bout entre ce téléphone et votre ordinateur, si ce serveur relais est de confiance.",
         loading: 'Connexion…',
         no_link: 'Ouvrez cette page en scannant le QR code affiché par Plumed sur votre ordinateur.',
         unsupported: 'Ce navigateur ne permet pas le chiffrement nécessaire. Utilisez un navigateur récent.',
@@ -49,7 +50,8 @@ const STRINGS = {
         page_title: 'Plumed: remote microphone (alpha)',
         title: 'Plumed remote microphone',
         alpha_notice: 'Alpha version: this feature is being tested, expect problems.',
-        privacy_notice: 'Audio is end-to-end encrypted between this phone and your computer.',
+        privacy_notice:
+            'Audio is end-to-end encrypted between this phone and your computer, provided this relay server is trusted.',
         loading: 'Connecting…',
         no_link: 'Open this page by scanning the QR code shown by Plumed on your computer.',
         unsupported: 'This browser lacks the required encryption. Use a recent browser.',
