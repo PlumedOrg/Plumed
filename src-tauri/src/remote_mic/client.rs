@@ -90,11 +90,17 @@ async fn check(resp: Response) -> Result<Response, ClientError> {
 
 impl RelayClient {
     pub fn new(origin: String) -> Result<Self, ClientError> {
-        let http = Client::builder()
+        let http = Self::builder(&origin).build()?;
+        Ok(Self { http, origin })
+    }
+
+    /// Redirects are refused: the room secret header would follow them to
+    /// whatever host the relay (or a captive portal) points at.
+    fn builder(origin: &str) -> reqwest::ClientBuilder {
+        Client::builder()
             .timeout(REQUEST_TIMEOUT)
             .https_only(origin.starts_with("https://"))
-            .build()?;
-        Ok(Self { http, origin })
+            .redirect(reqwest::redirect::Policy::none())
     }
 
     pub fn origin(&self) -> &str {
@@ -186,6 +192,27 @@ mod tests {
         );
         assert!(origin_of("http://turn.plumed.fr").is_err());
         assert!(origin_of("turn.plumed.fr").is_err());
+    }
+
+    #[tokio::test]
+    async fn redirects_are_not_followed() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        tokio::spawn(async move {
+            let (mut sock, _) = listener.accept().await.unwrap();
+            let mut buf = [0u8; 2048];
+            let _ = sock.read(&mut buf).await;
+            let answer = "HTTP/1.1 307 Temporary Redirect\r\nLocation: http://127.0.0.1:1/api/rooms\r\nContent-Length: 0\r\n\r\n";
+            sock.write_all(answer.as_bytes()).await.unwrap();
+        });
+        let _ = rustls::crypto::ring::default_provider().install_default();
+        let client = RelayClient::new(format!("http://{addr}")).unwrap();
+        // Followed, the redirect would fail with a network error on port 1
+        assert!(matches!(
+            client.create_room().await,
+            Err(ClientError::Status(StatusCode::TEMPORARY_REDIRECT))
+        ));
     }
 
     #[test]
