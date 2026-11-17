@@ -9,6 +9,9 @@
 //! Each hello consumes the pending key (ring's ECDH keys are single use), so a
 //! new one is generated and the QR code changes: the old code answers `stale`.
 //! Scanning the new code while a phone is active replaces it after confirmation.
+//!
+//! Sequence numbers must be contiguous inside a recording: a gap (the relay
+//! withheld a chunk or the END of the previous one) drops the recording.
 
 use super::crypto::{decode_public_key, pair_fingerprint, CryptoError, KeyPair, SessionKey};
 use crate::smartmic::audio_bridge::accumulate_pcm;
@@ -197,6 +200,11 @@ impl Pairing {
         };
         if seq <= active.seq_in {
             return Ok(Step::default());
+        }
+        // A gap means the relay withheld frames: never transcribe a recording
+        // with a hole in it (a dropped "pas" flips the meaning of a sentence)
+        if seq != active.seq_in + 1 {
+            active.recording = None;
         }
         active.seq_in = seq;
         match code {
@@ -392,6 +400,35 @@ mod tests {
             .unwrap();
         p.on_frame(phone.op(op::AUDIO, &[1, 0])).unwrap();
         assert_eq!(p.on_frame(phone.op(op::END, &[])).unwrap(), Step::default());
+    }
+
+    #[test]
+    fn a_withheld_frame_drops_the_recording() {
+        let (mut p, mut phone) = bound();
+        p.on_frame(phone.op(op::START, &16000u32.to_be_bytes()))
+            .unwrap();
+        p.on_frame(phone.op(op::AUDIO, &[1, 0])).unwrap();
+        // The relay swallows this chunk
+        let _withheld = phone.op(op::AUDIO, &[2, 0]);
+        p.on_frame(phone.op(op::AUDIO, &[3, 0])).unwrap();
+        assert_eq!(p.on_frame(phone.op(op::END, &[])).unwrap(), Step::default());
+        // A withheld END: the next recording starts clean, gaps between
+        // recordings are harmless
+        p.on_frame(phone.op(op::START, &16000u32.to_be_bytes()))
+            .unwrap();
+        p.on_frame(phone.op(op::AUDIO, &[4, 0])).unwrap();
+        let _withheld_end = phone.op(op::END, &[]);
+        p.on_frame(phone.op(op::START, &16000u32.to_be_bytes()))
+            .unwrap();
+        p.on_frame(phone.op(op::AUDIO, &[5, 0])).unwrap();
+        let step = p.on_frame(phone.op(op::END, &[])).unwrap();
+        assert_eq!(
+            step.event,
+            Some(Event::Recording {
+                pcm: vec![5],
+                sample_rate: 16000
+            })
+        );
     }
 
     #[test]
