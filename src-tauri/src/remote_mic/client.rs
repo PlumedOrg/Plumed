@@ -3,7 +3,8 @@
 //! networks often force an HTTP proxy that would break a WebSocket.
 
 use plumed_relay_protocol::{
-    decode, desktop_inbox_path, encode, phone_inbox_path, Frame, ROOMS_PATH, SECRET_HEADER,
+    decode, desktop_inbox_path, encode, phone_inbox_path, Frame, MAX_BODY, ROOMS_PATH,
+    SECRET_HEADER,
 };
 use reqwest::{header, Client, Response, StatusCode};
 use serde::Deserialize;
@@ -28,9 +29,24 @@ pub enum ClientError {
 }
 
 impl From<reqwest::Error> for ClientError {
+    /// Without the URL: it names the room and the phone inbox, and this text
+    /// ends up in logs and on screen.
     fn from(e: reqwest::Error) -> Self {
-        ClientError::Network(e.to_string())
+        ClientError::Network(e.without_url().to_string())
     }
+}
+
+/// The body of `resp`, refused past `MAX_BODY`: an honest relay never queues
+/// more for one inbox, a malicious one must not exhaust our memory.
+async fn bounded_body(mut resp: Response) -> Result<Vec<u8>, ClientError> {
+    let mut body = Vec::new();
+    while let Some(chunk) = resp.chunk().await? {
+        if body.len() + chunk.len() > MAX_BODY {
+            return Err(ClientError::Invalid("answer too large".to_string()));
+        }
+        body.extend_from_slice(&chunk);
+    }
+    Ok(body)
 }
 
 /// A room on the relay: its id and the secret of each side. Only the phone
@@ -147,7 +163,7 @@ impl RelayClient {
         if resp.status() == StatusCode::NO_CONTENT {
             return Ok(Vec::new());
         }
-        decode(&resp.bytes().await?).map_err(|e| ClientError::Invalid(e.to_string()))
+        decode(&bounded_body(resp).await?).map_err(|e| ClientError::Invalid(e.to_string()))
     }
 
     /// Posts frames to the phone that polls the inbox `tag`.
@@ -202,16 +218,8 @@ mod tests {
 
     #[tokio::test]
     async fn redirects_are_not_followed() {
-        use tokio::io::{AsyncReadExt, AsyncWriteExt};
-        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-        let addr = listener.local_addr().unwrap();
-        tokio::spawn(async move {
-            let (mut sock, _) = listener.accept().await.unwrap();
-            let mut buf = [0u8; 2048];
-            let _ = sock.read(&mut buf).await;
-            let answer = "HTTP/1.1 307 Temporary Redirect\r\nLocation: http://127.0.0.1:1/api/rooms\r\nContent-Length: 0\r\n\r\n";
-            sock.write_all(answer.as_bytes()).await.unwrap();
-        });
+        let answer = "HTTP/1.1 307 Temporary Redirect\r\nLocation: http://127.0.0.1:1/api/rooms\r\nContent-Length: 0\r\n\r\n";
+        let addr = one_shot_server(answer.as_bytes().to_vec()).await;
         let _ = rustls::crypto::ring::default_provider().install_default();
         let client = RelayClient::new(format!("http://{addr}")).unwrap();
         // Followed, the redirect would fail with a network error on port 1
@@ -219,6 +227,48 @@ mod tests {
             client.create_room().await,
             Err(ClientError::Status(StatusCode::TEMPORARY_REDIRECT))
         ));
+    }
+
+    /// Serves `answer` to the first request on a local port.
+    async fn one_shot_server(answer: Vec<u8>) -> std::net::SocketAddr {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        tokio::spawn(async move {
+            let (mut sock, _) = listener.accept().await.unwrap();
+            let mut buf = [0u8; 2048];
+            let _ = sock.read(&mut buf).await;
+            let _ = sock.write_all(&answer).await;
+        });
+        addr
+    }
+
+    #[tokio::test]
+    async fn oversized_poll_answers_are_refused() {
+        let body = vec![0u8; MAX_BODY + 1];
+        let mut answer =
+            format!("HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n", body.len()).into_bytes();
+        answer.extend(body);
+        let addr = one_shot_server(answer).await;
+        let _ = rustls::crypto::ring::default_provider().install_default();
+        let client = RelayClient::new(format!("http://{addr}")).unwrap();
+        assert!(matches!(
+            client.poll_from("/api/rooms/r/desktop", "s").await,
+            Err(ClientError::Invalid(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn network_errors_do_not_name_the_room() {
+        let _ = rustls::crypto::ring::default_provider().install_default();
+        // Nothing listens on port 1
+        let client = RelayClient::new("http://127.0.0.1:1".to_string()).unwrap();
+        let Err(ClientError::Network(text)) =
+            client.poll_from("/api/rooms/R00M/desktop", "s").await
+        else {
+            panic!("expected a network error")
+        };
+        assert!(!text.contains("R00M"), "{text}");
     }
 
     #[test]
