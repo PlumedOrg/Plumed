@@ -1,0 +1,41 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import * as c from '../static/crypto.js';
+
+const v = JSON.parse(readFileSync(new URL('../../protocol/test-vectors.json', import.meta.url))).crypto;
+const hex = (s) => Uint8Array.from(Buffer.from(s, 'hex'));
+const toHex = (b) => Buffer.from(b).toString('hex');
+const b64url = (b) => Buffer.from(b).toString('base64url');
+
+/** The vectors use the private scalars 0x01 * 32 (desktop) and 0x02 * 32 (phone). */
+async function phonePrivateKey() {
+    const raw = c.fromB64(v.phone_public);
+    const jwk = { kty: 'EC', crv: 'P-256', d: b64url(new Uint8Array(32).fill(2)), x: b64url(raw.slice(1, 33)), y: b64url(raw.slice(33)) };
+    return crypto.subtle.importKey('jwk', jwk, { name: 'ECDH', namedCurve: 'P-256' }, false, ['deriveBits']);
+}
+
+test('ECDH and HKDF match the vectors', async () => {
+    const shared = await c.sharedSecret(await phonePrivateKey(), c.fromB64(v.desktop_public));
+    assert.equal(toHex(shared), v.shared_x);
+    assert.equal(toHex(await c.hkdf(shared)), v.aes_key);
+});
+
+test('opens the reference packet and round-trips', async () => {
+    const key = await c.aesKey(hex(v.aes_key));
+    assert.equal(toHex(await c.open(key, hex(v.packet))), v.packet_inner);
+    const sealed = await c.seal(key, hex(v.packet_inner));
+    assert.equal(toHex(await c.open(key, sealed)), v.packet_inner);
+    const forged = hex(v.packet);
+    forged[20] ^= 1;
+    await assert.rejects(c.open(key, forged));
+});
+
+test('fingerprint matches the vectors', async () => {
+    assert.equal(await c.fingerprint(c.fromB64(v.desktop_public), c.fromB64(v.phone_public)), v.fingerprint);
+});
+
+test('base64url of the QR link', () => {
+    const raw = c.fromB64(v.desktop_public);
+    assert.deepEqual(c.fromB64url(b64url(raw)), raw);
+});

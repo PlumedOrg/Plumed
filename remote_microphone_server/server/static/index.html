@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="fr">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+        <meta name="robots" content="noindex" />
+        <meta name="color-scheme" content="light dark" />
+        <title>Plumed : micro distant (alpha)</title>
+        <link rel="stylesheet" href="style.css" />
+        <script type="module" src="app.js"></script>
+    </head>
+    <body>
+        <header>
+            <h1><span data-i18n="title">Micro distant Plumed</span> <span class="badge">alpha</span></h1>
+        </header>
+        <main>
+            <p id="banner" class="banner" data-i18n="reconnecting" hidden></p>
+            <section id="view-loading">
+                <p data-i18n="loading"></p>
+            </section>
+            <section id="view-error" hidden>
+                <p id="error-text" class="error"></p>
+            </section>
+            <section id="view-pairing" hidden>
+                <p data-i18n="pairing_intro"></p>
+                <p id="fingerprint" class="fingerprint"></p>
+                <p data-i18n="pairing_wait"></p>
+            </section>
+            <section id="view-connected" hidden>
+                <div class="modes">
+                    <button id="mode-manual" type="button" data-i18n="mode_manual"></button>
+                    <button id="mode-handsfree" type="button" data-i18n="mode_handsfree"></button>
+                </div>
+                <p id="mode-hint" class="hint"></p>
+                <button id="main" type="button" class="main"></button>
+                <div class="level"><div id="level-fill"></div></div>
+                <p id="state" class="state" aria-live="polite"></p>
+                <div class="row">
+                    <button id="pause" type="button" hidden></button>
+                    <label class="file">
+                        <input id="file" type="file" accept="audio/*" />
+                        <span data-i18n="send_file"></span>
+                    </label>
+                </div>
+            </section>
+            <p id="notice" class="notice" hidden></p>
+        </main>
+        <footer>
+            <p data-i18n="alpha_notice"></p>
+            <p data-i18n="privacy_notice"></p>
+            <p>
+                <a href="https://plumed.fr" target="_blank" rel="noopener noreferrer">plumed.fr</a>
+                <span class="lang">
+                    <button type="button" data-lang="fr">FR</button>
+                    <button type="button" data-lang="en">EN</button>
+                </span>
+            </p>
+        </footer>
+    </body>
+</html>

@@ -1,0 +1,174 @@
+:root {
+    --bg: #f7f7f5;
+    --fg: #1d1d1f;
+    --muted: #6b6b70;
+    --accent: #2b6cb0;
+    --rec: #c53030;
+    --card: #ffffff;
+    --border: #d8d8dc;
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: #161618;
+        --fg: #ececee;
+        --muted: #9a9aa0;
+        --accent: #63a4ff;
+        --rec: #ff6b6b;
+        --card: #222225;
+        --border: #3a3a3f;
+    }
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+    color: var(--fg);
+    padding: env(safe-area-inset-top) 1rem env(safe-area-inset-bottom);
+}
+
+header h1 {
+    font-size: 1.2rem;
+    margin: 1rem 0;
+    text-align: center;
+}
+
+.badge {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    background: var(--rec);
+    color: #fff;
+    border-radius: 0.3rem;
+    padding: 0.1rem 0.35rem;
+    vertical-align: middle;
+}
+
+main {
+    flex: 1;
+    width: 100%;
+    max-width: 28rem;
+    margin: 0 auto;
+    text-align: center;
+}
+
+button,
+.file {
+    font: inherit;
+    color: var(--fg);
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 0.6rem;
+    padding: 0.6rem 1rem;
+    cursor: pointer;
+}
+
+.modes {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+}
+
+.modes button[aria-pressed='true'] {
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.hint,
+.state,
+footer {
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+
+.main {
+    display: block;
+    width: 11rem;
+    height: 11rem;
+    margin: 1.5rem auto 1rem;
+    border-radius: 50%;
+    font-size: 1.2rem;
+    font-weight: 600;
+    border: 3px solid var(--accent);
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+}
+
+.main.on {
+    border-color: var(--rec);
+    color: var(--rec);
+}
+
+.level {
+    height: 0.4rem;
+    width: 11rem;
+    margin: 0 auto;
+    background: var(--border);
+    border-radius: 0.2rem;
+    overflow: hidden;
+}
+
+#level-fill {
+    height: 100%;
+    width: 0;
+    background: var(--accent);
+}
+
+.row {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+}
+
+.file input {
+    display: none;
+}
+
+.fingerprint {
+    font-family: ui-monospace, monospace;
+    font-size: 1.6rem;
+    letter-spacing: 0.05em;
+    margin: 1.5rem 0;
+}
+
+.error {
+    color: var(--rec);
+}
+
+.banner,
+.notice {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 0.6rem;
+    padding: 0.5rem;
+}
+
+footer {
+    text-align: center;
+    padding: 1rem 0;
+}
+
+footer a {
+    color: var(--accent);
+}
+
+.lang button {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.8rem;
+}
+
+[hidden] {
+    display: none !important;
+}
