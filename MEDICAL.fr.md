@@ -25,18 +25,20 @@ Une dictée très courte, par exemple un seul mot que l'on redicte pour le corri
 
 Cet audio reste uniquement en mémoire vive, n'est jamais écrit sur le disque, et est oublié 5 minutes après la dernière dictée, à la fermeture de Plumed, ou dès que l'option est désactivée.
 
-## Micro distant (dicter depuis son téléphone)
+## Micro distant (dicter depuis son téléphone, alpha)
+
+> **Alpha :** cette fonctionnalité est une préversion, attendez-vous à des bugs.
 
 Désactivé par défaut : **Micro distant** dans la barre latérale.
 
 Le téléphone sert de micro, même s'il n'est pas sur le même réseau que l'ordinateur (4G, Wi-Fi invité de l'hôpital) :
 
 1. Cliquer sur **Connecter un téléphone** : un QR code s'affiche.
-2. Le scanner avec l'appareil photo du téléphone. La page de micro de ParakeetWeb s'ouvre, sans rien installer.
-3. Les deux écrans affichent un code (par exemple `524C-F8E8-D5A4-2D82`). S'il est identique, confirmer des deux côtés.
-4. Dicter sur le téléphone : le texte transcrit est collé dans l'application active de l'ordinateur, comme pour une dictée normale.
+2. Le scanner avec l'appareil photo du téléphone. La page de micro de Plumed s'ouvre (en français, ou en anglais), sans rien installer.
+3. Les deux écrans affichent un code (par exemple `524C-F8E8-D5A4-2D82`). S'il est identique, confirmer sur l'ordinateur.
+4. Dicter sur le téléphone : le texte transcrit est collé dans l'application active de l'ordinateur, comme pour une dictée normale. En mode mains libres, le téléphone écoute en continu et n'envoie que la parole, jamais les silences.
 
-L'audio passe par un serveur relais (`https://turn.plumed.fr` par défaut, modifiable), mais il est chiffré de bout en bout entre le téléphone et Plumed : le relais ne peut pas l'écouter. La vérification du code empêche un relais malveillant de s'intercaler. Le relais voit en revanche les adresses IP et la taille des paquets chiffrés. Le QR code expire au bout de 10 minutes ; si le téléphone se déconnecte, le même QR code permet de le reconnecter tant qu'il n'a pas expiré.
+L'audio passe par un serveur relais (`https://turn.plumed.fr` par défaut, modifiable), mais il est chiffré de bout en bout entre le téléphone et Plumed : le relais ne peut pas l'écouter. La vérification du code empêche un relais malveillant de s'intercaler. Le relais voit en revanche les adresses IP et la taille des paquets chiffrés. Le téléphone se reconnecte tout seul après une coupure réseau. Le QR code reste affiché une fois connecté : le scanner avec un autre téléphone permet de changer de téléphone.
 
 Seul le relais HTTPS est utilisé (pas de WebRTC, souvent bloqué sur les réseaux hospitaliers), et le proxy système est respecté.
 

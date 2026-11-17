@@ -47,14 +47,16 @@ Enabled by default. To recognize very short dictations better (under 2 seconds, 
 
 Smart Mic lets a phone on the same local network act as a microphone. It is **disabled by default**. When enabled, audio travels from the phone to this computer over the local network only. If you configure a relay URL, audio transits through that relay server: use only a relay you host yourself for medical dictation.
 
-## Remote microphone
+## Remote microphone (alpha)
+
+This feature is an alpha pre-release: expect bugs.
 
 The remote microphone lets a phone on any network act as a microphone, through a relay server (by default `https://turn.plumed.fr`, configurable). It is **disabled by default**, and nothing is sent until you click "Connect a phone".
 
-- The phone page and the relay are those of [ParakeetWeb](https://parakeetweb.olicorne.org). Audio is **encrypted end to end** (ECDH P-256 and AES-256-GCM) between the phone and Plumed: the relay forwards packets it cannot decrypt.
-- Before any audio is accepted, both screens show the same short code and both users must confirm it matches. This blocks a relay that would try to put itself in the middle.
-- The relay still sees network metadata: IP addresses, timing and the size of the encrypted packets (so roughly how long each dictation is). Use only a relay you or your institution trust.
-- Audio is kept in memory until it is transcribed, then discarded. The session ends when you click "Disconnect" or close Plumed; its QR code expires after 10 minutes.
+- The phone page and the relay are Plumed's own (source in `remote_microphone_server/`). Audio is **encrypted end to end** (ECDH P-256 and AES-256-GCM) between the phone and Plumed: the relay forwards packets it cannot decrypt.
+- Before any audio is accepted, both screens show the same short code and you must confirm on the computer that it matches. This blocks a relay that would try to put itself in the middle.
+- The relay keeps everything in memory and logs no IP address or room id, but it still sees network metadata: IP addresses, timing and the size of the encrypted packets (so roughly how long each dictation is). Use only a relay you or your institution trust.
+- Audio is kept in memory until it is transcribed, then discarded. The session ends when you click "Disconnect" or close Plumed.
 
 ## Settings import/export
 
