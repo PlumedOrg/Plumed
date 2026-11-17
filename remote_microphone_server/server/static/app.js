@@ -5,7 +5,7 @@
 // code on both screens and confirms, then every frame is AES-GCM encrypted:
 // IV || AES-GCM(seq || op || payload). The relay never sees the key.
 
-import { OP, sealInner, openInner, u32be } from './wire.js';
+import { OP, sealInner, openInner, u32be, parseRoom } from './wire.js';
 import * as crypto from './crypto.js';
 import { Relay } from './relay.js';
 import { Capture, decodeFile, FileTooLarge, toPcm16, TARGET_RATE } from './audio.js';
@@ -127,10 +127,7 @@ async function onFrames(frames) {
         session.seqIn = inner.seq;
         switch (inner.op) {
             case OP.BOUND:
-                if (!session.bound) {
-                    session.bound = true;
-                    showConnected();
-                }
+                if (!session.bound) bind(parseRoom(inner.payload));
                 break;
             case OP.RECEIVED:
                 setState('state_received');
@@ -187,6 +184,30 @@ async function pair(desktopRaw) {
     show('pairing');
 }
 
+/**
+ * The desktop confirmed us and named a private room, known only to this
+ * phone: leave the room of the QR code (anyone who saw the code can crowd it)
+ * and talk through the private one from now on.
+ */
+function bind(room) {
+    if (room === null) return fail('closed');
+    session.bound = true;
+    session.relay.stop();
+    openRelay(room.room, room.secret);
+    showConnected();
+}
+
+function openRelay(room, secret) {
+    session.relay = new Relay(room, secret, session.inbox, {
+        onFrames,
+        onClosed: () => fail('closed'),
+        onOnline: (online) => {
+            $('banner').hidden = online;
+        },
+    });
+    session.relay.start();
+}
+
 function showConnected() {
     show('connected');
     keepAwake();
@@ -200,14 +221,7 @@ async function start() {
     if (link === null) return fail('no_link');
     if (globalThis.crypto?.subtle === undefined) return fail('unsupported');
     session.inbox = crypto.toB64url(globalThis.crypto.getRandomValues(new Uint8Array(16)));
-    session.relay = new Relay(link.room, link.secret, session.inbox, {
-        onFrames,
-        onClosed: () => fail('closed'),
-        onOnline: (online) => {
-            $('banner').hidden = online;
-        },
-    });
-    session.relay.start();
+    openRelay(link.room, link.secret);
     await pair(link.desktopRaw);
 }
 

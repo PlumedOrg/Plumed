@@ -8,6 +8,12 @@
 //! From then on every frame is `IV || AES-GCM(seq || op || payload)`.
 //! Every answer goes to the inbox the phone named in its hello.
 //!
+//! Two relay rooms: the lobby, whose phone secret is in the QR code, and a
+//! private room per bound phone. `BOUND` carries `<room>.<phone secret>` of the
+//! private room and the phone moves there, so whoever photographed the QR code
+//! can at most crowd the lobby (its 8 phone inboxes), never the bound phone.
+//! [`Via`] tells the session which room each answer goes through.
+//!
 //! Each hello consumes the pending key (ring's ECDH keys are single use), so a
 //! new one is generated and the QR code changes: the old code answers `stale`.
 //! Scanning the new code while a phone is active replaces it after confirmation.
@@ -27,6 +33,10 @@ const MAX_TEXT_FRAME: usize = 4096;
 /// A phone not confirmed within this delay is refused: an unattended desktop
 /// must not keep a stranger's pairing request one click away.
 pub const CANDIDATE_TTL: Duration = Duration::from_secs(60);
+/// A bound phone is dropped after this long, so a lost or stolen phone keeps
+/// its access (a resumed session survives reloads, see the phone page) one
+/// working day at most.
+pub const BOUND_LIFETIME: Duration = Duration::from_secs(12 * 3600);
 
 #[derive(Deserialize)]
 #[serde(tag = "type", rename_all = "kebab-case")]
@@ -50,9 +60,19 @@ pub enum Event {
     Paired,
 }
 
-/// A frame for the phone inbox tagged `inbox`.
+/// The room an answer goes through.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Via {
+    /// The room of the QR code: phones that are not bound yet.
+    Lobby,
+    /// The private room of the bound phone.
+    Private,
+}
+
+/// A frame for the phone inbox tagged `inbox` of the room `via`.
 #[derive(Debug, PartialEq)]
 pub struct Outgoing {
+    pub via: Via,
     pub inbox: String,
     pub frame: Frame,
 }
@@ -68,6 +88,7 @@ impl Step {
     fn send(inbox: &str, frame: Frame) -> Self {
         Self {
             send: vec![Outgoing {
+                via: Via::Lobby,
                 inbox: inbox.to_string(),
                 frame,
             }],
@@ -86,19 +107,49 @@ struct Candidate {
 struct Peer {
     key: SessionKeys,
     inbox: String,
+    /// Lobby until bound, then its private room.
+    via: Via,
     seq_in: u64,
     seq_out: u64,
     recording: Option<(Vec<i16>, u32)>,
+    /// When bound, and the `BOUND` payload (its private room), resent as is.
+    bound: Option<(Instant, Vec<u8>)>,
 }
 
 impl Peer {
-    fn seal(&mut self, op: u8, payload: &[u8]) -> Result<Outgoing, CryptoError> {
+    fn new(key: SessionKeys, inbox: String) -> Self {
+        Self {
+            key,
+            inbox,
+            via: Via::Lobby,
+            seq_in: 0,
+            seq_out: 0,
+            recording: None,
+            bound: None,
+        }
+    }
+
+    fn seal_via(&mut self, via: Via, op: u8, payload: &[u8]) -> Result<Outgoing, CryptoError> {
         self.seq_out += 1;
         let packet = self.key.seal(&seal_inner(self.seq_out, op, payload))?;
         Ok(Outgoing {
+            via,
             inbox: self.inbox.clone(),
             frame: Frame::Binary(packet),
         })
+    }
+
+    fn seal(&mut self, op: u8, payload: &[u8]) -> Result<Outgoing, CryptoError> {
+        self.seal_via(self.via, op, payload)
+    }
+
+    /// `BOUND` goes through the lobby: the phone only learns its private room
+    /// by reading it.
+    fn seal_bound(&mut self) -> Result<Option<Outgoing>, CryptoError> {
+        let Some((_, payload)) = self.bound.clone() else {
+            return Ok(None);
+        };
+        self.seal_via(Via::Lobby, op::BOUND, &payload).map(Some)
     }
 }
 
@@ -177,13 +228,7 @@ impl Pairing {
             return Ok(Step::default());
         };
         self.candidate = Some(Candidate {
-            peer: Peer {
-                key,
-                inbox,
-                seq_in: 0,
-                seq_out: 0,
-                recording: None,
-            },
+            peer: Peer::new(key, inbox),
             fingerprint: fingerprint.clone(),
             since: Instant::now(),
         });
@@ -193,28 +238,35 @@ impl Pairing {
         })
     }
 
-    /// The local user compared `fingerprint`: `true` binds the candidate
-    /// (replacing any active phone), `false` refuses it. Ignored when another
+    /// The local user compared `fingerprint`: `Some(private_room)` binds the
+    /// candidate (replacing any active phone) and sends it `private_room`
+    /// (`<room>.<phone secret>`), `None` refuses it. Ignored when another
     /// phone said hello since the code was shown: the click was not about it.
-    pub fn confirm(&mut self, fingerprint: &str, accepted: bool) -> Result<Step, CryptoError> {
+    pub fn confirm(
+        &mut self,
+        fingerprint: &str,
+        private_room: Option<&str>,
+    ) -> Result<Step, CryptoError> {
         if self.fingerprint() != Some(fingerprint) {
             return Ok(Step::default());
         }
         let Some(Candidate { mut peer, .. }) = self.candidate.take() else {
             return Ok(Step::default());
         };
-        let (send, event) = match accepted {
-            true => {
+        let (send, event) = match private_room {
+            Some(room) => {
                 let replaced = match self.active.take() {
                     Some(mut old) => Some(old.seal(op::REPLACED, &[])?),
                     None => None,
                 };
-                let bound = peer.seal(op::BOUND, &[])?;
+                peer.bound = Some((Instant::now(), room.as_bytes().to_vec()));
+                let bound = peer.seal_bound()?;
+                peer.via = Via::Private;
                 self.active = Some(peer);
-                let send = replaced.into_iter().chain([bound]).collect();
+                let send = replaced.into_iter().chain(bound).collect();
                 (send, Some(Event::Paired))
             }
-            false => (vec![peer.seal(op::DENIED, &[])?], None),
+            None => (vec![peer.seal(op::DENIED, &[])?], None),
         };
         Ok(Step { send, event })
     }
@@ -224,10 +276,30 @@ impl Pairing {
         match &self.candidate {
             Some(c) if now.duration_since(c.since) > CANDIDATE_TTL => {
                 let fingerprint = c.fingerprint.clone();
-                self.confirm(&fingerprint, false)
+                self.confirm(&fingerprint, None)
             }
             _ => Ok(Step::default()),
         }
+    }
+
+    /// Drops the active phone once bound for [`BOUND_LIFETIME`] at `now`.
+    /// `true` when it did: the session closes its private room, which tells
+    /// the phone.
+    pub fn expire_active(&mut self, now: Instant) -> bool {
+        let expired = self
+            .active
+            .as_ref()
+            .and_then(|a| a.bound.as_ref())
+            .is_some_and(|(at, _)| now.duration_since(*at) > BOUND_LIFETIME);
+        if expired {
+            self.active = None;
+        }
+        expired
+    }
+
+    /// Forgets the active phone (its private room is gone).
+    pub fn unbind(&mut self) {
+        self.active = None;
     }
 
     /// The fingerprint being compared, if any.
@@ -235,9 +307,12 @@ impl Pairing {
         self.candidate.as_ref().map(|c| c.fingerprint.as_str())
     }
 
-    /// Seals one op for the active phone (`None` when no phone is bound).
-    pub fn seal_op(&mut self, op: u8) -> Result<Option<Outgoing>, CryptoError> {
-        self.active.as_mut().map(|a| a.seal(op, &[])).transpose()
+    /// `BOUND` again for the active phone (`None` when no phone is bound).
+    pub fn resend_bound(&mut self) -> Result<Option<Outgoing>, CryptoError> {
+        match self.active.as_mut() {
+            Some(active) => active.seal_bound(),
+            None => Ok(None),
+        }
     }
 
     fn on_binary(&mut self, packet: &[u8]) -> Result<Step, CryptoError> {
@@ -341,6 +416,11 @@ mod tests {
 
         /// -> (seq, op) of a desktop frame, `None` if not for this phone.
         fn open(&self, out: &Outgoing) -> Option<(u64, u8)> {
+            self.open_full(out).map(|(seq, code, _)| (seq, code))
+        }
+
+        /// -> (seq, op, payload) of a desktop frame.
+        fn open_full(&self, out: &Outgoing) -> Option<(u64, u8, Vec<u8>)> {
             let Frame::Binary(packet) = &out.frame else {
                 return None;
             };
@@ -348,9 +428,12 @@ mod tests {
                 return None;
             };
             let plain = self.key.decrypt(packet).ok()?;
-            open_inner(&plain).map(|(seq, code, _)| (seq, code))
+            open_inner(&plain).map(|(seq, code, payload)| (seq, code, payload.to_vec()))
         }
     }
+
+    /// What the session would send as the private room of a bound phone.
+    const ROOM: &str = "R00M.S3CRET";
 
     fn text(out: &Outgoing) -> serde_json::Value {
         match &out.frame {
@@ -366,7 +449,7 @@ mod tests {
         let Some(Event::Fingerprint(code)) = step.event else {
             panic!("no fingerprint")
         };
-        let step = p.confirm(&code, true).unwrap();
+        let step = p.confirm(&code, Some(ROOM)).unwrap();
         assert_eq!(phone.open(&step.send[0]), Some((1, op::BOUND)));
         assert!(p.is_bound());
         (p, phone)
@@ -412,11 +495,11 @@ mod tests {
         let phone = Phone::scan(&p);
         p.on_frame(phone.hello()).unwrap();
         let code = p.fingerprint().unwrap().to_string();
-        let step = p.confirm(&code, false).unwrap();
+        let step = p.confirm(&code, None).unwrap();
         assert_eq!(phone.open(&step.send[0]), Some((1, op::DENIED)));
         assert!(!p.is_bound() && !p.awaits_confirmation());
         // Nothing left to confirm
-        assert_eq!(p.confirm(&code, true).unwrap(), Step::default());
+        assert_eq!(p.confirm(&code, Some(ROOM)).unwrap(), Step::default());
     }
 
     #[test]
@@ -428,7 +511,7 @@ mod tests {
         // An attacker says hello on the new QR code right before the click
         let attacker = Phone::scan(&p);
         p.on_frame(attacker.hello()).unwrap();
-        assert_eq!(p.confirm(&shown, true).unwrap(), Step::default());
+        assert_eq!(p.confirm(&shown, Some(ROOM)).unwrap(), Step::default());
         assert!(!p.is_bound());
         assert!(p.awaits_confirmation());
     }
@@ -536,7 +619,7 @@ mod tests {
             Step::default()
         );
         let code = p.fingerprint().unwrap().to_string();
-        p.confirm(&code, true).unwrap();
+        p.confirm(&code, Some(ROOM)).unwrap();
         // A frame sealed with an unrelated key
         let mut stranger = Phone::scan(&Pairing::new().unwrap());
         assert_eq!(
@@ -566,7 +649,7 @@ mod tests {
         let Some(Event::Fingerprint(code)) = p.on_frame(new.hello()).unwrap().event else {
             panic!("no fingerprint")
         };
-        let step = p.confirm(&code, true).unwrap();
+        let step = p.confirm(&code, Some(ROOM)).unwrap();
         assert_eq!(step.event, Some(Event::Paired));
         // The old phone learns it was replaced, the new one is bound
         assert_eq!(old.open(&step.send[0]), Some((2, op::REPLACED)));
@@ -586,14 +669,59 @@ mod tests {
         let shown = p.fingerprint().unwrap().to_string();
         p.on_frame(Phone::scan(&p).hello()).unwrap();
         assert!(p.is_bound());
-        assert_eq!(p.confirm(&shown, true).unwrap().event, None);
+        assert_eq!(p.confirm(&shown, Some(ROOM)).unwrap().event, None);
     }
 
     #[test]
-    fn seal_op_needs_a_bound_phone() {
-        assert_eq!(Pairing::new().unwrap().seal_op(op::BOUND).unwrap(), None);
+    fn resend_bound_needs_a_bound_phone() {
+        assert_eq!(Pairing::new().unwrap().resend_bound().unwrap(), None);
         let (mut p, phone) = bound();
-        let frame = p.seal_op(op::BOUND).unwrap().unwrap();
-        assert_eq!(phone.open(&frame), Some((2, op::BOUND)));
+        let frame = p.resend_bound().unwrap().unwrap();
+        assert_eq!(frame.via, Via::Lobby);
+        assert_eq!(phone.open_full(&frame), Some((2, op::BOUND, ROOM.into())));
+    }
+
+    #[test]
+    fn bound_moves_the_phone_to_its_private_room() {
+        let (mut p, mut phone) = bound();
+        p.on_frame(phone.op(op::START, &16000u32.to_be_bytes()))
+            .unwrap();
+        p.on_frame(phone.op(op::AUDIO, &[1, 0])).unwrap();
+        let step = p.on_frame(phone.op(op::END, &[])).unwrap();
+        // Everything after BOUND goes through the private room
+        assert_eq!(step.send[0].via, Via::Private);
+        // The replaced phone hears it in its own private room, the new one
+        // gets BOUND in the lobby
+        let new = Phone::scan(&p);
+        let Some(Event::Fingerprint(code)) = p.on_frame(new.hello()).unwrap().event else {
+            panic!("no fingerprint")
+        };
+        let step = p.confirm(&code, Some("R2.S2")).unwrap();
+        assert_eq!(step.send[0].via, Via::Private);
+        assert_eq!(step.send[1].via, Via::Lobby);
+        assert_eq!(
+            new.open_full(&step.send[1]),
+            Some((1, op::BOUND, b"R2.S2".to_vec()))
+        );
+    }
+
+    #[test]
+    fn a_denied_phone_hears_it_in_the_lobby() {
+        let mut p = Pairing::new().unwrap();
+        let phone = Phone::scan(&p);
+        p.on_frame(phone.hello()).unwrap();
+        let code = p.fingerprint().unwrap().to_string();
+        assert_eq!(p.confirm(&code, None).unwrap().send[0].via, Via::Lobby);
+    }
+
+    #[test]
+    fn the_bound_phone_expires_after_its_lifetime() {
+        let (mut p, _phone) = bound();
+        let now = Instant::now();
+        assert!(!p.expire_active(now));
+        assert!(p.is_bound());
+        assert!(p.expire_active(now + BOUND_LIFETIME + Duration::from_secs(1)));
+        assert!(!p.is_bound());
+        assert_eq!(p.resend_bound().unwrap(), None);
     }
 }

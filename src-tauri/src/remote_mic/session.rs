@@ -1,18 +1,20 @@
-//! One remote-mic session: room, QR code, pairing, then transcription of each
+//! One remote-mic session: rooms, QR code, pairing, then transcription of each
 //! recording sent by the phone. Everything stays in RAM and dies with the session.
 //!
-//! Lifecycle (`run`): open a room, show its QR code, then serve it (`serve_room`)
-//! until the user stops. The QR code stays visible once a phone is connected:
-//! scanning it again pairs a new phone (it changes after each scan, see
-//! `protocol`). If the relay drops the room (restart, 24 h limit), a new room
-//! and QR code are opened.
+//! Lifecycle (`run`): open the lobby room, show its QR code, then serve it
+//! (`serve`) until the user stops. A confirmed phone gets a private room of its
+//! own (see `protocol`), and the lobby is then replaced, so the QR code shown
+//! changes and a photo of an old one opens nothing. The QR code stays visible:
+//! scanning it pairs a new phone, which replaces the bound one. If the relay
+//! drops a room (restart, 24 h limit), a new lobby is opened, or the phone
+//! must scan again.
 
 use super::client::{phone_link, ClientError, RelayClient, Room};
-use super::protocol::{Event, Outgoing, Pairing, Step, CANDIDATE_TTL};
+use super::protocol::{Event, Outgoing, Pairing, Step, Via, CANDIDATE_TTL};
 use crate::smartmic::audio_bridge::transcribe_pcm;
 use log::{info, warn};
 use parking_lot::Mutex;
-use plumed_relay_protocol::{op, Frame};
+use plumed_relay_protocol::Frame;
 use serde::Serialize;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
@@ -143,12 +145,6 @@ impl Ui<'_> {
     }
 }
 
-enum RoomOutcome {
-    Gone,
-    Stop,
-    Failed(String),
-}
-
 async fn run(app: AppHandle, client: RelayClient, mut commands: mpsc::UnboundedReceiver<Command>) {
     let ui = Ui { app: &app };
     ui.update(|s| {
@@ -158,25 +154,7 @@ async fn run(app: AppHandle, client: RelayClient, mut commands: mpsc::UnboundedR
         }
     });
     let recordings = spawn_transcriber(app.clone());
-    let error = loop {
-        let room = match open_room(&client, &mut commands).await {
-            Ok(Some(room)) => room,
-            Ok(None) => break None,
-            Err(e) => break Some(e.to_string()),
-        };
-        let outcome = serve_room(&client, &room, &mut commands, &ui, &recordings).await;
-        match outcome {
-            RoomOutcome::Gone => info!("Remote mic: the relay dropped the room, opening a new one"),
-            RoomOutcome::Stop => {
-                client.close(&room).await;
-                break None;
-            }
-            RoomOutcome::Failed(e) => {
-                client.close(&room).await;
-                break Some(e);
-            }
-        }
-    };
+    let error = serve(&client, &mut commands, &ui, &recordings).await.err();
     // Nothing queued is pasted after a stop
     recordings.flush();
     // Close the channel so a new `start` is accepted before the UI hears "stopped"
@@ -205,44 +183,80 @@ async fn open_room(
     }
 }
 
-/// Long-polls the relay into a channel. Network errors are retried so a flaky
-/// connection does not drop the session; only a closed room ends it.
-fn spawn_poller(
-    client: RelayClient,
+/// What a poller reports, tagged with its room id: a room just replaced may
+/// still report, and is then ignored.
+type Polled = (String, Result<Vec<Frame>, ClientError>);
+
+/// A room whose desktop inbox is being long-polled.
+struct Watched {
     room: Room,
-) -> (
-    mpsc::Receiver<Result<Vec<Frame>, ClientError>>,
-    tauri::async_runtime::JoinHandle<()>,
-) {
-    let (tx, rx) = mpsc::channel(16);
-    let task = tauri::async_runtime::spawn(async move {
-        loop {
-            let delay = match client.poll(&room).await {
-                Ok(frames) if frames.is_empty() => continue,
-                Ok(frames) => match tx.send(Ok(frames)).await {
-                    Ok(()) => continue,
-                    Err(_) => break,
-                },
-                Err(ClientError::RoomGone) => {
-                    let _ = tx.send(Err(ClientError::RoomGone)).await;
-                    break;
-                }
-                Err(ClientError::RateLimited(secs)) => Duration::from_secs(secs.min(60)),
-                Err(e) => {
-                    warn!("Remote mic: relay poll failed, retrying: {}", e);
-                    RETRY_DELAY
-                }
-            };
-            tokio::time::sleep(delay).await;
-        }
-    });
-    (rx, task)
+    poller: tauri::async_runtime::JoinHandle<()>,
+}
+
+impl Watched {
+    /// Network errors are retried so a flaky connection does not drop the
+    /// session; only a closed room is reported (`RoomGone`), then it stops.
+    fn new(client: &RelayClient, room: Room, tx: &mpsc::Sender<Polled>) -> Self {
+        let (client, tx, polled) = (client.clone(), tx.clone(), room.clone());
+        let poller = tauri::async_runtime::spawn(async move {
+            loop {
+                let delay = match client.poll(&polled).await {
+                    Ok(frames) if frames.is_empty() => continue,
+                    Ok(frames) => match tx.send((polled.id.clone(), Ok(frames))).await {
+                        Ok(()) => continue,
+                        Err(_) => break,
+                    },
+                    Err(ClientError::RoomGone) => {
+                        let _ = tx
+                            .send((polled.id.clone(), Err(ClientError::RoomGone)))
+                            .await;
+                        break;
+                    }
+                    Err(ClientError::RateLimited(secs)) => Duration::from_secs(secs.min(60)),
+                    Err(e) => {
+                        warn!("Remote mic: relay poll failed, retrying: {}", e);
+                        RETRY_DELAY
+                    }
+                };
+                tokio::time::sleep(delay).await;
+            }
+        });
+        Self { room, poller }
+    }
+
+    fn is(&self, id: &str) -> bool {
+        self.room.id == id
+    }
+
+    async fn close(self, client: &RelayClient) {
+        self.poller.abort();
+        client.close(&self.room).await;
+    }
+}
+
+/// `open_room`, watched.
+async fn open_watched(
+    client: &RelayClient,
+    commands: &mut mpsc::UnboundedReceiver<Command>,
+    tx: &mpsc::Sender<Polled>,
+) -> Result<Option<Watched>, String> {
+    match open_room(client, commands).await {
+        Ok(room) => Ok(room.map(|room| Watched::new(client, room, tx))),
+        Err(e) => Err(e.to_string()),
+    }
 }
 
 /// Posts what the protocol produced. A lost reply is not fatal: `BOUND` is
 /// resent, and `RECEIVED`, `stale` or `denied` only update the phone screen.
-async fn post(client: &RelayClient, room: &Room, outgoing: Vec<Outgoing>) {
-    for (inbox, frames) in by_inbox(outgoing) {
+async fn post(client: &RelayClient, lobby: &Room, private: Option<&Room>, outgoing: Vec<Outgoing>) {
+    for ((via, inbox), frames) in by_inbox(outgoing) {
+        let room = match via {
+            Via::Lobby => lobby,
+            Via::Private => match private {
+                Some(room) => room,
+                None => continue,
+            },
+        };
         if let Err(e) = client.send(room, &inbox, &frames).await {
             warn!("Remote mic: could not reach the phone: {}", e);
         }
@@ -250,75 +264,163 @@ async fn post(client: &RelayClient, room: &Room, outgoing: Vec<Outgoing>) {
 }
 
 /// Runs of consecutive frames for the same inbox, in order: one request each.
-fn by_inbox(outgoing: Vec<Outgoing>) -> Vec<(String, Vec<Frame>)> {
-    let mut runs: Vec<(String, Vec<Frame>)> = Vec::new();
-    for Outgoing { inbox, frame } in outgoing {
+fn by_inbox(outgoing: Vec<Outgoing>) -> Vec<((Via, String), Vec<Frame>)> {
+    let mut runs: Vec<((Via, String), Vec<Frame>)> = Vec::new();
+    for Outgoing { via, inbox, frame } in outgoing {
         match runs.last_mut() {
-            Some((last, frames)) if *last == inbox => frames.push(frame),
-            _ => runs.push((inbox, vec![frame])),
+            Some(((v, last), frames)) if *v == via && *last == inbox => frames.push(frame),
+            _ => runs.push(((via, inbox), vec![frame])),
         }
     }
     runs
 }
 
-async fn serve_room(
+/// What woke the session up.
+enum Wake {
+    Resend,
+    Expiry,
+    Command(Option<Command>),
+    Polled(Option<Polled>),
+}
+
+/// Serves the lobby (the room of the QR code) and the private room of the
+/// bound phone until the user stops. After a pairing, once the phone had
+/// the time to read `BOUND` and move, the lobby is replaced: a photo of the
+/// QR code is then worth nothing. Returns why it stopped, if not asked to.
+async fn serve(
     client: &RelayClient,
-    room: &Room,
     commands: &mut mpsc::UnboundedReceiver<Command>,
     ui: &Ui<'_>,
     recordings: &RecordingQueue,
-) -> RoomOutcome {
-    let mut pairing = match Pairing::new() {
-        Ok(p) => p,
-        Err(e) => return RoomOutcome::Failed(e.to_string()),
+) -> Result<(), String> {
+    let mut pairing = Pairing::new().map_err(|e| e.to_string())?;
+    let (tx, mut incoming) = mpsc::channel(16);
+    let Some(mut lobby) = open_watched(client, commands, &tx).await? else {
+        return Ok(());
     };
-    ui.show(client.origin(), room, &pairing);
-    let (mut incoming, poller) = spawn_poller(client.clone(), room.clone());
+    let mut private: Option<Watched> = None;
     let mut resend = tokio::time::interval(BOUND_RESEND);
-    let mut bound_resends = 0;
+    // `BOUND` resends left, plus one tick that replaces the lobby
+    let mut bound_ticks = 0;
     let mut expiry = tokio::time::interval(CANDIDATE_TTL / 6);
 
     let outcome = loop {
-        let step = tokio::select! {
-            _ = resend.tick(), if bound_resends > 0 => {
-                bound_resends -= 1;
-                pairing.seal_op(op::BOUND).map(|out| Step {
-                    send: out.into_iter().collect(),
-                    event: None,
-                })
+        ui.show(client.origin(), &lobby.room, &pairing);
+        let wake = tokio::select! {
+            _ = resend.tick(), if bound_ticks > 0 => Wake::Resend,
+            _ = expiry.tick() => Wake::Expiry,
+            cmd = commands.recv() => Wake::Command(cmd),
+            polled = incoming.recv() => Wake::Polled(polled),
+        };
+        let step = match wake {
+            Wake::Resend => {
+                bound_ticks -= 1;
+                match bound_ticks {
+                    0 => {
+                        let Some(new) = open_watched(client, commands, &tx).await? else {
+                            break Ok(());
+                        };
+                        std::mem::replace(&mut lobby, new).close(client).await;
+                        Ok(Step::default())
+                    }
+                    _ => pairing.resend_bound().map(|out| Step {
+                        send: out.into_iter().collect(),
+                        event: None,
+                    }),
+                }
             }
-            _ = expiry.tick(), if pairing.awaits_confirmation() => {
+            Wake::Expiry => {
+                if pairing.expire_active(Instant::now()) {
+                    info!("Remote mic: the phone was bound too long ago, it must scan again");
+                    if let Some(old) = private.take() {
+                        old.close(client).await;
+                    }
+                }
                 pairing.expire_candidate(Instant::now())
             }
-            cmd = commands.recv() => match cmd {
-                Some(Command::Confirm { fingerprint, accepted }) => {
-                    let step = pairing.confirm(&fingerprint, accepted);
-                    if matches!(&step, Ok(Step { event: Some(Event::Paired), .. })) {
-                        // A new phone: what the previous one sent is not pasted
-                        recordings.flush();
-                        bound_resends = BOUND_RESENDS;
-                        resend.reset();
-                    }
-                    step
+            Wake::Command(Some(Command::Confirm {
+                fingerprint,
+                accepted: true,
+            })) => {
+                // A click about a phone that is no longer the candidate opens nothing
+                if pairing.fingerprint() != Some(fingerprint.as_str()) {
+                    continue;
                 }
-                Some(Command::Stop) | None => break RoomOutcome::Stop,
-            },
-            item = incoming.recv() => match item {
-                Some(Ok(frames)) => handle_frames(&mut pairing, frames, recordings),
-                Some(Err(ClientError::RoomGone)) => break RoomOutcome::Gone,
-                Some(Err(e)) => break RoomOutcome::Failed(e.to_string()),
-                None => break RoomOutcome::Failed("relay poller stopped".to_string()),
-            },
+                let room = match client.create_room().await {
+                    Ok(room) => room,
+                    Err(e) => {
+                        // The candidate stays: clicking again retries
+                        warn!("Remote mic: could not open a room for the phone: {}", e);
+                        continue;
+                    }
+                };
+                let link = format!("{}.{}", room.id, room.phone_secret);
+                let step = match pairing.confirm(&fingerprint, Some(&link)) {
+                    Ok(step) => step,
+                    Err(e) => break Err(e.to_string()),
+                };
+                // REPLACED goes through the private room of the replaced phone
+                post(
+                    client,
+                    &lobby.room,
+                    private.as_ref().map(|p| &p.room),
+                    step.send,
+                )
+                .await;
+                if let Some(old) = private.replace(Watched::new(client, room, &tx)) {
+                    old.close(client).await;
+                }
+                // A new phone: what the previous one sent is not pasted
+                recordings.flush();
+                bound_ticks = BOUND_RESENDS + 1;
+                resend.reset();
+                continue;
+            }
+            Wake::Command(Some(Command::Confirm {
+                fingerprint,
+                accepted: false,
+            })) => pairing.confirm(&fingerprint, None),
+            Wake::Command(Some(Command::Stop) | None) => break Ok(()),
+            Wake::Polled(None) => break Err("relay poller stopped".to_string()),
+            Wake::Polled(Some((id, result))) => {
+                let from_lobby = lobby.is(&id);
+                let from_private = private.as_ref().is_some_and(|p| p.is(&id));
+                match (result, from_lobby, from_private) {
+                    (Ok(frames), true, _) | (Ok(frames), _, true) => {
+                        handle_frames(&mut pairing, frames, recordings)
+                    }
+                    (Err(ClientError::RoomGone), true, _) => {
+                        info!("Remote mic: the relay dropped the room, opening a new one");
+                        let Some(new) = open_watched(client, commands, &tx).await? else {
+                            break Ok(());
+                        };
+                        lobby = new;
+                        Ok(Step::default())
+                    }
+                    (Err(ClientError::RoomGone), _, true) => {
+                        info!("Remote mic: the relay dropped the room of the phone");
+                        pairing.unbind();
+                        private = None;
+                        Ok(Step::default())
+                    }
+                    (Err(e), true, _) | (Err(e), _, true) => break Err(e.to_string()),
+                    // A room replaced meanwhile
+                    (_, false, false) => continue,
+                }
+            }
         };
         match step {
             Ok(step) => {
-                post(client, room, step.send).await;
-                ui.show(client.origin(), room, &pairing);
+                let private_room = private.as_ref().map(|p| &p.room);
+                post(client, &lobby.room, private_room, step.send).await;
             }
-            Err(e) => break RoomOutcome::Failed(e.to_string()),
+            Err(e) => break Err(e.to_string()),
         }
     };
-    poller.abort();
+    lobby.close(client).await;
+    if let Some(private) = private {
+        private.close(client).await;
+    }
     outcome
 }
 
@@ -433,18 +535,29 @@ mod tests {
 
     #[test]
     fn replies_are_grouped_per_inbox_in_order() {
-        let out = |inbox: &str, n: u8| Outgoing {
+        let out = |via: Via, inbox: &str, n: u8| Outgoing {
+            via,
             inbox: inbox.into(),
             frame: Frame::Binary(vec![n]),
         };
-        let runs = by_inbox(vec![out("a", 1), out("a", 2), out("b", 3), out("a", 4)]);
+        let (l, p) = (Via::Lobby, Via::Private);
+        let runs = by_inbox(vec![
+            out(l, "a", 1),
+            out(l, "a", 2),
+            out(l, "b", 3),
+            out(l, "a", 4),
+            // Same tag, other room: another request
+            out(p, "a", 5),
+        ]);
         let bin = |n: u8| Frame::Binary(vec![n]);
+        let key = |via: Via, inbox: &str| (via, inbox.to_string());
         assert_eq!(
             runs,
             vec![
-                ("a".to_string(), vec![bin(1), bin(2)]),
-                ("b".to_string(), vec![bin(3)]),
-                ("a".to_string(), vec![bin(4)]),
+                (key(l, "a"), vec![bin(1), bin(2)]),
+                (key(l, "b"), vec![bin(3)]),
+                (key(l, "a"), vec![bin(4)]),
+                (key(p, "a"), vec![bin(5)]),
             ]
         );
     }

@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { encode, decode, sealInner, openInner } from '../static/wire.js';
+import { encode, decode, sealInner, openInner, parseRoom } from '../static/wire.js';
 
 const vectors = JSON.parse(readFileSync(new URL('../../protocol/test-vectors.json', import.meta.url)));
 const hex = (s) => Uint8Array.from(Buffer.from(s, 'hex'));
@@ -27,4 +27,14 @@ test('inner plaintext matches the Rust encoding', () => {
     const inner = openInner(hex(v.encoded));
     assert.deepEqual([inner.seq, inner.op, toHex(inner.payload)], [v.seq, v.op, v.payload]);
     assert.equal(openInner(new Uint8Array(8)), null);
+});
+
+test('a BOUND payload names the private room', () => {
+    const bytes = (s) => new TextEncoder().encode(s);
+    assert.deepEqual(parseRoom(bytes('AbC-9.s3cr_et')), { room: 'AbC-9', secret: 's3cr_et' });
+    // Old desktops sent an empty BOUND; paths and extra parts are refused
+    for (const bad of ['', 'room', 'a.b.c', 'a/b.c', '.secret', 'room.']) {
+        assert.equal(parseRoom(bytes(bad)), null, bad);
+    }
+    assert.equal(parseRoom(Uint8Array.of(0xff, 0x2e, 0x61)), null);
 });

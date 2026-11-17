@@ -84,3 +84,22 @@ export function u32be(n) {
     new DataView(out.buffer).setUint32(0, n);
     return out;
 }
+
+const TOKEN = /^[A-Za-z0-9_-]+$/;
+
+/**
+ * The room a BOUND payload names, `<room id>.<phone secret>` in ASCII (the
+ * private room the desktop opened for this phone), or null when malformed.
+ * Example: bytes of "AbC9.s3cr_et" -> {room: 'AbC9', secret: 's3cr_et'}.
+ */
+export function parseRoom(payload) {
+    let text;
+    try {
+        text = fromUtf8.decode(payload);
+    } catch {
+        return null;
+    }
+    const parts = text.split('.');
+    if (parts.length !== 2 || !parts.every((p) => TOKEN.test(p))) return null;
+    return { room: parts[0], secret: parts[1] };
+}

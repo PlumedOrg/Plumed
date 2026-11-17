@@ -11,7 +11,7 @@ pub mod session;
 /// `PLUMED_RELAY_E2E_URL=http://127.0.0.1:5174 cargo test --lib relay_e2e -- --ignored`
 #[cfg(test)]
 mod e2e {
-    use super::client::{origin_of, phone_link, RelayClient};
+    use super::client::{origin_of, phone_link, RelayClient, Room};
     use super::crypto::KeyPair;
     use super::protocol::{Event, Pairing};
     use base64::engine::general_purpose::{STANDARD, URL_SAFE_NO_PAD};
@@ -55,7 +55,7 @@ mod e2e {
             "inbox": TAG,
         });
         let phone_key = phone_kp.derive(&desktop_raw, Role::Phone).unwrap();
-        let send_phone = |frame: Frame| {
+        let send_phone = |room: &Room, frame: Frame| {
             let (c, room) = (client.clone(), room.clone());
             let path = desktop_inbox_path(&room.id);
             async move {
@@ -66,15 +66,17 @@ mod e2e {
         };
         let desktop_inbox = desktop_inbox_path(&room.id);
         let phone_inbox = phone_inbox_path(&room.id, TAG);
-        send_phone(Frame::Text(hello.to_string())).await;
+        send_phone(&room, Frame::Text(hello.to_string())).await;
         let frames = next(&client, &desktop_inbox, &room.desktop_secret).await;
         let step = pairing.on_frame(frames[0].clone()).unwrap();
         let Some(Event::Fingerprint(code)) = step.event else {
             panic!("expected a fingerprint");
         };
 
-        // The desktop user confirms: the phone gets BOUND
-        let step = pairing.confirm(&code, true).unwrap();
+        // The desktop user confirms: the phone gets BOUND, naming its private room
+        let private = client.create_room().await.unwrap();
+        let link = format!("{}.{}", private.id, private.phone_secret);
+        let step = pairing.confirm(&code, Some(&link)).unwrap();
         let bound = step.send.into_iter().next().unwrap();
         assert_eq!(bound.inbox, TAG);
         client.send(&room, TAG, &[bound.frame]).await.unwrap();
@@ -83,7 +85,11 @@ mod e2e {
             panic!("expected BOUND");
         };
         let plain = phone_key.decrypt(packet).unwrap();
-        assert_eq!(open_inner(&plain).map(|(_, code, _)| code), Some(op::BOUND));
+        let (_, code, payload) = open_inner(&plain).unwrap();
+        assert_eq!((code, payload), (op::BOUND, link.as_bytes()));
+        client.close(&room).await;
+
+        // The phone moved: the recording goes through the private room
 
         // One utterance
         let ops: [(u8, &[u8]); 3] = [
@@ -93,11 +99,12 @@ mod e2e {
         ];
         for (seq, (code, payload)) in (1u64..).zip(ops) {
             let packet = phone_key.seal(&seal_inner(seq, code, payload)).unwrap();
-            send_phone(Frame::Binary(packet)).await;
+            send_phone(&private, Frame::Binary(packet)).await;
         }
+        let private_inbox = desktop_inbox_path(&private.id);
         let mut recording = None;
         while recording.is_none() {
-            for frame in next(&client, &desktop_inbox, &room.desktop_secret).await {
+            for frame in next(&client, &private_inbox, &private.desktop_secret).await {
                 recording = recording.or(pairing.on_frame(frame).unwrap().event);
             }
         }
@@ -108,7 +115,7 @@ mod e2e {
                 sample_rate: 16000
             })
         );
-        client.close(&room).await;
-        assert!(client.poll(&room).await.is_err());
+        client.close(&private).await;
+        assert!(client.poll(&private).await.is_err());
     }
 }

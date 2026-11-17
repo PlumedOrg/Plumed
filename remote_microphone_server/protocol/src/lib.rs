@@ -218,7 +218,8 @@ pub mod op {
     pub const END: u8 = 3;
     /// phone -> desktop: drop the current recording.
     pub const CANCEL: u8 = 4;
-    /// desktop -> phone: the user confirmed the code, the pairing is bound.
+    /// desktop -> phone: the user confirmed the code, pairing bound. Payload:
+    /// `<room id>.<phone secret>` (ASCII) of the private room the phone moves to.
     pub const BOUND: u8 = 0x10;
     /// desktop -> phone: a recording was received and is being transcribed.
     pub const RECEIVED: u8 = 0x11;
