@@ -14,7 +14,9 @@ use log::{info, warn};
 use parking_lot::Mutex;
 use plumed_relay_protocol::{op, Frame};
 use serde::Serialize;
-use std::time::Duration;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
+use std::time::{Duration, Instant};
 use tauri::{AppHandle, Emitter};
 use tokio::sync::mpsc;
 
@@ -24,6 +26,12 @@ const BOUND_RESEND: Duration = Duration::from_secs(2);
 const BOUND_RESENDS: u32 = 5;
 /// Pause before polling again after a network error.
 const RETRY_DELAY: Duration = Duration::from_secs(3);
+/// Recordings waiting for the transcriber; more are dropped (a phone flooding
+/// the desktop must not pile up pastes, nor memory).
+const QUEUE_LEN: usize = 4;
+/// A recording still queued after this long is dropped: by then the user has
+/// moved on, and pasting it would land in whatever window has the focus now.
+const MAX_QUEUE_AGE: Duration = Duration::from_secs(60);
 pub const STATE_EVENT: &str = "remote-mic-state";
 #[derive(Serialize, Clone, Copy, Debug, PartialEq, Default)]
 #[serde(rename_all = "lowercase")]
@@ -166,6 +174,8 @@ async fn run(app: AppHandle, client: RelayClient, mut commands: mpsc::UnboundedR
             }
         }
     };
+    // Nothing queued is pasted after a stop
+    recordings.flush();
     // Close the channel so a new `start` is accepted before the UI hears "stopped"
     commands.close();
     ui.stopped(error);
@@ -242,7 +252,7 @@ async fn serve_room(
     room: &Room,
     commands: &mut mpsc::UnboundedReceiver<Command>,
     ui: &Ui<'_>,
-    recordings: &mpsc::UnboundedSender<(Vec<i16>, u32)>,
+    recordings: &RecordingQueue,
 ) -> RoomOutcome {
     let mut pairing = match Pairing::new() {
         Ok(p) => p,
@@ -266,6 +276,8 @@ async fn serve_room(
                 Some(Command::Confirm(accepted)) => {
                     let step = pairing.confirm(accepted);
                     if accepted && pairing.is_bound() {
+                        // A new phone: what the previous one sent is not pasted
+                        recordings.flush();
                         bound_resends = BOUND_RESENDS;
                         resend.reset();
                     }
@@ -296,25 +308,81 @@ async fn serve_room(
 fn handle_frames(
     pairing: &mut Pairing,
     frames: Vec<Frame>,
-    recordings: &mpsc::UnboundedSender<(Vec<i16>, u32)>,
+    recordings: &RecordingQueue,
 ) -> Result<Step, super::crypto::CryptoError> {
     let mut send = Vec::new();
     for frame in frames {
         let step = pairing.on_frame(frame)?;
         send.extend(step.send);
         if let Some(Event::Recording { pcm, sample_rate }) = step.event {
-            let _ = recordings.send((pcm, sample_rate));
+            if !recordings.push(pcm, sample_rate) {
+                warn!("Remote mic: transcription queue full, recording dropped");
+            }
         }
     }
     Ok(Step { send, event: None })
 }
 
+struct Queued {
+    pcm: Vec<i16>,
+    sample_rate: u32,
+    at: Instant,
+    generation: u64,
+}
+
+/// Bounded queue of recordings to transcribe. `flush` invalidates everything
+/// queued so far (stop, new phone) without waiting for the transcriber.
+struct RecordingQueue {
+    tx: mpsc::Sender<Queued>,
+    generation: Arc<AtomicU64>,
+}
+
+impl RecordingQueue {
+    fn new() -> (Self, mpsc::Receiver<Queued>, Arc<AtomicU64>) {
+        let (tx, rx) = mpsc::channel(QUEUE_LEN);
+        let generation = Arc::new(AtomicU64::new(0));
+        let queue = Self {
+            tx,
+            generation: generation.clone(),
+        };
+        (queue, rx, generation)
+    }
+
+    /// `false` when the queue is full and the recording was dropped.
+    fn push(&self, pcm: Vec<i16>, sample_rate: u32) -> bool {
+        let item = Queued {
+            pcm,
+            sample_rate,
+            at: Instant::now(),
+            generation: self.generation.load(Ordering::SeqCst),
+        };
+        self.tx.try_send(item).is_ok()
+    }
+
+    fn flush(&self) {
+        self.generation.fetch_add(1, Ordering::SeqCst);
+    }
+}
+
+impl Queued {
+    fn is_current(&self, generation: u64, now: Instant) -> bool {
+        self.generation == generation && now.duration_since(self.at) <= MAX_QUEUE_AGE
+    }
+}
+
 /// Transcribes and pastes recordings one at a time, in arrival order.
-fn spawn_transcriber(app: AppHandle) -> mpsc::UnboundedSender<(Vec<i16>, u32)> {
-    let (tx, mut rx) = mpsc::unbounded_channel::<(Vec<i16>, u32)>();
+fn spawn_transcriber(app: AppHandle) -> RecordingQueue {
+    let (queue, mut rx, generation) = RecordingQueue::new();
     tauri::async_runtime::spawn(async move {
-        while let Some((pcm, sample_rate)) = rx.recv().await {
+        while let Some(item) = rx.recv().await {
+            if !item.is_current(generation.load(Ordering::SeqCst), Instant::now()) {
+                info!("Remote mic: dropped a recording that waited too long or was flushed");
+                continue;
+            }
             let app = app.clone();
+            let Queued {
+                pcm, sample_rate, ..
+            } = item;
             let _ = tauri::async_runtime::spawn_blocking(move || {
                 match transcribe_pcm(&app, pcm, sample_rate) {
                     Ok(text) if !text.is_empty() => {
@@ -330,5 +398,35 @@ fn spawn_transcriber(app: AppHandle) -> mpsc::UnboundedSender<(Vec<i16>, u32)> {
             .await;
         }
     });
-    tx
+    queue
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_queue_is_bounded() {
+        let (queue, _rx, _) = RecordingQueue::new();
+        for _ in 0..QUEUE_LEN {
+            assert!(queue.push(vec![1], 16000));
+        }
+        assert!(!queue.push(vec![1], 16000));
+    }
+
+    #[test]
+    fn flushed_or_old_recordings_are_not_current() {
+        let (queue, mut rx, generation) = RecordingQueue::new();
+        queue.push(vec![1], 16000);
+        queue.flush();
+        queue.push(vec![2], 16000);
+        let now = Instant::now();
+        let current = generation.load(Ordering::SeqCst);
+        let flushed = rx.try_recv().unwrap();
+        assert!(!flushed.is_current(current, now));
+        let fresh = rx.try_recv().unwrap();
+        assert!(fresh.is_current(current, now));
+        let later = now + MAX_QUEUE_AGE + Duration::from_secs(1);
+        assert!(!fresh.is_current(current, later));
+    }
 }
