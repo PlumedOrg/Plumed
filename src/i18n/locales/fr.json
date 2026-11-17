@@ -490,6 +490,7 @@
     "Connecting to the relay": "Connexion au relais",
     "Scan this QR code with the phone camera.": "Scannez ce QR code avec l'appareil photo du téléphone.",
     "To switch to another phone, scan this QR code with it.": "Pour passer à un autre téléphone, scannez ce QR code avec lui.",
+    "Pair another phone": "Appairer un autre téléphone",
     "Alpha": "Alpha",
     "Alpha: this feature is a pre-release. Expect bugs, and update Plumed when asked.": "Alpha : cette fonctionnalité est une préversion. Attendez-vous à des bugs, et mettez Plumed à jour quand c'est demandé.",
     "Phone connected. Dictate on the phone: the text is pasted here.": "Téléphone connecté. Dictez sur le téléphone : le texte est collé ici.",

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Check, FlaskConical, Loader2, QrCode, ShieldCheck, Smartphone, X } from 'lucide-react';
 import { SettingsUI } from '@/components/settings-ui';
 import { Typography } from '@/components/typography';
@@ -50,6 +51,22 @@ const PairingQr = ({ qr, hint }: { qr: string | null; hint: string }) => (
         <Typography.Paragraph className="text-center">{hint}</Typography.Paragraph>
     </>
 );
+
+/** Hidden behind a click: a QR left on screen while a phone is connected is
+ * one photo away from replacing that phone (the desktop still asks to confirm). */
+const SwitchPhone = ({ qr }: { qr: string | null }) => {
+    const { t } = useTranslation();
+    const [shown, setShown] = useState(false);
+    if (!shown) {
+        return (
+            <Page.SecondaryButton size="sm" onClick={() => setShown(true)}>
+                <QrCode className="w-4 h-4" />
+                {t('Pair another phone')}
+            </Page.SecondaryButton>
+        );
+    }
+    return <PairingQr qr={qr} hint={t('To switch to another phone, scan this QR code with it.')} />;
+};
 
 const Body = ({ snapshot, start, stop, confirm }: RemoteMicSessionProps) => {
     const { t } = useTranslation();
@@ -104,7 +121,7 @@ const Body = ({ snapshot, start, stop, confirm }: RemoteMicSessionProps) => {
                         <ShieldCheck className="w-5 h-5 text-green-400" />
                         {t('Phone connected. Dictate on the phone: the text is pasted here.')}
                     </Typography.Paragraph>
-                    <PairingQr qr={snapshot.qr} hint={t('To switch to another phone, scan this QR code with it.')} />
+                    <SwitchPhone qr={snapshot.qr} />
                     {stopButton}
                 </>
             );
