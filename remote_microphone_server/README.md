@@ -46,6 +46,8 @@ The phone's `wire.js` and `crypto.js` mirror the Rust code (`protocol/src/lib.rs
 
 Secrets go in the `x-room-secret` header. Unknown room and wrong secret (including the other side's) both answer `404`. Rooms are dropped after 10 minutes without polling or 24 hours of age.
 
+Any request can also get `429` when its client already has 4 requests in flight per room it may open (80 with the default `PLUMED_RELAY_ROOMS_PER_IP`), or `503` when the relay is busy (2048 requests in flight, or 32 MiB of bodies being read). A body must arrive within 10 s (`408`) and declare at most 1 MiB (`413`).
+
 ## Configuration
 
 | Variable | Default | Meaning |
@@ -53,7 +55,7 @@ Secrets go in the `x-room-secret` header. Unknown room and wrong secret (includi
 | `PLUMED_RELAY_BIND` | `0.0.0.0:5174` | Listen address (set by `docker-compose.yml`) |
 | `PLUMED_RELAY_TRUST_PROXY` | `false` | Take the client IP from the last `X-Forwarded-For` entry, only when the request comes from a loopback or private address (the reverse proxy). `docker-compose.yml` sets it to `true` |
 | `PLUMED_RELAY_MAX_ROOMS` | `500` | Rooms open at the same time |
-| `PLUMED_RELAY_ROOMS_PER_IP` | `20` | Rooms open at the same time for one client IP (IPv6: per /64). A hospital behind one NAT address shares it |
+| `PLUMED_RELAY_ROOMS_PER_IP` | `20` | Rooms open at the same time for one client IP (IPv6: per /64), which also sets its share of requests in flight (4 per room). A hospital behind one NAT address shares it |
 | `PLUMED_RELAY_ROOMS_PER_IP_PER_HOUR` | `60` | Room creations per client IP per hour |
 
 The last two can be set in `.env` (copy `env.example`), `docker-compose.yml` passes them to the container.

@@ -295,3 +295,41 @@ async fn full_server_answers_503() {
     let resp = call(&r, Method::POST, ROOMS_PATH, "", vec![]).await;
     assert_eq!(resp.status(), StatusCode::SERVICE_UNAVAILABLE);
 }
+
+#[tokio::test]
+async fn a_declared_oversized_body_is_refused_unread() {
+    let router = router(10, 10);
+    let room = create(&router).await;
+    let req = Request::builder()
+        .method(Method::POST)
+        .uri(room.desktop_inbox())
+        .header(SECRET_HEADER, &room.phone)
+        .header(header::CONTENT_LENGTH, plumed_relay_protocol::MAX_BODY + 1)
+        .body(Body::empty())
+        .expect("valid request");
+    let resp = router.clone().oneshot(req).await.expect("infallible");
+    assert_eq!(resp.status(), StatusCode::PAYLOAD_TOO_LARGE);
+}
+
+#[tokio::test]
+async fn one_client_cannot_hold_every_request_slot() {
+    // One room allowed per client: four requests in flight at most
+    let router = router(1, 10);
+    let room = create(&router).await;
+    let polls: Vec<_> = (0..4)
+        .map(|_| {
+            let (router, path, secret) =
+                (router.clone(), room.desktop_inbox(), room.desktop.clone());
+            tokio::spawn(async move { call(&router, Method::GET, &path, &secret, vec![]).await })
+        })
+        .collect();
+    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    let resp = call(&router, Method::GET, "/healthz", "", vec![]).await;
+    assert_eq!(resp.status(), StatusCode::TOO_MANY_REQUESTS);
+    for poll in polls {
+        poll.abort();
+    }
+    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+    let resp = call(&router, Method::GET, "/healthz", "", vec![]).await;
+    assert_eq!(resp.status(), StatusCode::OK);
+}

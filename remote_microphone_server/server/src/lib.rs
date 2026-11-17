@@ -16,7 +16,7 @@ use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
 use axum::routing::{delete, get, post};
 use axum::{middleware, Router};
-use limiter::Limiter;
+use limiter::{InFlight, Limiter};
 use plumed_relay_protocol::{
     valid_inbox_tag, validate, Role, MAX_BODY, POLL_WAIT_SECS, ROOMS_PATH, SECRET_HEADER,
 };
@@ -35,6 +35,14 @@ const REAP_EVERY: Duration = Duration::from_secs(30);
 /// relay answers 503 rather than piling up connections. Below the file
 /// descriptor limit set in docker-compose.yml.
 const MAX_IN_FLIGHT: usize = 2048;
+/// Requests in flight per client, per room it may open: a desktop and a
+/// phone behind the same NAT each hold a poll and sometimes send.
+const IN_FLIGHT_PER_ROOM: usize = 4;
+/// Memory for request bodies being read, before they are queued (and
+/// counted in [`QUEUE_BUDGET`]). Kept in KiB permits.
+const BODY_BUDGET_KIB: usize = 32 * 1024;
+/// A client that has not sent its whole body by then is cut off.
+const BODY_TIMEOUT: Duration = Duration::from_secs(10);
 
 pub struct Config {
     pub max_rooms: usize,
@@ -51,6 +59,8 @@ struct Inner {
     limiter: Limiter,
     trust_proxy: bool,
     in_flight: Arc<Semaphore>,
+    per_client: InFlight,
+    bodies: Arc<Semaphore>,
 }
 
 #[derive(Clone)]
@@ -62,6 +72,8 @@ pub fn app(config: &Config) -> (Router, AppState) {
         limiter: Limiter::new(config.rooms_per_ip_per_hour),
         trust_proxy: config.trust_proxy,
         in_flight: Arc::new(Semaphore::new(MAX_IN_FLIGHT)),
+        per_client: InFlight::new(config.rooms_per_ip * IN_FLIGHT_PER_ROOM),
+        bodies: Arc::new(Semaphore::new(BODY_BUDGET_KIB)),
     }));
     let router = Router::new()
         .route("/healthz", get(|| async { "ok" }))
@@ -125,8 +137,12 @@ async fn security_headers(mut resp: Response) -> Response {
 }
 
 async fn limit_in_flight(State(state): State<AppState>, req: Request, next: Next) -> Response {
+    let client = client_key(&req, state.0.trust_proxy);
+    let Some(_slot) = state.0.per_client.enter(client) else {
+        return retry_after(StatusCode::TOO_MANY_REQUESTS, 5);
+    };
     match state.0.in_flight.clone().try_acquire_owned() {
-        // Held until the response is ready
+        // Both held until the response is ready
         Ok(_permit) => next.run(req).await,
         Err(_) => retry_after(StatusCode::SERVICE_UNAVAILABLE, 5),
     }
@@ -223,6 +239,31 @@ fn push_error(e: PushError) -> Response {
     }
 }
 
+/// The body of `req`, read under [`BODY_BUDGET_KIB`] and [`BODY_TIMEOUT`]:
+/// many slow or large uploads at once must not exhaust the relay's memory.
+async fn read_body(state: &AppState, req: Request) -> Result<axum::body::Bytes, StatusCode> {
+    let declared = req
+        .headers()
+        .get(header::CONTENT_LENGTH)
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.parse::<usize>().ok());
+    let size = match declared {
+        Some(n) if n > MAX_BODY => return Err(StatusCode::PAYLOAD_TOO_LARGE),
+        Some(n) => n,
+        // Chunked: assume the worst
+        None => MAX_BODY,
+    };
+    let kib = u32::try_from(size.div_ceil(1024)).unwrap_or(u32::MAX);
+    let Ok(_reserved) = state.0.bodies.clone().try_acquire_many_owned(kib) else {
+        return Err(StatusCode::SERVICE_UNAVAILABLE);
+    };
+    match tokio::time::timeout(BODY_TIMEOUT, axum::body::to_bytes(req.into_body(), size)).await {
+        Ok(Ok(body)) => Ok(body),
+        Ok(Err(_)) => Err(StatusCode::PAYLOAD_TOO_LARGE),
+        Err(_) => Err(StatusCode::REQUEST_TIMEOUT),
+    }
+}
+
 /// Appends the body to `inbox`: only the other role may write to it. The
 /// secret is checked before the body is read.
 async fn send(state: AppState, id: &str, inbox: Inbox<'_>, req: Request) -> Response {
@@ -230,9 +271,12 @@ async fn send(state: AppState, id: &str, inbox: Inbox<'_>, req: Request) -> Resp
         Ok(room) => room,
         Err(status) => return status.into_response(),
     };
-    let body = match axum::body::to_bytes(req.into_body(), MAX_BODY).await {
+    let body = match read_body(&state, req).await {
         Ok(body) => body,
-        Err(_) => return StatusCode::PAYLOAD_TOO_LARGE.into_response(),
+        Err(StatusCode::SERVICE_UNAVAILABLE) => {
+            return retry_after(StatusCode::SERVICE_UNAVAILABLE, 1)
+        }
+        Err(status) => return status.into_response(),
     };
     if validate(&body).is_err() {
         return StatusCode::BAD_REQUEST.into_response();
