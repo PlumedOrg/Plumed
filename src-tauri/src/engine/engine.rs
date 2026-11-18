@@ -1,4 +1,4 @@
-use ndarray::{Array, Array1, Array2, ArrayD, ArrayViewD, IxDyn};
+use ndarray::{Array, Array1, Array2, ArrayD, ArrayView1, ArrayViewD, Axis, IxDyn};
 use once_cell::sync::Lazy;
 use ort::ep::CPU;
 use ort::inputs;
@@ -507,31 +507,66 @@ impl ParakeetModel {
         Ok((state1, state2))
     }
 
+    /// One decoder + joint step (batch of 1). `encoder_out` is one encoder
+    /// frame `[D]`; returns the joint row `[vocab (+ durations)]` and the new
+    /// decoder state.
     pub fn decode_step(
         &mut self,
         prev_tokens: &[i32],
         prev_state: &DecoderState,
-        encoder_out: &ArrayViewD<f32>, // [time_steps, 1024]
+        encoder_out: &ArrayViewD<f32>, // [D]
     ) -> Result<(ArrayD<f32>, DecoderState), ParakeetError> {
-        log::trace!("Running decoder inference...");
-
         // Get last token or blank_idx if empty
         let target_token = prev_tokens.last().copied().unwrap_or(self.blank_idx);
+        let frame = encoder_out.view().into_dimensionality::<ndarray::Ix1>()?;
+        let (row, state) = self
+            .decode_steps(&frame, &[(target_token, prev_state)])?
+            .pop()
+            .ok_or_else(|| ParakeetError::OutputNotFound("outputs".to_string()))?;
+        Ok((ArrayD::from_shape_vec(IxDyn(&[row.len()]), row)?, state))
+    }
 
-        // Prepare inputs matching Python: encoder_out[None, :, None] -> [1, time_steps, 1]
-        let encoder_outputs = encoder_out
+    /// One decoder + joint step for several rows on the same encoder frame
+    /// `[D]`, in a single ONNX run (like ParakeetWeb's
+    /// `_runCombinedStepBatch`). Each row is (last token, decoder state);
+    /// returns, per row, its joint row and new decoder state. Example: 5 beam
+    /// hypotheses give encoder_outputs [5, D, 1], targets [5, 1] and states
+    /// [2, 5, 640], one run instead of five.
+    pub(super) fn decode_steps(
+        &mut self,
+        encoder_frame: &ArrayView1<f32>,
+        rows: &[(i32, &DecoderState)],
+    ) -> Result<Vec<(Vec<f32>, DecoderState)>, ParakeetError> {
+        log::trace!("Running decoder inference on {} rows...", rows.len());
+        let batch = rows.len();
+        let dim = encoder_frame.len();
+
+        // Python: encoder_out[None, :, None], repeated per row -> [B, D, 1]
+        let encoder_outputs = encoder_frame
+            .broadcast((batch, dim))
+            .ok_or_else(|| ParakeetError::TensorShape("encoder_outputs".to_string()))?
             .to_owned()
-            .insert_axis(ndarray::Axis(0))
-            .insert_axis(ndarray::Axis(2));
-        let targets = Array2::from_shape_vec((1, 1), vec![target_token])?;
-        let target_length = Array1::from_vec(vec![1]);
+            .insert_axis(Axis(2));
+        let targets = Array2::from_shape_vec((batch, 1), rows.iter().map(|r| r.0).collect())?;
+        let target_length = Array1::from_elem(batch, 1);
+        let states1: Vec<_> = rows.iter().map(|r| r.1 .0.view()).collect();
+        let states2: Vec<_> = rows.iter().map(|r| r.1 .1.view()).collect();
+        // ONNX tensors need C-contiguous data; a batched concatenate (or the
+        // broadcast above) is not guaranteed to produce it.
+        let states1 = ndarray::concatenate(Axis(1), &states1)?
+            .as_standard_layout()
+            .into_owned();
+        let states2 = ndarray::concatenate(Axis(1), &states2)?
+            .as_standard_layout()
+            .into_owned();
+        let encoder_outputs = encoder_outputs.as_standard_layout().into_owned();
 
         let inputs = inputs![
             "encoder_outputs" => TensorRef::from_array_view(encoder_outputs.view())?,
             "targets" => TensorRef::from_array_view(targets.view())?,
             "target_length" => TensorRef::from_array_view(target_length.view())?,
-            "input_states_1" => TensorRef::from_array_view(prev_state.0.view())?,
-            "input_states_2" => TensorRef::from_array_view(prev_state.1.view())?,
+            "input_states_1" => TensorRef::from_array_view(states1.view())?,
+            "input_states_2" => TensorRef::from_array_view(states2.view())?,
         ];
 
         let outputs = self.decoder_joint.run(inputs)?;
@@ -539,7 +574,7 @@ impl ParakeetModel {
         let logits = outputs
             .get("outputs")
             .ok_or_else(|| ParakeetError::OutputNotFound("outputs".to_string()))?
-            .try_extract_array()?;
+            .try_extract_array::<f32>()?;
         log::trace!(
             "Logits shape: {:?}, vocab_size: {}",
             logits.shape(),
@@ -548,20 +583,28 @@ impl ParakeetModel {
         let state1 = outputs
             .get("output_states_1")
             .ok_or_else(|| ParakeetError::OutputNotFound("output_states_1".to_string()))?
-            .try_extract_array()?;
+            .try_extract_array::<f32>()?
+            .into_dimensionality::<ndarray::Ix3>()?;
         let state2 = outputs
             .get("output_states_2")
             .ok_or_else(|| ParakeetError::OutputNotFound("output_states_2".to_string()))?
-            .try_extract_array()?;
+            .try_extract_array::<f32>()?
+            .into_dimensionality::<ndarray::Ix3>()?;
 
-        // Squeeze outputs like Python (remove batch dimension)
-        let logits = logits.remove_axis(ndarray::Axis(0));
-
-        // Convert ArrayD back to Array3 to match expected return type
-        let state1_3d = state1.to_owned().into_dimensionality::<ndarray::Ix3>()?;
-        let state2_3d = state2.to_owned().into_dimensionality::<ndarray::Ix3>()?;
-
-        Ok((logits.to_owned(), (state1_3d, state2_3d)))
+        // Row b of the batch axis (0 for the logits, 1 for the states).
+        let row_state = |state: &ndarray::ArrayView3<f32>, b: usize| {
+            state.index_axis(Axis(1), b).insert_axis(Axis(1)).to_owned()
+        };
+        Ok(logits
+            .outer_iter()
+            .enumerate()
+            .map(|(b, row)| {
+                (
+                    row.iter().copied().collect(),
+                    (row_state(&state1, b), row_state(&state2, b)),
+                )
+            })
+            .collect())
     }
 
     pub fn recognize_batch(
@@ -695,11 +738,15 @@ impl ParakeetModel {
                 ndarray::ErrorKind::IncompatibleShape,
             ))
         })?;
-        Ok(if slice.len() > vocab_size {
-            (&slice[..vocab_size], &slice[vocab_size..])
-        } else {
-            (slice, &[][..])
-        })
+        Ok(Self::split_joint_row(slice, vocab_size))
+    }
+
+    /// `tdt_logits` on a joint row already in a slice.
+    pub(super) fn split_joint_row(row: &[f32], vocab_size: usize) -> (&[f32], &[f32]) {
+        match row.len() > vocab_size {
+            true => row.split_at(vocab_size),
+            false => (row, &[][..]),
+        }
     }
 
     // Greedy decode with dictionary logit boosting. At each frame the boost

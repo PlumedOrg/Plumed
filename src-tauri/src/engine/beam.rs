@@ -281,32 +281,59 @@ fn keep_best(best: &mut Option<Hypothesis>, finished: Hypothesis) {
     }
 }
 
+/// Output of one joint row.
+struct JointOut {
+    logits: Vec<f32>,
+    durations: Vec<f32>,
+    state: Rc<DecoderState>,
+}
+
+/// A prefix search extension of `beam[short]` toward `beam[long]`.
+struct PrefixJob {
+    long: usize,
+    short: usize,
+    state: Rc<DecoderState>,
+    prev: i32,
+    ext_logp: f64,
+}
+
 impl ParakeetModel {
-    /// One joint step on `frame` after feeding `token`: (vocab logits,
-    /// duration logits, new decoder state).
-    fn joint_step(
+    /// One batched joint step on `frame`: each row is (last token, decoder
+    /// state), each output (vocab logits, duration logits, new decoder state).
+    /// A single ONNX run whatever the number of rows.
+    fn joint_steps(
         &mut self,
         encodings: &ArrayViewD<f32>,
         frame: usize,
-        token: i32,
-        state: &DecoderState,
-    ) -> Result<(Vec<f32>, Vec<f32>, DecoderState), ParakeetError> {
-        let encoder_step = encodings
-            .slice(ndarray::s![frame, ..])
-            .to_owned()
-            .into_dyn();
-        let (out, new_state) = self.decode_step(&[token], state, &encoder_step.view())?;
-        let (logits, durations) = Self::tdt_logits(&out, self.vocab_size)?;
-        let durations = match durations.is_empty() {
-            true => &NO_DURATION[..],
-            false => durations,
-        };
-        Ok((logits.to_vec(), durations.to_vec(), new_state))
+        rows: &[(i32, &DecoderState)],
+    ) -> Result<Vec<JointOut>, ParakeetError> {
+        if rows.is_empty() {
+            return Ok(Vec::new());
+        }
+        let encoder_frame = encodings.slice(ndarray::s![frame, ..]);
+        let vocab_size = self.vocab_size;
+        Ok(self
+            .decode_steps(&encoder_frame, rows)?
+            .into_iter()
+            .map(|(row, state)| {
+                let (logits, durations) = Self::split_joint_row(&row, vocab_size);
+                let durations = match durations.is_empty() {
+                    true => &NO_DURATION[..],
+                    false => durations,
+                };
+                JointOut {
+                    logits: logits.to_vec(),
+                    durations: durations.to_vec(),
+                    state: Rc::new(state),
+                }
+            })
+            .collect())
     }
 
     /// MAES beam decode of `width` hypotheses, boosted by `tree` and `trie`
-    /// when given. Mirrors ParakeetWeb's `_decodeBeam` step for step, with
-    /// serial batch-1 joint calls (ParakeetWeb batches them, same outputs).
+    /// when given. Mirrors ParakeetWeb's `_decodeBeam` step for step,
+    /// including its batching: every hypothesis of a MAES step shares one
+    /// joint run, so do the blank closures and each prefix search step.
     pub(super) fn decode_sequence_beam(
         &mut self,
         encodings: &ArrayViewD<f32>,
@@ -348,34 +375,38 @@ impl ParakeetModel {
                 if working.is_empty() {
                     break;
                 }
-                let mut stayed = Vec::new();
-                for hyp in &working {
-                    let (logits, durations, new_state) =
-                        self.joint_step(encodings, frame, hyp.last_token(blank), &hyp.state)?;
+                let rows: Vec<_> = working
+                    .iter()
+                    .map(|h| (h.last_token(blank), h.state.as_ref()))
+                    .collect();
+                let outs = self.joint_steps(encodings, frame, &rows)?;
+                // (child, whether it takes a blank closure), in expansion order
+                let mut children = Vec::new();
+                for (hyp, out) in working.iter().zip(&outs) {
                     let bias = tree.map_or_else(Vec::new, |tree| tree.bias(hyp.boost_state));
-                    let boosted = self.boosted_logits(&logits, &bias, trie, &hyp.active);
-                    let new_state = Rc::new(new_state);
+                    let boosted = self.boosted_logits(&out.logits, &bias, trie, &hyp.active);
                     let cands = expand_candidates(
-                        &logits,
+                        &out.logits,
                         &boosted,
-                        &durations,
+                        &out.durations,
                         blank,
                         expand_k,
                         MAES_EXPANSION_GAMMA,
                     );
                     for cand in &cands {
-                        let mut child = hyp.child(cand, &new_state, blank, tree, trie);
-                        if cand.token != blank
+                        let closes = cand.token != blank
                             && cand.step == 0
-                            && hyp.emitted_at_frame + 1 >= MAES_NUM_STEPS
-                        {
-                            self.blank_closure(&mut child, encodings, frame)?;
-                        }
-                        match child.t {
-                            t if t >= encodings_len => keep_best(&mut best, child),
-                            t if t > frame => produced.push(child),
-                            _ => stayed.push(child),
-                        }
+                            && hyp.emitted_at_frame + 1 >= MAES_NUM_STEPS;
+                        children.push((hyp.child(cand, &out.state, blank, tree, trie), closes));
+                    }
+                }
+                self.blank_closures(&mut children, encodings, frame)?;
+                let mut stayed = Vec::new();
+                for (child, _) in children {
+                    match child.t {
+                        t if t >= encodings_len => keep_best(&mut best, child),
+                        t if t > frame => produced.push(child),
+                        _ => stayed.push(child),
                     }
                 }
                 working = prune_beam(stayed, width);
@@ -391,26 +422,36 @@ impl ParakeetModel {
 
     /// A hypothesis out of emissions on this frame takes a forced blank with
     /// its most likely non-zero duration (scored, state discarded), like
-    /// ParakeetWeb's last-MAES-step blank closure.
-    fn blank_closure(
+    /// ParakeetWeb's last-MAES-step blank closure. Applies to the children
+    /// flagged `true`, all in one joint run.
+    fn blank_closures(
         &mut self,
-        child: &mut Hypothesis,
+        children: &mut [(Hypothesis, bool)],
         encodings: &ArrayViewD<f32>,
         frame: usize,
     ) -> Result<(), ParakeetError> {
-        let (logits, durations, _) = self.joint_step(
-            encodings,
-            frame,
-            child.last_token(self.blank_idx),
-            &child.state,
-        )?;
-        let step = match argmax_index(&durations) {
-            0 if durations.len() > 1 => 1,
-            best => best,
-        };
-        child.score += value_at(&logits, self.blank_idx as usize) - log_sum_exp(&logits)
-            + (value_at(&durations, step) - log_sum_exp(&durations));
-        child.t = frame + step;
+        let blank = self.blank_idx;
+        let closing: Vec<usize> = (0..children.len()).filter(|&i| children[i].1).collect();
+        let rows: Vec<_> = closing
+            .iter()
+            .map(|&i| {
+                (
+                    children[i].0.last_token(blank),
+                    children[i].0.state.as_ref(),
+                )
+            })
+            .collect();
+        let outs = self.joint_steps(encodings, frame, &rows)?;
+        for (&i, out) in closing.iter().zip(&outs) {
+            let step = match argmax_index(&out.durations) {
+                0 if out.durations.len() > 1 => 1,
+                best => best,
+            };
+            let child = &mut children[i].0;
+            child.score += value_at(&out.logits, blank as usize) - log_sum_exp(&out.logits)
+                + (value_at(&out.durations, step) - log_sum_exp(&out.durations));
+            child.t = frame + step;
+        }
         Ok(())
     }
 
@@ -429,7 +470,7 @@ impl ParakeetModel {
         }
         let mut order: Vec<usize> = (0..beam.len()).collect();
         order.sort_by(|&a, &b| beam[b].tokens.len().cmp(&beam[a].tokens.len()));
-        let mut jobs: Vec<(usize, usize, f64)> = Vec::new();
+        let mut jobs: Vec<PrefixJob> = Vec::new();
         for (i, &long) in order.iter().enumerate() {
             for &short in &order[i + 1..] {
                 let (long_h, short_h) = (&beam[long], &beam[short]);
@@ -439,22 +480,38 @@ impl ParakeetModel {
                 {
                     continue;
                 }
-                let mut state = Rc::clone(&short_h.state);
-                let mut prev = short_h.last_token(self.blank_idx);
-                let mut ext_logp = 0.0;
-                for &token in &long_h.tokens[short_h.tokens.len()..] {
-                    let (logits, durations, new_state) =
-                        self.joint_step(encodings, frame, prev, &state)?;
-                    ext_logp += value_at(&logits, token as usize) - log_sum_exp(&logits)
-                        + (value_at(&durations, 0) - log_sum_exp(&durations));
-                    state = Rc::new(new_state);
-                    prev = token;
-                }
-                jobs.push((long, short, ext_logp));
+                jobs.push(PrefixJob {
+                    long,
+                    short,
+                    state: Rc::clone(&short_h.state),
+                    prev: short_h.last_token(self.blank_idx),
+                    ext_logp: 0.0,
+                });
             }
         }
-        for (long, short, ext_logp) in jobs {
-            beam[long].score = log_add_exp(beam[long].score, beam[short].score + ext_logp);
+        // Step k extends every job by its k-th missing token, all jobs in one
+        // joint run (jobs only differ in length when MAES_PREFIX_ALPHA > 1).
+        for k in 0..MAES_PREFIX_ALPHA {
+            let live: Vec<usize> = (0..jobs.len())
+                .filter(|&j| beam[jobs[j].short].tokens.len() + k < beam[jobs[j].long].tokens.len())
+                .collect();
+            let rows: Vec<_> = live
+                .iter()
+                .map(|&j| (jobs[j].prev, jobs[j].state.as_ref()))
+                .collect();
+            let outs = self.joint_steps(encodings, frame, &rows)?;
+            for (&j, out) in live.iter().zip(outs) {
+                let job = &mut jobs[j];
+                let token = beam[job.long].tokens[beam[job.short].tokens.len() + k];
+                job.ext_logp += value_at(&out.logits, token as usize) - log_sum_exp(&out.logits)
+                    + (value_at(&out.durations, 0) - log_sum_exp(&out.durations));
+                job.state = out.state;
+                job.prev = token;
+            }
+        }
+        for job in jobs {
+            beam[job.long].score =
+                log_add_exp(beam[job.long].score, beam[job.short].score + job.ext_logp);
         }
         Ok(())
     }
