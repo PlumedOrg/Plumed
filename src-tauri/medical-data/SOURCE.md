@@ -62,4 +62,49 @@ French medical phrase boosting list (~77,000 phrases: drugs, medical terms, LoRN
 cd .. && cargo test --lib phrase_list
 ```
 
+## Online updates (signed)
+
+The rule files, the confusion groups and the phrase list can be updated without an app release (code in `src-tauri/src/medical/data_set/` and `src-tauri/src/medical/data_update.rs`, section written with Claude Code). The bundled files above stay the fallback.
+
+Version of the bundled data: `BUNDLED_VERSION` in `src-tauri/src/medical/data_set/mod.rs` (bump it when the bundled files change, so a downloaded set older than the bundled one is ignored). Model the rules are for: `MODEL_ID` in the same file (`ultimed-v2`, the model of `scripts/fetch-ultimed-model.sh`).
+
+### Release layout
+
+Everything is an asset of the GitHub release with the fixed tag `medical-data` on `PlumedOrg/Plumed`, a prerelease that must never be the "latest" release (the app updater reads `releases/latest/download/latest.json`):
+
+- `https://github.com/PlumedOrg/Plumed/releases/download/medical-data/manifest.json`
+- `https://github.com/PlumedOrg/Plumed/releases/download/medical-data/manifest.json.minisig`: its minisign signature
+- each file of the manifest, same URL prefix + file name
+
+### manifest.json
+
+```json
+{
+  "version": "2026.11.21",
+  "model": "ultimed-v2",
+  "min_app_version": "0.1.4",
+  "notes": "Texte court en français",
+  "files": [{ "name": "drug_fix_rules.jsonl", "sha256": "<64 lowercase hex>", "size": 123 }]
+}
+```
+
+- `version`: `YYYY.MM.DD` or `YYYY.MM.DD.N`, compared numerically (`2026.11.21.10` is newer than `2026.11.21.9`). Only a version newer than the one in use is offered.
+- `model`: must equal the app's `MODEL_ID`, otherwise the whole manifest is refused (the rules fix the errors of one model).
+- `min_app_version`: semver; refused when above the app version.
+- `notes`: shown in the update dialog (2,000 characters at most).
+- `files`: only these names are accepted, any other name refuses the whole manifest: the seven rule files (`drug_fix_rules.jsonl`, `dictionary_fix_rules.jsonl`, `parhaf_fix_rules.jsonl`, `parrot_fix_rules.jsonl`, `acronyms_fix_rules.jsonl`, `manual_fix_rules.jsonl`, `plumed_fix_rules.jsonl`, all required), `confusion_groups.jsonl` and `french_medical.txt` (optional: missing means the bundled one is kept). Each file is at most 50 MB.
+
+### What the app checks
+
+1. The minisign signature of `manifest.json`, against the public key compiled into the app (`PLUMED_RULES_PUBKEY` at build time). Builds without it never check, download or show anything.
+2. The manifest content as above.
+3. Each downloaded file's size and SHA-256, before anything is moved into place (download into a staging folder, then a rename).
+4. That the new set parses (at most 5% unusable rule lines, a non-empty phrase list and confusion groups when present). Otherwise it is deleted and the previous data stays.
+
+Installed sets live in `medical-data/<version>/` in the app data folder (files + signed manifest), and `medical-data/active.json` names the one in use. At every start the signature and hashes are checked again; a missing, corrupt or unparsable set, or one not newer than the bundled data, falls back to the bundled data with a warning in the log. The user's edits (`medical_rules.json`) are never touched; edits of rules that no longer exist are kept and listed in the rules editor.
+
+### Publishing
+
+`scripts/publish-medical-data.sh <version> "<notes>"` builds the manifest from the files currently in this folder, signs it and uploads everything (see the comment at its top, including how to create the key pair).
+
 Set up with Claude Code.
