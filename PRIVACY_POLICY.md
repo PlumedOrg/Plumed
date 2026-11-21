@@ -46,11 +46,11 @@ When disabled (default), Plumed does not listen to your microphone outside of an
 
 Enabled by default. To recognize very short dictations better (under 2 seconds, or 3 words or fewer), Plumed keeps the last 10 seconds of recent dictation audio **in memory only** and transcribes the short dictation behind it. This audio is never written to disk, never leaves your computer, and is discarded 5 minutes after the last dictation, when Plumed closes, or when the option is turned off.
 
-## Remote microphone (alpha)
+## PhoneMic (alpha)
 
 This feature is an alpha pre-release: expect bugs.
 
-The remote microphone lets a phone on any network act as a microphone, through a relay server (by default `https://turn.plumed.fr`, configurable). It is **disabled by default**, and nothing is sent until you click "Connect a phone".
+PhoneMic (the remote microphone) lets a phone on any network act as a microphone, through a relay server (by default `https://turn.plumed.fr`, configurable). It is **disabled by default**, and nothing is sent until you click "Connect a phone".
 
 - The phone page and the relay are Plumed's own (source in `remote_microphone_server/`). Audio is **encrypted end to end** (ECDH P-256 and AES-256-GCM) between the phone and Plumed: the relay forwards packets it cannot decrypt. This assumes the relay serves an unmodified phone page: the page and its crypto code come from the relay, so a compromised relay could serve a page that leaks audio.
 - Before any audio is accepted, both screens show the same short code and you must confirm on the computer that it matches. This blocks a relay that would try to put itself in the middle.
@@ -86,7 +86,7 @@ Plumed may access the network only for:
 
 - **Checking for updates** (runs automatically on launch; currently not disableable in-app)
 - **Downloading and installing updates** (only when you choose to install an update)
-- **The remote microphone** (only after you enable it and click "Connect a phone"; see above)
+- **PhoneMic, the remote microphone** (only after you enable it and click "Connect a phone"; see above)
 - **Anonymous usage statistics** (only if you opted in; see above)
 - **Checking for medical data updates** (on launch, from GitHub, only while "check for medical data updates at startup" is on; no identifier, cookie or usage data is sent) and **downloading them** (only when you click "Download")
 

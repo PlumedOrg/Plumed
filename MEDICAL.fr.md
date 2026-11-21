@@ -25,16 +25,16 @@ Une dictée très courte, par exemple un seul mot que l'on redicte pour le corri
 
 Cet audio reste uniquement en mémoire vive, n'est jamais écrit sur le disque, et est oublié 5 minutes après la dernière dictée, à la fermeture de Plumed, ou dès que l'option est désactivée.
 
-## Micro distant (dicter depuis son téléphone, alpha)
+## PhoneMic (dicter depuis son téléphone, alpha)
 
 > **Alpha :** cette fonctionnalité est une préversion, attendez-vous à des bugs.
 
-Désactivé par défaut : **Micro distant** dans la barre latérale.
+Désactivé par défaut : **PhoneMic** dans la barre latérale.
 
-Le téléphone sert de micro, même s'il n'est pas sur le même réseau que l'ordinateur (4G, Wi-Fi invité de l'hôpital) :
+Avec PhoneMic, le téléphone sert de micro, même s'il n'est pas sur le même réseau que l'ordinateur (4G, Wi-Fi invité de l'hôpital) :
 
 1. Cliquer sur **Connecter un téléphone** : un QR code s'affiche.
-2. Le scanner avec l'appareil photo du téléphone. La page de micro de Plumed s'ouvre (en français, ou en anglais), sans rien installer.
+2. Le scanner avec l'appareil photo du téléphone. La page PhoneMic de Plumed s'ouvre (en français, ou en anglais), sans rien installer.
 3. Les deux écrans affichent un code (par exemple `524C-F8E8-D5A4-2D82`). S'il est identique, confirmer sur l'ordinateur.
 4. Dicter sur le téléphone : le texte transcrit est collé dans l'application active de l'ordinateur, comme pour une dictée normale. En mode mains libres, le téléphone écoute en continu et n'envoie que la parole, jamais les silences.
 

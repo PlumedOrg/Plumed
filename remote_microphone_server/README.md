@@ -1,6 +1,6 @@
-# Plumed remote microphone relay (alpha)
+# Plumed PhoneMic relay (alpha)
 
-> **Alpha:** the remote microphone is a pre-release feature, expect bugs and breaking protocol changes between Plumed versions.
+> **Alpha:** PhoneMic (the remote microphone) is a pre-release feature, expect bugs and breaking protocol changes between Plumed versions.
 
 This directory holds everything that runs on the server side of the Plumed remote microphone: a small Rust (axum) HTTPS relay that also serves the phone page. It was written with Claude Code.
 

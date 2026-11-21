@@ -5,8 +5,8 @@ const STORAGE_KEY = 'plumed-lang';
 
 const STRINGS = {
     fr: {
-        page_title: 'Plumed : micro distant (alpha)',
-        title: 'Micro distant Plumed',
+        page_title: 'Plumed : PhoneMic (alpha)',
+        title: 'PhoneMic Plumed',
         alpha_notice: 'Version alpha : fonctionnalité en cours de test, des problèmes sont possibles.',
         privacy_notice:
             "L'audio est chiffré de bout en bout entre ce téléphone et votre ordinateur, si ce serveur relais est de confiance.",
@@ -47,8 +47,8 @@ const STRINGS = {
         no_wakelock: "Gardez l'écran allumé : ce navigateur ne peut pas empêcher la mise en veille.",
     },
     en: {
-        page_title: 'Plumed: remote microphone (alpha)',
-        title: 'Plumed remote microphone',
+        page_title: 'Plumed: PhoneMic (alpha)',
+        title: 'Plumed PhoneMic',
         alpha_notice: 'Alpha version: this feature is being tested, expect problems.',
         privacy_notice:
             'Audio is end-to-end encrypted between this phone and your computer, provided this relay server is trusted.',
