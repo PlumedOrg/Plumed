@@ -339,6 +339,7 @@ pub fn run() {
                     Ok(_) => {
                         info!("Transcription engine initialized and ready");
                         telemetry::send_if_due(&startup_handle);
+                        crate::medical::data_update::check_at_startup(&startup_handle);
                     }
                     Err(e) => info!("Transcription engine will be loaded on first use: {}", e),
                 }
@@ -479,6 +480,15 @@ pub fn run() {
             set_medical_rule_edits,
             search_medical_rules,
             preview_medical_fixes,
+            get_orphaned_medical_rule_edits,
+            get_medical_data_status,
+            get_medical_data_offer,
+            dismiss_medical_data_offer,
+            skip_medical_data_version,
+            check_medical_data_update,
+            download_medical_data_update,
+            reset_medical_data,
+            set_medical_data_update_check,
             set_log_level,
             set_keep_recordings,
             set_remove_hesitations,

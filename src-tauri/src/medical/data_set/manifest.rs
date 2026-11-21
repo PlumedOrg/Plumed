@@ -112,10 +112,6 @@ impl Manifest {
         }
     }
 
-    pub fn file(&self, name: &str) -> Option<&ManifestFile> {
-        self.files.iter().find(|f| f.name == name)
-    }
-
     pub fn total_size(&self) -> u64 {
         self.files.iter().map(|f| f.size).sum()
     }

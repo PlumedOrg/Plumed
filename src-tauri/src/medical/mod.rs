@@ -6,6 +6,7 @@
 //! side leaves the other alone.
 
 pub mod data_set;
+pub mod data_update;
 mod drug_rules;
 pub mod engine_lists;
 mod interhop;
@@ -55,6 +56,16 @@ pub fn init(app: &AppHandle) {
     data_set::init(app);
     let app = app.clone();
     std::thread::spawn(move || activate(&load_edits(&app)));
+}
+
+/// After the data set changed: activates the saved edits on the new rules
+/// and re-arms the engine lists. Returns how many edits now refer to rules
+/// that no longer exist (they stay saved).
+fn reactivate(app: &AppHandle) -> usize {
+    let edits = load_edits(app);
+    activate(&edits);
+    engine_lists::rearm(app);
+    data_set::current().rules.orphaned(&edits).len()
 }
 
 /// Fixes drug names and medical terms that speech recognition mishears.

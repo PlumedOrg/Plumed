@@ -237,13 +237,16 @@ fn a_valid_downloaded_set_is_used() {
     fs::remove_dir_all(dir).unwrap();
 }
 
+/// What a test breaks in an installed set folder.
+type Corruption = (&'static str, fn(&Path));
+
 /// Every way a downloaded set can be bad falls back to the bundled data.
 #[test]
 fn a_bad_downloaded_set_falls_back_to_the_bundled_data() {
     let key = TestKey::new(3);
     let files = rule_files();
     let manifest = manifest_for("2099.01.01", &files);
-    let corruptions: [(&str, fn(&Path)); 5] = [
+    let corruptions: [Corruption; 5] = [
         ("file changed", |set| {
             fs::write(set.join("drug_fix_rules.jsonl"), "{}").unwrap()
         }),
