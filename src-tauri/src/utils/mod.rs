@@ -1,4 +1,5 @@
 pub mod enigo_session;
+pub mod http;
 pub mod log_watchdog;
 pub mod platform;
 pub mod resources;

@@ -162,13 +162,7 @@ async fn send(app: &AppHandle, website_id: &str) -> Result<(), String> {
         return Ok(());
     }
     let (body, user_agent) = request(app, website_id, &state, today);
-    let client = reqwest::Client::builder()
-        .timeout(SEND_TIMEOUT)
-        .https_only(ENDPOINT.starts_with("https://"))
-        .redirect(reqwest::redirect::Policy::none())
-        .user_agent(user_agent)
-        .build()
-        .map_err(|e| e.to_string())?;
+    let client = crate::utils::http::client(ENDPOINT, SEND_TIMEOUT, &user_agent, 0)?;
     let response = client
         .post(ENDPOINT)
         .json(&body)
