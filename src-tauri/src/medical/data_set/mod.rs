@@ -63,7 +63,7 @@ pub(super) const BUNDLED_PHRASE_LIST: &str =
 
 /// Minisign public key of the `medical-data` release, set at build time
 /// (base64 key line of `plumed-rules.pub`). TODO: generate the key pair and
-/// set the `PLUMED_RULES_PUBKEY` repository variable on GitHub, release
+/// set the `PLUMED_RULES_PUBKEY` repository secret on GitHub, release
 /// builds never look for medical data updates until then.
 const PUBLIC_KEY: Option<&str> = option_env!("PLUMED_RULES_PUBKEY");
 
