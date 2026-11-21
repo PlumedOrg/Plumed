@@ -82,7 +82,7 @@ impl RemoteMicState {
     pub fn start(&self, app: AppHandle, client: RelayClient) -> Result<(), String> {
         let mut commands = self.commands.lock();
         if commands.as_ref().is_some_and(|tx| !tx.is_closed()) {
-            return Err("the remote microphone is already running".to_string());
+            return Err("PhoneMic is already running".to_string());
         }
         let (tx, rx) = mpsc::unbounded_channel();
         *commands = Some(tx);

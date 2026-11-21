@@ -14,7 +14,7 @@ export const RemoteMic = () => {
     const { t } = useTranslation();
     const settings = useRemoteMicSettings();
     const session = useRemoteMic();
-    const title = t('Remote microphone');
+    const title = t('PhoneMic');
     const [choosingRelay, setChoosingRelay] = useState(false);
 
     if (!settings.enabled) {
@@ -30,7 +30,7 @@ export const RemoteMic = () => {
                 />
                 <ExtensionEnableAction
                     icon={RadioTower}
-                    label={t('Enable the remote microphone')}
+                    label={t('Enable PhoneMic')}
                     onEnable={() => setChoosingRelay(true)}
                     testId="remote-mic-enable"
                     colorScheme="standard"
@@ -63,7 +63,7 @@ export const RemoteMic = () => {
                 toggle={{
                     checked: settings.enabled,
                     onCheckedChange: settings.setEnabled,
-                    ariaLabel: t('Enable the remote microphone'),
+                    ariaLabel: t('Enable PhoneMic'),
                     testId: 'remote-mic-toggle',
                 }}
             />

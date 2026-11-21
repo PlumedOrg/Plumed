@@ -23,7 +23,7 @@ pub fn set_remote_mic_enabled(
 pub fn remote_mic_start(app: AppHandle, state: State<'_, RemoteMicState>) -> Result<(), String> {
     let s = crate::settings::load_settings(&app);
     if !s.remote_mic_enabled {
-        return Err("the remote microphone is disabled in the settings".to_string());
+        return Err("PhoneMic is disabled in the settings".to_string());
     }
     let client = RelayClient::new(origin_of(&s.remote_mic_url)?).map_err(|e| e.to_string())?;
     state.start(app, client)

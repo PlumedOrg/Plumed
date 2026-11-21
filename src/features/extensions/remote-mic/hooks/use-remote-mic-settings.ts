@@ -10,7 +10,7 @@ export const useRemoteMicSettings = () => {
     const [enabled, setEnabled] = useBooleanSetting(
         'remote_mic_enabled',
         'set_remote_mic_enabled',
-        t('Failed to save the remote microphone setting')
+        t('Failed to save the PhoneMic setting')
     );
     const [url, setUrl] = useState('');
     const [savedUrl, setSavedUrl] = useState('');

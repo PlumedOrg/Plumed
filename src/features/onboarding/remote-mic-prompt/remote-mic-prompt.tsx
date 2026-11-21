@@ -29,7 +29,7 @@ export const RemoteMicPrompt = () => {
         try {
             await invoke('answer_remote_mic_prompt', { enable });
         } catch (e) {
-            toast.error(t('Failed to save the remote microphone setting'));
+            toast.error(t('Failed to save the PhoneMic setting'));
             console.error(e);
             return;
         }
@@ -58,7 +58,7 @@ export const RemoteMicPrompt = () => {
                         </div>
                         <DialogDescription>
                             {t(
-                                'Plumed did not find a microphone on this computer. Do you want to use your phone as a microphone instead?'
+                                'Plumed did not find a microphone on this computer. Do you want to use your phone as a microphone instead, with PhoneMic?'
                             )}
                         </DialogDescription>
                     </DialogHeader>
@@ -66,9 +66,7 @@ export const RemoteMicPrompt = () => {
                     <div className="flex gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-500">
                         <TriangleAlert className="w-4 h-4 shrink-0 mt-0.5" />
                         <span>
-                            {t(
-                                'The phone microphone is an alpha feature: it may not be suitable for real patient data yet.'
-                            )}
+                            {t('PhoneMic is an alpha feature: it may not be suitable for real patient data yet.')}
                         </span>
                     </div>
                     <Typography.Paragraph>

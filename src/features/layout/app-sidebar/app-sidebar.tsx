@@ -64,7 +64,7 @@ const getTopLevelItems = (t: (key: string) => string) => [
         dataTestId: 'voice-mode-tab',
     },
     {
-        name: t('Remote microphone'),
+        name: t('PhoneMic'),
         url: '/extensions/remote-mic',
         icon: RadioTower,
         dataTestId: 'remote-mic-tab',
