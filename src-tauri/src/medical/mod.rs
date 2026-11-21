@@ -5,8 +5,8 @@
 //! import or a reset of either side leaves the other alone.
 
 mod drug_rules;
+pub mod engine_lists;
 mod interhop;
-pub mod phrase_list;
 mod store;
 
 pub use drug_rules::{validate_edit, RuleEdit, RuleView};

@@ -96,6 +96,8 @@ pub struct BuiltInOptions {
     pub medical_fixes: bool,
     /// Plumed: boost the bundled French medical phrase list while decoding
     pub phrase_boosting: bool,
+    /// Plumed: re-score sound-alike medical words on the audio (confusion groups)
+    pub confusion_rescoring: bool,
 }
 
 impl Default for BuiltInOptions {
@@ -109,6 +111,7 @@ impl Default for BuiltInOptions {
             text_numbers_threshold: 0.0,
             medical_fixes: true,
             phrase_boosting: true,
+            confusion_rescoring: true,
         }
     }
 }

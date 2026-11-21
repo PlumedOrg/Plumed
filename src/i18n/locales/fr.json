@@ -511,5 +511,8 @@
     "Another relay, for example your institution’s own server": "Un autre relais, par exemple le serveur de votre établissement",
     "The audio is encrypted on the phone before it leaves it. The relay only forwards data it cannot read and deletes it once delivered: only Plumed on this computer can decrypt it.": "L'audio est chiffré sur le téléphone avant d'en sortir. Le relais ne fait que transmettre des données qu'il ne peut pas lire et les supprime une fois remises : seul Plumed sur cet ordinateur peut les déchiffrer.",
     "The relay is not an HDS server (certified health data host). The phone microphone is an alpha feature: it may not be suitable for real patient data yet.": "Le relais n'est pas un serveur HDS (hébergeur de données de santé certifié). Le microphone du téléphone est une fonctionnalité alpha : il peut ne pas encore convenir à de vraies données de patients.",
-    "What is HDS?": "Qu'est-ce que HDS ?"
+    "What is HDS?": "Qu'est-ce que HDS ?",
+    "Resolve sound-alike medical words": "Départager les mots médicaux qui se ressemblent",
+    "When a word sounds like several medical terms, listens to that passage again and keeps the one the audio supports.": "Quand un mot ressemble à plusieurs termes médicaux, réécoute ce passage et garde celui que l'audio confirme.",
+    "Example: \"singulaire\" → \"Singulair\" or \"cingulaire\"": "Exemple : « singulaire » → « Singulair » ou « cingulaire »"
 }

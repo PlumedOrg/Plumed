@@ -171,6 +171,28 @@ export const FormattingRules = () => {
                         <SettingsUI.Container>
                             <SettingsUI.Item>
                                 <SettingsUI.Description className="w-150">
+                                    <Typography.Title>{t('Resolve sound-alike medical words')}</Typography.Title>
+                                    <Typography.Paragraph>
+                                        {t(
+                                            'When a word sounds like several medical terms, listens to that passage again and keeps the one the audio supports.'
+                                        )}
+                                        <br />
+                                        <span className="text-xs italic text-muted-foreground">
+                                            {t('Example: "singulaire" → "Singulair" or "cingulaire"')}
+                                        </span>
+                                    </Typography.Paragraph>
+                                </SettingsUI.Description>
+                                <Switch
+                                    checked={settings.built_in.confusion_rescoring}
+                                    onCheckedChange={(checked) => updateBuiltInOption('confusion_rescoring', checked)}
+                                    data-testid="option-confusion-rescoring"
+                                />
+                            </SettingsUI.Item>
+                        </SettingsUI.Container>
+
+                        <SettingsUI.Container>
+                            <SettingsUI.Item>
+                                <SettingsUI.Description className="w-150">
                                     <Typography.Title>{t('Short text correction')}</Typography.Title>
                                     <Typography.Paragraph>
                                         {shortTextThreshold > 0 ? (
