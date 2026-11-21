@@ -438,12 +438,12 @@ mod tests {
 
     #[test]
     fn medical_fixes_toggle() {
-        let text = "Sous respéridone le soir.";
+        let text = "Sous tacadol le soir.";
         let mut settings = make_settings(0);
         settings.built_in.trailing_space = false;
         assert_eq!(
             apply_formatting(text.to_string(), &settings),
-            "Sous rispéridone le soir."
+            "Sous Takadol le soir."
         );
         settings.built_in.medical_fixes = false;
         assert_eq!(apply_formatting(text.to_string(), &settings), text);

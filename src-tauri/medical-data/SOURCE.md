@@ -2,19 +2,19 @@
 
 ## regex-fixes/
 
-Drug-name and medical-term fix rules (41,744 regexes), applied by `src-tauri/src/medical/drug_rules.rs` in this order: `manual_fix_rules.jsonl` (hand-written), `drug_fix_rules.jsonl`, `term_fix_rules.jsonl`.
+Drug-name and medical-term fix rules (25,099 regexes, mined from the errors of the UltiMed v2 model), applied by `src-tauri/src/medical/drug_rules.rs` in this order: `drug_fix_rules.jsonl` (2,447 rules), `dictionary_fix_rules.jsonl` (18,261), `parhaf_fix_rules.jsonl` (2,172), `parrot_fix_rules.jsonl` (117), `acronyms_fix_rules.jsonl` (43), then `manual_fix_rules.jsonl` (2,059, hand-written, last so its spelling conventions also respell what a learned rule wrote).
 
-- Byte for byte copies of the `regex-fixes/` folder of https://huggingface.co/Olicorne/parakeet-tdt-0.6b-v3-ultra-UltiMed-onnx. The commit and SHA-256 of each file are in `regex-fixes/PROVENANCE`. Do not edit them here: users change rules from the app (their edits are stored on top, see below), and rule improvements go to the model repo.
-- How the rules are built: https://github.com/thiswillbeyourgithub/UltiMed-ASR-FR-v1-scripts/tree/public/08_drug_asr_rules
-- License: CC BY 4.0. Drug names come from French open data (Licence Ouverte / Etalab 2.0: OPEN_MEDIC, RETROCEDAM, BDPM); medical terms come from public French sources (terms only, no definitions). See the "Licence and attribution" section of the model repo README.
+- Byte for byte copies of the `rules/` folder of https://github.com/UltiMed-Org/UltiMed-ASR-FR-v2-regex-fixes (its `confusion_groups.jsonl` is not a rule file and is not copied). The commit and SHA-256 of each file are in `regex-fixes/PROVENANCE`. Do not edit them here: users change rules from the app (their edits are stored on top, see below), and rule improvements go to the rules repo.
+- How the rules are built: https://github.com/UltiMed-Org/UltiMed-ASR-FR-v2-regex-fixes/tree/main/scripts
+- License: AGPL-3.0-or-later, like the rules repo. Drug names come from French open data (Licence Ouverte / Etalab 2.0: OPEN_MEDIC, RETROCEDAM, BDPM); medical terms come from public French sources (terms only, no definitions). See the rules repo README for the attribution.
 
 User edits made in the app (disabled, changed or added rules) are stored in `medical_rules.json` in the app data folder, separate from the user's formatting rules. Deleting them ("Reset") goes back to exactly these files.
 
 ### Refresh
 
 ```bash
-# from a local clone of the model repo (default: ../../../ASR_parakeet_finetuning_ultimed_nemo/parakeet-tdt-0.6b-v3-ultra-UltiMed-onnx)
-./sync-regex-fixes.sh [path/to/parakeet-tdt-0.6b-v3-ultra-UltiMed-onnx]
+# from a local clone of the rules repo (default: ../../../ASR_parakeet_finetuning_ultimed_nemo/UltiMed-ASR-FR-v2-regex-fixes)
+./sync-regex-fixes.sh [path/to/UltiMed-ASR-FR-v2-regex-fixes]
 ```
 
 Then check that the Rust port still gives exactly ParakeetWeb's output (`app/ui/src/lib/drugRules.js`, which compiles the same JSONL files):

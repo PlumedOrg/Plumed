@@ -40,7 +40,7 @@ fn active() -> Arc<DrugRules> {
 }
 
 /// Parses the bundled rules and loads the saved edits. Call once at startup,
-/// off the main thread: parsing ~40,000 rules takes a fraction of a second.
+/// off the main thread: parsing ~25,000 rules takes a fraction of a second.
 pub fn init(app: &AppHandle) {
     match store::load(app) {
         Ok(edits) => activate(&edits),

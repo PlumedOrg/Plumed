@@ -1,11 +1,12 @@
 //! Drug-name and medical-term fix rules (Plumed fork).
 //!
-//! Port of ParakeetWeb's `app/ui/src/lib/drugRules.js`: ~40,000 regexes that
+//! Port of ParakeetWeb's `app/ui/src/lib/drugRules.js`: ~25,000 regexes that
 //! fix how French speech recognition mishears drug names and medical terms
 //! ("l'ananas de l'umab" -> "lanadelumab", "ostéophite" -> "ostéophyte").
-//! The rules are the UltiMed model repo's `regex-fixes/*.jsonl` files, copied
-//! byte for byte into `src-tauri/medical-data/regex-fixes/` (see
-//! `medical-data/SOURCE.md`) and applied in order: manual, drug, term.
+//! The rules are the `rules/*_fix_rules.jsonl` files of the UltiMed v2 rules
+//! repo, copied byte for byte into `src-tauri/medical-data/regex-fixes/` (see
+//! `medical-data/SOURCE.md`) and applied in order: drug, dictionary, parhaf,
+//! parrot, acronyms, manual.
 //!
 //! Every pattern has the same shape:
 //!
@@ -25,7 +26,7 @@
 //!
 //! Rules are compiled lazily: a rule only runs when one of the text's words is
 //! its anchor (the longest accent-folded word of a misspelling it fixes), so a
-//! typical sentence compiles and runs ~100 rules instead of 40,000. The result
+//! typical sentence compiles and runs ~100 rules instead of 25,000. The result
 //! is the same as running every rule in file order on the whole text.
 //!
 //! User edits ([`RuleEdit`]) are an overlay on the bundled rules: a rule can be
@@ -43,15 +44,26 @@ use unicode_normalization::char::is_combining_mark;
 use unicode_normalization::UnicodeNormalization;
 
 /// The bundled rule files, in the order they are applied.
-const BUNDLED_SOURCES: [&str; 3] = [
-    include_str!("../../medical-data/regex-fixes/manual_fix_rules.jsonl"),
+const BUNDLED_SOURCES: [&str; 6] = [
     include_str!("../../medical-data/regex-fixes/drug_fix_rules.jsonl"),
-    include_str!("../../medical-data/regex-fixes/term_fix_rules.jsonl"),
+    include_str!("../../medical-data/regex-fixes/dictionary_fix_rules.jsonl"),
+    include_str!("../../medical-data/regex-fixes/parhaf_fix_rules.jsonl"),
+    include_str!("../../medical-data/regex-fixes/parrot_fix_rules.jsonl"),
+    include_str!("../../medical-data/regex-fixes/acronyms_fix_rules.jsonl"),
+    include_str!("../../medical-data/regex-fixes/manual_fix_rules.jsonl"),
 ];
 
 const WORD_CLASS: &str = r"[0-9A-Za-z_\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u024F";
 /// Consuming equivalent of SUFFIX: a non-word, non-hyphen char, or the end.
 const SUFFIX_REGEX: &str = r"(?:[^0-9A-Za-z_\x{C0}-\x{D6}\x{D8}-\x{F6}\x{F8}-\x{24F}\-]|\z)";
+
+/// What a "before vowel" rule ends with instead of SUFFIX (version 2 rules,
+/// `"before_vowel": true`): the whitespace after the misspelling, which the
+/// replacement eats, then a word starting with a vowel or h
+/// ("trocarde aspiration" -> "trocart d'aspiration").
+const BEFORE_VOWEL_SUFFIX: &str = r"\s+(?=[aàâäeéèêëiîïoôöuùûüyÿhœæ])";
+/// Consuming equivalent of BEFORE_VOWEL_SUFFIX's lookahead.
+const BEFORE_VOWEL_REGEX: &str = "(?i:[aàâäeéèêëiîïoôöuùûüyÿhœæ])";
 
 /// One line of a `regex-fixes/*.jsonl` file (other fields are ignored).
 #[derive(Deserialize)]
@@ -81,6 +93,8 @@ struct Rule {
     /// Lowercase titles ("docteur ") the match must not directly follow.
     exclusions: Vec<Vec<char>>,
     core: String,
+    /// Ends with BEFORE_VOWEL_SUFFIX instead of SUFFIX.
+    before_vowel: bool,
     replacement: String,
     regex: OnceLock<Option<Regex>>,
 }
@@ -188,9 +202,9 @@ fn has_lookaround(core: &str) -> bool {
     ["(?<", "(?=", "(?!"].iter().any(|l| core.contains(l))
 }
 
-/// Splits a pattern into its title exclusions and its core, or `None` when it
-/// does not have the expected shape.
-fn parse_pattern(pattern: &str) -> Option<(Vec<Vec<char>>, &str)> {
+/// Splits a pattern into its title exclusions, its core and whether it is a
+/// "before vowel" rule, or `None` when it does not have the expected shape.
+fn parse_pattern(pattern: &str) -> Option<(Vec<Vec<char>>, &str, bool)> {
     let exclusion_start = format!("(?<!(?<!{WORD_CLASS}])");
     let prefix = format!(
         "(?<!{WORD_CLASS}-])(?:(?<!['’])|(?<=(?<!{WORD_CLASS}])[dlnjmtsc]['’])|(?<=qu['’]))"
@@ -204,13 +218,15 @@ fn parse_pattern(pattern: &str) -> Option<(Vec<Vec<char>>, &str)> {
         exclusions.push(unescape_literal(&after[..end])?);
         rest = &after[end + 1..];
     }
-    let core = rest
-        .strip_prefix(prefix.as_str())?
-        .strip_suffix(suffix.as_str())?;
+    let rest = rest.strip_prefix(prefix.as_str())?;
+    let (core, before_vowel) = match rest.strip_suffix(BEFORE_VOWEL_SUFFIX) {
+        Some(core) => (core, true),
+        None => (rest.strip_suffix(suffix.as_str())?, false),
+    };
     if has_lookaround(core) {
         return None;
     }
-    Some((exclusions, core))
+    Some((exclusions, core, before_vowel))
 }
 
 /// `dr\. ` -> "dr. ". Rejects anything that is not a plain literal.
@@ -283,30 +299,40 @@ fn cased_replacement<'a>(matched: &str, replacement: &'a str) -> std::borrow::Co
 }
 
 impl Rule {
-    fn new(exclusions: Vec<Vec<char>>, core: &str, replacement: &str) -> Option<Self> {
+    fn new(
+        exclusions: Vec<Vec<char>>,
+        core: &str,
+        before_vowel: bool,
+        replacement: &str,
+    ) -> Option<Self> {
         if replacement.is_empty() || is_unsafe_replacement(replacement) {
             return None;
         }
         Some(Self {
             exclusions,
             core: core.to_string(),
+            before_vowel,
             replacement: replacement.to_string(),
             regex: OnceLock::new(),
         })
     }
 
     fn from_pattern(pattern: &str, replacement: &str) -> Option<Self> {
-        let (exclusions, core) = parse_pattern(pattern)?;
-        Self::new(exclusions, core, replacement)
+        let (exclusions, core, before_vowel) = parse_pattern(pattern)?;
+        Self::new(exclusions, core, before_vowel, replacement)
     }
 
-    fn compile(core: &str) -> Result<Regex, regex::Error> {
-        Regex::new(&format!("((?i:{core})){SUFFIX_REGEX}"))
+    fn compile(core: &str, before_vowel: bool) -> Result<Regex, regex::Error> {
+        Regex::new(&if before_vowel {
+            format!("((?i:{core})\\s+){BEFORE_VOWEL_REGEX}")
+        } else {
+            format!("((?i:{core})){SUFFIX_REGEX}")
+        })
     }
 
     fn regex(&self) -> Option<&Regex> {
         self.regex
-            .get_or_init(|| match Self::compile(&self.core) {
+            .get_or_init(|| match Self::compile(&self.core, self.before_vowel) {
                 Ok(re) => Some(re),
                 Err(e) => {
                     warn!("Drug rule {:?} does not compile: {e}", self.replacement);
@@ -361,7 +387,7 @@ pub fn validate_edit(edit: &RuleEdit) -> Result<(), String> {
     if has_lookaround(&edit.core) {
         return Err("Lookarounds are not supported".to_string());
     }
-    Rule::compile(&edit.core)
+    Rule::compile(&edit.core, false)
         .map(|_| ())
         .map_err(|e| e.to_string())
 }
@@ -486,10 +512,10 @@ impl DrugRules {
                 .enabled
                 .then_some(())
                 .and_then(|_| match &edit.original {
-                    None => Rule::new(Vec::new(), &edit.core, &edit.replacement),
+                    None => Rule::new(Vec::new(), &edit.core, false, &edit.replacement),
                     Some(original) => {
-                        let (exclusions, _) = parse_pattern(original)?;
-                        Rule::new(exclusions, &edit.core, &edit.replacement)
+                        let (exclusions, _, before_vowel) = parse_pattern(original)?;
+                        Rule::new(exclusions, &edit.core, before_vowel, &edit.replacement)
                     }
                 });
             match &edit.original {

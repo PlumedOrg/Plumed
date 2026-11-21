@@ -224,15 +224,35 @@ fn search_finds_rules_by_right_or_misheard_word() {
 fn bundled_rules_match_parakeetweb() {
     let r = bundled();
     let cases = [
-        ("On atteint la dose maximale avec un comprimé de quatre mg de respéridone par jour.", "On atteint la dose maximale avec un comprimé de quatre mg de rispéridone par jour."),
-        ("On réduit le selecoxyb à une gélule de cent mg par jour compte tenu de l'âge du patient.", "On réduit le célécoxib à une gélule de cent mg par jour compte tenu de l'âge du patient."),
-        ("On réduit le Sélecoxybe à une gélule de cent mg par jour compte tenu de l'âge du patient.", "On réduit le Célécoxib à une gélule de cent mg par jour compte tenu de l'âge du patient."),
-        ("Le patient est sous avapritini depuis six mois avec une bonne tolérance globale.", "Le patient est sous avapritinib depuis six mois avec une bonne tolérance globale."),
-        ("Continuation de la phase de titration avec poneysimode incomprimé de sept mg, jour six.", "Continuation de la phase de titration avec ponésimod incomprimé de sept mg, jour six."),
-        ("Surveillance de la calyémie recommandée sous endapamide incomprimé de un virgule cinq mg.", "Surveillance de la kaliémie recommandée sous indapamide incomprimé de un virgule cinq mg."),
-        ("Examen réalisé pour une aménorrée primaire à l'aide d'un transducteur de 3,5 MHz.", "Examen réalisé pour une aménorrhée primaire à l'aide d'un transducteur de 3,5 MHz."),
-        ("Surveillance de la calémie recommandée sous un dapamide incomprimé de un virgule cinq mg.", "Surveillance de la kaliémie recommandée sous indapamide incomprimé de un virgule cinq mg."),
-        ("Bilan en autorino la ringologie.", "Bilan en otorhinolaryngologie."),
+        ("Prescription de tacadol 100 milligrammes en comprimé, une prise matin et soir.", "Prescription de Takadol 100 milligrammes en comprimé, une prise matin et soir."),
+        ("Renouvellement du fascigine 500 milligrammes, 1 comprimé matin et soir pendant 5 jours.", "Renouvellement du Fasigyne 500 milligrammes, 1 comprimé matin et soir pendant 5 jours."),
+        ("Le patient décrit une polllachiurie diurne et une dysurie intermittente.", "Le patient décrit une pollakiurie diurne et une dysurie intermittente."),
+        ("Le muscle soucrural est souvent négligé dans les douleurs antérieures du genou.", "Le muscle sous-crural est souvent négligé dans les douleurs antérieures du genou."),
+        ("L'envahissement du muscle d'arthos est exclu par la biopsie profonde.", "L'envahissement du muscle dartos est exclu par la biopsie profonde."),
+        ("La patiente se plaint de picotements persistants malgré le cellulisque.", "La patiente se plaint de picotements persistants malgré le Celluvisc."),
+        ("Traitement par humuline rapide avant les repas, et lampus le soir au coucher.", "Traitement par Umuline rapide avant les repas, et Lantus le soir au coucher."),
+        ("Arrêt du Quasim LP 20 milligrammes pour inefficacité.", "Arrêt du Quasym LP 20 milligrammes pour inefficacité."),
+        ("Analyse du gène codant pour l'époxyhydratase microsomale.", "Analyse du gène codant pour l'époxyde-hydratase microsomale."),
+        ("Surveillance recommandée sous endapamide un virgule cinq mg.", "Surveillance recommandée sous indapamide un virgule cinq mg."),
+    ];
+    for (input, expected) in cases {
+        assert_eq!(r.apply(input), expected, "input: {input}");
+    }
+}
+
+/// A "before vowel" rule (version 2) eats the whitespace up to a word starting
+/// with a vowel or h, and does not fire before any other word. Expected outputs
+/// are those of the regex repo's Python engine on the same rules.
+#[test]
+fn before_vowel_rule() {
+    let r = bundled();
+    let cases = [
+        ("un trocarde  Optique", "un trocart d'Optique"),
+        ("Trocarde aspiration.", "Trocart d'aspiration."),
+        ("un trocarde hélicoïdal", "un trocart d'hélicoïdal"),
+        // Not before a vowel: the next manual rule ("trocarde" -> "trocart de") fires.
+        ("un trocarde 5 mm", "un trocart de 5 mm"),
+        ("trocarde-hybride", "trocarde-hybride"),
     ];
     for (input, expected) in cases {
         assert_eq!(r.apply(input), expected, "input: {input}");
