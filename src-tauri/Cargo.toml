@@ -62,6 +62,9 @@ rubato = "3.0.0"
 ring = "0.17"
 plumed-relay-protocol = { path = "../remote_microphone_server/protocol" }
 reqwest = { version = "0.13", default-features = false, features = ["json", "rustls-no-provider", "system-proxy"] }
+# Plumed fork: signed medical data updates (both already pulled by tauri and its updater).
+minisign-verify = "0.2"
+semver = "1"
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-autostart = "2"

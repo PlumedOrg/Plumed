@@ -32,7 +32,7 @@ fn rules(list: &[(String, &str, &[&str])], always: &[u32]) -> DrugRules {
 }
 
 fn bundled() -> DrugRules {
-    DrugRules::new(Bundled::shared(), &[])
+    DrugRules::new(crate::medical::data_set::current().rules.clone(), &[])
 }
 
 #[test]
@@ -298,6 +298,6 @@ fn bundled_rules_match_parakeetweb_corpus() {
 
 #[test]
 fn every_plumed_rule_compiles() {
-    let bundled = Bundled::from_jsonl(&[PLUMED_RULES]);
+    let bundled = Bundled::from_jsonl(&[crate::medical::data_set::PLUMED_RULES]);
     assert!(bundled.rules.iter().all(Option::is_some));
 }

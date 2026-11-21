@@ -310,8 +310,7 @@ pub fn run() {
             app.manage(utils::enigo_session::EnigoState::default());
 
             // Plumed: parse the medical rules now, not on the first transcription
-            let medical_handle = app.handle().clone();
-            std::thread::spawn(move || crate::medical::init(&medical_handle));
+            crate::medical::init(app.handle());
 
             let startup_handle = app.handle().clone();
             std::thread::spawn(move || {
