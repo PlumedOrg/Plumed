@@ -10,7 +10,7 @@ Plumed is a privacy-first, open-source speech-to-text desktop application. It is
 - Your audio and transcriptions are processed **locally** on your device.
 - Plumed stores only what it needs to operate (settings, custom words/rules). No transcription is written to disk by default.
 - On startup, Plumed checks for updates by contacting the configured updater endpoint (currently hosted on GitHub). Downloading updates is opt-in.
-- On startup, if the setting is on (it is by default, in the formatting rules page), Plumed also asks GitHub whether newer medical rules exist: a plain download of a small signed file, with no identifier. The new rules are downloaded only when you click "Download".
+- On startup, if the setting is on (it is by default, in Settings > Corrections > Rules, with "Show the built-in rules" on), Plumed also asks GitHub whether newer medical rules exist: a plain download of a small signed file, with no identifier. The new rules are downloaded only when you click "Download".
 
 ## What Plumed does not do
 
