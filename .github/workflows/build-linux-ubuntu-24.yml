@@ -60,6 +60,8 @@ jobs:
               run: pnpm build:smartmic
 
             - name: Build (AppImage)
+              env:
+                  PLUMED_TELEMETRY_WEBSITE_ID: ${{ vars.PLUMED_TELEMETRY_WEBSITE_ID }}
               run: pnpm tauri build --bundles appimage
 
             - name: Restore Tauri signing key

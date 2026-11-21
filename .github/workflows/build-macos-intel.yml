@@ -224,6 +224,8 @@ jobs:
             # APPLE_SIGNING_IDENTITY is set so Tauri signs the .app with
             # hardened runtime during the build (required for notarization)
             - name: Build Intel DMG
+              env:
+                  PLUMED_TELEMETRY_WEBSITE_ID: ${{ vars.PLUMED_TELEMETRY_WEBSITE_ID }}
               run: |
                   arch -x86_64 pnpm tauri build --target x86_64-apple-darwin --bundles dmg,app \
                     --config "{\"bundle\":{\"macOS\":{\"frameworks\":[\"${ORT_DYLIB_PATH}\"]}}}"

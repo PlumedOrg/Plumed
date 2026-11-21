@@ -33,6 +33,7 @@ Even if there is nothing new, update the date so we know the check happened.
 - Upstream's mkdocs site (`docs/`, `mkdocs.yml`, `overrides/`, the `docs.yml` workflow) is deleted: it documents Murmure (`murmure` commands, docs.murmure.app CNAME). When an upstream merge touches those files, keep the deletion. Plumed's user docs will live on plumed.fr; the medical features are documented in `MEDICAL.fr.md`.
 - Large data (medical regex lists, phrase boosting lists) goes in its own files, never inlined in upstream sources.
 - Generic improvements (performance, bug fixes, things any Murmure user benefits from) must be written so they can be sent upstream as is: no medical-specific code mixed in.
+- Exception to upstream's "no persistence" rule (`AGENTS.md`): when, and only when, the user opted in to anonymous usage statistics, aggregated counters (sums, buckets, error counts, never text or per-dictation records) and a random id are persisted in `telemetry.json` in the app data folder. Turning the option off deletes that file. Anything sent must stay on the allowlist tested in `src-tauri/src/telemetry/payload.rs`.
 
 ## 4. Branching model
 
@@ -98,6 +99,11 @@ Each release: bump the version (section 5), run the `Release Plumed` workflow, c
 Code signing: there will never be an Apple developer account, so macOS builds are unsigned and not notarized (users must allow the app in System Settings > Privacy & Security, or run `xattr -dr com.apple.quarantine /Applications/Plumed.app`); the macOS workflows run their Apple certificate, DMG signing and notarization steps only when the `MACOS_CODESIGN_P12_B64` secret exists, and otherwise ad-hoc sign the `.app` (`APPLE_SIGNING_IDENTITY=-`), which Apple Silicon requires to run it at all. Windows: the SignPath step runs only when `SIGNPATH_API_TOKEN` exists; otherwise the installers are released unsigned (SmartScreen warning). Either way the Tauri updater signature (`.sig`) is always made.
 
 WinGet (`.github/workflows/publish-winget.yml`, id `Olicorne.Plumed`, NSIS `-setup.exe` only): it runs on every published release, but it can only update a package that already exists in microsoft/winget-pkgs. The first version must be submitted once by hand (for example with `komac new` or `wingetcreate new`), then add a `WINGET_TOKEN` secret (a GitHub token allowed to open PRs on winget-pkgs).
+
+Usage statistics (opt-in, `src-tauri/src/telemetry/`, section written with Claude Code) are configured at build time through two environment variables read with `option_env!`:
+
+- `PLUMED_TELEMETRY_WEBSITE_ID`: the Umami website id. Every workflow that runs `tauri build` passes it from the GitHub Actions **repository variable** of the same name (`${{ vars.PLUMED_TELEMETRY_WEBSITE_ID }}`, Settings > Secrets and variables > Actions > Variables). When it is unset or empty, telemetry is inert: no consent dialog, no setting, nothing sent. TODO: create the Plumed website in Umami (EU host, data purged after 25 months) and set that repository variable.
+- `PLUMED_TELEMETRY_URL` (optional): the Umami 3 collect endpoint, default `https://metrics.plumed.fr/api/send`. Not passed by the workflows on purpose (an empty variable would override the default); set it only for local test builds.
 
 ## 7. Other
 
