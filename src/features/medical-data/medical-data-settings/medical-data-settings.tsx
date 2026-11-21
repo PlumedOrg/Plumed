@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'react-toastify';
@@ -10,7 +10,9 @@ import { useTranslation } from '@/i18n';
 import { useBooleanSetting } from '@/features/settings/hooks/use-boolean-setting';
 import { useMedicalDataChangeToast } from '../hooks/use-medical-data-change-toast';
 import { MedicalDataUpdateDialog } from '../medical-data-update-dialog/medical-data-update-dialog';
-import { MedicalDataChange, MedicalDataOffer, MedicalDataStatus } from '../types';
+import { useMedicalDataStatus } from '../hooks/use-medical-data-status';
+import { medicalDataVersionLabel } from '../medical-data.helpers';
+import { MedicalDataChange, MedicalDataOffer } from '../types';
 
 // Plumed fork (written with Claude Code): which medical data is in use, the
 // startup check toggle, "Check now" and "Return to the bundled data".
@@ -18,7 +20,7 @@ import { MedicalDataChange, MedicalDataOffer, MedicalDataStatus } from '../types
 export const MedicalDataSettings = () => {
     const { t } = useTranslation();
     const showChange = useMedicalDataChangeToast();
-    const [status, setStatus] = useState<MedicalDataStatus | null>(null);
+    const { status, refresh } = useMedicalDataStatus();
     const [offer, setOffer] = useState<MedicalDataOffer | null>(null);
     const [busy, setBusy] = useState(false);
     const [checkEnabled, setCheckEnabled] = useBooleanSetting(
@@ -26,14 +28,6 @@ export const MedicalDataSettings = () => {
         'set_medical_data_update_check',
         t('Failed to save the medical data update setting')
     );
-
-    const refresh = useCallback(() => {
-        invoke<MedicalDataStatus>('get_medical_data_status')
-            .then(setStatus)
-            .catch((e) => console.error('Failed to load the medical data status:', e));
-    }, []);
-
-    useEffect(refresh, [refresh]);
 
     if (status == null || !status.available) {
         return null;
@@ -72,12 +66,7 @@ export const MedicalDataSettings = () => {
                 <SettingsUI.Description className="w-150">
                     <Typography.Title>{t('Medical data updates')}</Typography.Title>
                     <Typography.Paragraph data-testid="medical-data-version">
-                        {status.downloaded_version == null
-                            ? t('Medical data version: bundled {{bundled}}', { bundled: status.bundled_version })
-                            : t('Medical data version: downloaded {{downloaded}} (bundled {{bundled}})', {
-                                  downloaded: status.downloaded_version,
-                                  bundled: status.bundled_version,
-                              })}
+                        {medicalDataVersionLabel(status, t)}
                     </Typography.Paragraph>
                     <Typography.Paragraph className="text-xs">
                         {t(
