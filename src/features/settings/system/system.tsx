@@ -19,10 +19,13 @@ import { LogLevelSettings } from './log-level-settings/log-level-settings';
 import { KeepRecordingsSettings } from './keep-recordings-settings/keep-recordings-settings';
 import { ShortDictationContextSettings } from './short-dictation-context-settings/short-dictation-context-settings';
 import { BlockCliImportSettings } from './block-cli-import-settings/block-cli-import-settings';
+import { TelemetrySettings } from './telemetry-settings/telemetry-settings';
+import { useTelemetryAvailable } from '@/features/telemetry/hooks/use-telemetry-available';
 import { Settings, Wrench, Monitor } from 'lucide-react';
 
 export const System = () => {
     const { t } = useTranslation();
+    const telemetryAvailable = useTelemetryAvailable();
     return (
         <main>
             <div className="space-y-8">
@@ -75,6 +78,12 @@ export const System = () => {
                             <CopyToClipboardSettings />
                             <SettingsUI.Separator />
                             <BlockCliImportSettings />
+                            {telemetryAvailable && (
+                                <>
+                                    <SettingsUI.Separator />
+                                    <TelemetrySettings />
+                                </>
+                            )}
                         </SettingsUI.Section>
                     </div>
                 </div>

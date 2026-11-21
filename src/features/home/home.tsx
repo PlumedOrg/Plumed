@@ -10,6 +10,7 @@ import { MicLabel } from './mic-label/mic-label';
 import { MicDisconnectedBanner } from './mic-disconnected-banner/mic-disconnected-banner';
 import { PrivacyNotice } from './privacy-notice/privacy-notice';
 import { RemoteMicPrompt } from '../onboarding/remote-mic-prompt/remote-mic-prompt';
+import { TelemetryPrompt } from '../onboarding/telemetry-prompt/telemetry-prompt';
 
 export const Home = () => {
     const isWayland = useIsWayland();
@@ -22,6 +23,7 @@ export const Home = () => {
             {isWayland && <WaylandCliOnboardingCard />}
             <MicDisconnectedBanner />
             <RemoteMicPrompt />
+            <TelemetryPrompt />
 
             <div className="space-y-4">
                 <div className="space-y-2 flex flex-col items-center">

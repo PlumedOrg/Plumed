@@ -514,5 +514,15 @@
     "What is HDS?": "Qu'est-ce que HDS ?",
     "Resolve sound-alike medical words": "Départager les mots médicaux qui se ressemblent",
     "When a word sounds like several medical terms, listens to that passage again and keeps the one the audio supports.": "Quand un mot ressemble à plusieurs termes médicaux, réécoute ce passage et garde celui que l'audio confirme.",
-    "Example: \"singulaire\" → \"Singulair\" or \"cingulaire\"": "Exemple : « singulaire » → « Singulair » ou « cingulaire »"
+    "Example: \"singulaire\" → \"Singulair\" or \"cingulaire\"": "Exemple : « singulaire » → « Singulair » ou « cingulaire »",
+    "Failed to build the usage statistics preview": "Impossible de préparer l'aperçu des statistiques d'utilisation",
+    "Collected: aggregated counts once a day on days you use Plumed (number of dictations, average length, errors, app version, operating system, which features are on). No text, no audio, no patient data.": "Collecté : des totaux agrégés, une fois par jour les jours où vous utilisez Plumed (nombre de dictées, durée moyenne, erreurs, version de l'application, système d'exploitation, fonctionnalités activées). Aucun texte, aucun audio, aucune donnée de patient.",
+    "Never collected: what you dictate, your rules or dictionary words, file paths, computer or user names.": "Jamais collecté : ce que vous dictez, vos règles ou les mots de votre dictionnaire, les chemins de fichiers, le nom de l'ordinateur ou de l'utilisateur.",
+    "Optional, off unless you say yes, and you can change it anytime in the settings. Hosted in the EU by the Plumed maintainer, kept at most 25 months. A random identifier, renewed every 13 months, tells days of the same installation apart.": "Facultatif, désactivé tant que vous n'avez pas dit oui, et modifiable à tout moment dans les réglages. Hébergé dans l'UE par le mainteneur de Plumed, conservé 25 mois au plus. Un identifiant aléatoire, renouvelé tous les 13 mois, permet de regrouper les jours d'une même installation.",
+    "See exactly what is sent": "Voir exactement ce qui est envoyé",
+    "Help improve Plumed?": "Aider à améliorer Plumed ?",
+    "Plumed can send anonymous usage statistics to its maintainer, to learn how it is used and fix what goes wrong. Nothing is sent unless you agree.": "Plumed peut envoyer des statistiques d'utilisation anonymes à son mainteneur, pour savoir comment il est utilisé et corriger ce qui ne va pas. Rien n'est envoyé sans votre accord.",
+    "Share anonymous statistics": "Partager des statistiques anonymes",
+    "Failed to save the usage statistics setting": "Impossible d'enregistrer le réglage des statistiques d'utilisation",
+    "Anonymous usage statistics": "Statistiques d'utilisation anonymes"
 }
