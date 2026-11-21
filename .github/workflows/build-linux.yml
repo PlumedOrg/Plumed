@@ -88,6 +88,7 @@ jobs:
               env:
                   LD_LIBRARY_PATH: ${{ env.ORT_LIB_LOCATION }}
                   PLUMED_TELEMETRY_WEBSITE_ID: ${{ secrets.PLUMED_TELEMETRY_WEBSITE_ID }}
+                  PLUMED_RULES_PUBKEY: ${{ secrets.PLUMED_RULES_PUBKEY }}
               run: |
                   lib="{\"/usr/lib/Plumed/libonnxruntime.so.1\":\"${ORT_SO_PATH}\"}"
                   config="{\"bundle\":{\"linux\":{\"deb\":{\"files\":${lib}},\"rpm\":{\"files\":${lib}},\"appimage\":{\"files\":${lib}}}}}"

@@ -226,6 +226,7 @@ jobs:
             - name: Build Intel DMG
               env:
                   PLUMED_TELEMETRY_WEBSITE_ID: ${{ secrets.PLUMED_TELEMETRY_WEBSITE_ID }}
+                  PLUMED_RULES_PUBKEY: ${{ secrets.PLUMED_RULES_PUBKEY }}
               run: |
                   arch -x86_64 pnpm tauri build --target x86_64-apple-darwin --bundles dmg,app \
                     --config "{\"bundle\":{\"macOS\":{\"frameworks\":[\"${ORT_DYLIB_PATH}\"]}}}"

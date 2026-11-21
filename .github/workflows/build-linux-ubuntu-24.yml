@@ -62,6 +62,7 @@ jobs:
             - name: Build (AppImage)
               env:
                   PLUMED_TELEMETRY_WEBSITE_ID: ${{ secrets.PLUMED_TELEMETRY_WEBSITE_ID }}
+                  PLUMED_RULES_PUBKEY: ${{ secrets.PLUMED_RULES_PUBKEY }}
               run: pnpm tauri build --bundles appimage
 
             - name: Restore Tauri signing key
