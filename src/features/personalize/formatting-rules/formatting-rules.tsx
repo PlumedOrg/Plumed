@@ -134,10 +134,10 @@ export const FormattingRules = () => {
                                     <Typography.Title>{t('Fix drug names and medical terms')}</Typography.Title>
                                     <Typography.Paragraph>
                                         {t(
-                                            'Corrects misheard French drug names and medical terms with about 40,000 bundled rules.'
+                                            'Corrects misheard French drug names and medical terms with about 25,000 bundled rules.'
                                         )}
                                         <span className="block text-xs text-muted-foreground mt-1">
-                                            {t('Example: "respéridone" → "rispéridone"')}
+                                            {t('Example: "tacadol" → "Takadol"')}
                                         </span>
                                     </Typography.Paragraph>
                                 </SettingsUI.Description>
