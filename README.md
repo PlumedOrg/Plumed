@@ -19,7 +19,7 @@ Plumed est réalisé par [Olivier Cornelis](https://olicorne.org/fr), psychiatre
 
 ## Confidentialité
 
-Tout fonctionne sur votre ordinateur : l'audio et les transcriptions ne sont jamais envoyés sur internet.
+Tout fonctionne sur votre ordinateur : l'audio et les transcriptions ne sont jamais envoyés sur internet. Rien n'est envoyé, sauf si vous acceptez de partager des statistiques d'utilisation anonymes (des totaux agrégés, jamais de texte ni d'audio, désactivables à tout moment dans les réglages) : voir la [politique de confidentialité](PRIVACY_POLICY.md).
 
 ## Remerciements et licences
 

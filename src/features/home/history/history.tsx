@@ -46,7 +46,7 @@ export const History = () => {
                         <TooltipContent>
                             <Typography.Paragraph className="text-foreground text-xs">
                                 {t(
-                                    'All audio is deleted. No telemetry, no tracking. Even your last five transcriptions stay in memory (RAM), never written to disk.'
+                                    'All audio is deleted. Nothing is sent unless you opt in to anonymous usage statistics. Even your last five transcriptions stay in memory (RAM), never written to disk.'
                                 )}
                             </Typography.Paragraph>
                         </TooltipContent>

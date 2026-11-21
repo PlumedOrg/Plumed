@@ -44,7 +44,7 @@
     "After scanning, use \"Add to Home Screen\" in your browser to install it as an app, no need to rescan.": "Après le scan, utilisez « Ajouter à l'écran d'accueil » dans votre navigateur pour l'installer comme une app, plus besoin de rescanner.",
     "Already used by \"{{name}}\". Choose another combination.": "Déjà utilisé par « {{name}} ». Choisissez une autre combinaison.",
     "All dictations": "Toutes les dictées",
-    "All audio is deleted. No telemetry, no tracking. Even your last five transcriptions stay in memory (RAM), never written to disk.": "Tous les fichiers audio sont supprimés. Aucune télémétrie, aucun suivi. Même vos cinq dernières transcriptions restent en mémoire (RAM), jamais écrites sur le disque.",
+    "All audio is deleted. Nothing is sent unless you opt in to anonymous usage statistics. Even your last five transcriptions stay in memory (RAM), never written to disk.": "Tous les fichiers audio sont supprimés. Rien n'est envoyé, sauf si vous acceptez de partager des statistiques d'utilisation anonymes. Même vos cinq dernières transcriptions restent en mémoire (RAM), jamais écrites sur le disque.",
     "All files": "Tous les fichiers",
     "Always": "Toujours",
     "Are you sure you want to clear all transcription history? This action cannot be undone.": "Êtes-vous sûr de vouloir effacer tout l'historique de transcription ? Cette action ne peut pas être annulée.",

@@ -1,21 +1,21 @@
 # Privacy Policy (Plumed)
 
-**Last updated:** November 14, 2026
+**Last updated:** November 21, 2026
 
 Plumed is a privacy-first, open-source speech-to-text desktop application. It is designed to work without an internet connection and to keep your speech data on your device.
 
 ## Summary
 
-- Plumed does **not** include analytics or telemetry.
+- Nothing is sent unless you opt in to **anonymous usage statistics** (off by default, see below).
 - Your audio and transcriptions are processed **locally** on your device.
 - Plumed stores only what it needs to operate (settings, custom words/rules). No transcription is written to disk by default.
 - On startup, Plumed checks for updates by contacting the configured updater endpoint (currently hosted on GitHub). Downloading updates is opt-in.
 
 ## What Plumed does not do
 
-- It does not collect or sell user data.
+- It does not sell user data, and collects none unless you opt in to anonymous usage statistics.
 - It does not upload your recordings or transcriptions to a cloud service by default.
-- It does not track your usage with analytics/telemetry.
+- It never sends what you dictate, your audio or any patient data, even with usage statistics on.
 
 ## Data stored on your device
 
@@ -26,6 +26,7 @@ Plumed stores the following locally in the app's data directory:
 - **Formatting rules**
 - **Medical rules** (`medical_rules.json`, your edits to the drug and medical term corrections)
 - **Application logs** (do not contain transcriptions by default)
+- **Usage statistics counters** (`telemetry.json`, only if you opted in, see below)
 
 By default, **no transcription is persisted to disk**. Transcription history is kept in memory only and is cleared when the application closes. If you explicitly enable the "Persist history" option, the last 5 transcriptions will be saved on disk in the app's data directory.
 
@@ -58,6 +59,21 @@ The remote microphone lets a phone on any network act as a microphone, through a
 - The relay keeps everything in memory and logs no IP address or room id, but it still sees network metadata: IP addresses, timing and the size of the encrypted packets (so roughly how long each dictation is). Use only a relay you or your institution trust.
 - Audio is kept in memory until it is transcribed, then discarded. The session ends when you click "Disconnect" or close Plumed.
 
+## Anonymous usage statistics (opt-in)
+
+Plumed asks once, at startup, whether you want to share anonymous usage statistics. They are **off unless you say yes**, and you can change your answer at any time in Settings > System > Advanced. The "See exactly what is sent" button shows the exact data that would be sent.
+
+- **Purpose**: improve Plumed (know which versions, systems and features are used, and how often errors happen). Nothing else: no advertising, no profiling, no resale.
+- **Legal basis**: your consent (GDPR art. 6(1)(a)).
+- **What is sent**, at most once a day and only on days you use Plumed: app version, operating system and processor architecture, installer type, interface language, days since you turned the statistics on, the model name, the number of dictations of the period with their average and spread of duration and length in characters, duration buckets (under 10 s, 10 to 30 s, 30 to 120 s, over 120 s), processing speed, error counts (model loading, microphone, paste), and which features are on (as yes/no or coarse ranges such as "1-10 rules").
+- **What is never sent**: what you dictate, audio, patient data, your rules or dictionary words, file paths, computer or user names, the time of each dictation, detailed hardware.
+- **Identifier**: a random identifier, unrelated to you or your computer, tells the days of the same installation apart. It is renewed every 13 months and never extended.
+- **Where and how long**: sent to a self-hosted [Umami](https://umami.is) instance run by the Plumed maintainer in the European Union, kept at most 25 months. Umami does not store IP addresses; any location it derives from the connection is no finer than country or city.
+- **On your computer**: the counters of the current period and the identifier are kept in `telemetry.json` in the app's data directory until they are sent.
+- **Withdrawal**: turning the option off in the settings stops all sending and deletes `telemetry.json` (identifier and counters) immediately.
+
+Builds made without a statistics server configured (for example your own builds) never show the question and never send anything.
+
 ## Settings import/export
 
 Plumed allows exporting and importing settings as `.murmure` files. These files may contain: system settings, shortcuts, formatting rules, and dictionary words.
@@ -73,6 +89,7 @@ Plumed may access the network only for:
 - **Checking for updates** (runs automatically on launch; currently not disableable in-app)
 - **Downloading and installing updates** (only when you choose to install an update)
 - **The remote microphone** (only after you enable it and click "Connect a phone"; see above)
+- **Anonymous usage statistics** (only if you opted in; see above)
 
 The update check does not include your audio or transcriptions.
 
