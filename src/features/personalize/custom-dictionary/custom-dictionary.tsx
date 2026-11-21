@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'react-toastify';
 import { X } from 'lucide-react';
-import { Page } from '@/components/page';
 import { Typography } from '@/components/typography';
 import { useTranslation } from '@/i18n';
 import { DictionaryToolbar } from './dictionary-toolbar/dictionary-toolbar';
@@ -86,35 +85,28 @@ export const CustomDictionary = () => {
     const sortedWords = [...customWords].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
 
     return (
-        <main className="flex flex-col space-y-6">
-            <Page.Header>
-                <div className="flex flex-col gap-6">
-                    <Typography.MainTitle className="!mb-0" data-testid="dictionary-title">
-                        {t('Dictionary')}
-                    </Typography.MainTitle>
-                    {showRevampNotice && !dismissed && (
-                        <div
-                            className="flex w-full items-start justify-between gap-2 rounded-md border border-sky-500/30 bg-sky-500/10 px-3 py-1.5"
-                            data-testid="dictionary-revamp-banner"
-                        >
-                            <Typography.Paragraph className="flex-1 text-sm text-sky-300">
-                                {t(
-                                    'The dictionary has been improved. Your words now enrich the recognition model directly during transcription, instead of being corrected in post-processing.'
-                                )}
-                            </Typography.Paragraph>
-                            <button
-                                type="button"
-                                onClick={() => setDismissed(true)}
-                                aria-label={t('Close')}
-                                className="shrink-0 cursor-pointer text-sky-300"
-                                data-testid="dictionary-revamp-banner-close"
-                            >
-                                <X className="h-4 w-4" />
-                            </button>
-                        </div>
-                    )}
+        <div className="flex flex-col space-y-6">
+            {showRevampNotice && !dismissed && (
+                <div
+                    className="flex w-full items-start justify-between gap-2 rounded-md border border-sky-500/30 bg-sky-500/10 px-3 py-1.5"
+                    data-testid="dictionary-revamp-banner"
+                >
+                    <Typography.Paragraph className="flex-1 text-sm text-sky-300">
+                        {t(
+                            'The dictionary has been improved. Your words now enrich the recognition model directly during transcription, instead of being corrected in post-processing.'
+                        )}
+                    </Typography.Paragraph>
+                    <button
+                        type="button"
+                        onClick={() => setDismissed(true)}
+                        aria-label={t('Close')}
+                        className="shrink-0 cursor-pointer text-sky-300"
+                        data-testid="dictionary-revamp-banner-close"
+                    >
+                        <X className="h-4 w-4" />
+                    </button>
                 </div>
-            </Page.Header>
+            )}
 
             <div className="flex flex-col gap-3 w-full">
                 <DictionaryToolbar onAdd={addWord} />
@@ -135,6 +127,6 @@ export const CustomDictionary = () => {
                     </div>
                 </div>
             </div>
-        </main>
+        </div>
     );
 };

@@ -116,7 +116,7 @@ export const Onboarding = ({ recordShortcut }: { recordShortcut?: string }) => {
                     done={state.added_dictionary_word}
                     label={t('Add a word to the dictionary')}
                     description={t(
-                        'Go to Personalize > Dictionary and add a word to make it available for future transcriptions.'
+                        'Go to Settings > Corrections > Personal dictionary and add a word to make it available for future transcriptions.'
                     )}
                     to="/personalize/custom-dictionary"
                     dataTestId="onboarding-task-dictionary"

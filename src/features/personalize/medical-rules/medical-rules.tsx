@@ -1,7 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown } from 'lucide-react';
 import { Button } from '@/components/button';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/collapsible';
 import { Input } from '@/components/input';
 import { ResetButton } from '@/components/reset-button';
 import { SettingsUI } from '@/components/settings-ui';
@@ -17,8 +15,13 @@ import { MedicalRuleView } from './types';
 
 const NO_RESULTS: MedicalRuleView[] = [];
 
-/** Advanced panel: search, change, disable or add drug and medical term rules. */
-export const MedicalRules = () => {
+interface MedicalRulesProps {
+    /** Also lets the user search the bundled rules (to change or disable one). */
+    showBuiltIn: boolean;
+}
+
+/** The user's changes to the drug and medical term rules: list, add, try, and search of the bundled rules. */
+export const MedicalRules = ({ showBuiltIn }: MedicalRulesProps) => {
     const { t } = useTranslation();
     const { edits, saveEdits } = useMedicalRules();
     const [query, setQuery] = useState('');
@@ -42,47 +45,89 @@ export const MedicalRules = () => {
     };
 
     return (
-        <SettingsUI.Container>
-            <Collapsible>
-                <div className="flex items-center gap-2 p-4">
-                    <CollapsibleTrigger asChild>
-                        <Button variant="ghost" size="sm" className="group" data-testid="medical-rules-toggle">
-                            <ChevronDown className="transition-transform group-data-[state=open]:rotate-180" />
-                            {t('Edit the drug and medical term rules')}
-                        </Button>
-                    </CollapsibleTrigger>
-                    {edits.length > 0 && (
-                        <span className="text-xs text-muted-foreground">
-                            {t('{{count}} change(s)', { count: edits.length })}
-                        </span>
+        <SettingsUI.Section
+            title={t('Your changes to the drug and medical term rules')}
+            titleTestId="medical-rules-title"
+            aside={
+                edits.length > 0 && (
+                    <ResetButton
+                        label={t('Reset all changes to the bundled rules')}
+                        onClick={() => saveEdits([])}
+                        data-testid="medical-rules-reset"
+                    />
+                )
+            }
+        >
+            <div className="space-y-6 p-4">
+                <section className="space-y-2">
+                    {edits.length === 0 && (
+                        <Typography.Paragraph data-testid="medical-rules-no-changes">
+                            {t('No changes yet: the bundled rules apply as they are.')}
+                        </Typography.Paragraph>
                     )}
-                    {edits.length > 0 && (
-                        <div className="ml-auto">
-                            <ResetButton
-                                label={t('Reset all changes to the bundled rules')}
-                                onClick={() => saveEdits([])}
-                                data-testid="medical-rules-reset"
-                            />
-                        </div>
+                    {orphaned.size > 0 && (
+                        <Typography.Paragraph data-testid="medical-rules-orphaned">
+                            {t(
+                                '{{count}} of your edits refer to rules that no longer exist in the medical data in use. They are kept but change nothing.',
+                                { count: orphaned.size }
+                            )}
+                        </Typography.Paragraph>
                     )}
-                </div>
-                <CollapsibleContent className="space-y-6 px-4 pb-4">
-                    <section className="space-y-2">
-                        <Typography.Title>{t('Try the rules')}</Typography.Title>
-                        <Textarea
-                            value={sample}
-                            onChange={(e) => setSample(e.target.value)}
-                            placeholder={t('Type or paste a transcription...')}
+                    {edits.map((edit, index) => (
+                        <MedicalRuleRow
+                            key={`${edit.original ?? 'new'}-${index}`}
+                            rule={edit}
+                            status={editStatus(edit, orphaned)}
+                            onSave={(changed) => saveEdits(replaceEditAt(edits, index, changed))}
+                            onRemove={() => saveEdits(removeEditAt(edits, index))}
                         />
-                        {preview.length > 0 && (
-                            <p className="text-sm" data-testid="medical-rules-preview">
-                                {preview}
-                            </p>
-                        )}
-                    </section>
+                    ))}
+                </section>
 
-                    <section className="space-y-2">
-                        <Typography.Title>{t('Find a rule')}</Typography.Title>
+                <section className="space-y-2">
+                    <Typography.Title>{t('Add a rule')}</Typography.Title>
+                    <div className="flex items-center gap-2">
+                        <Input
+                            value={newCore}
+                            onChange={(e) => setNewCore(e.target.value)}
+                            placeholder={t('Misheard text')}
+                            className="font-mono text-xs"
+                        />
+                        <span className="text-muted-foreground">→</span>
+                        <Input
+                            value={newReplacement}
+                            onChange={(e) => setNewReplacement(e.target.value)}
+                            placeholder={t('Replacement')}
+                        />
+                        <Button
+                            variant="secondary"
+                            size="sm"
+                            disabled={newCore.trim().length === 0 || newReplacement.trim().length === 0}
+                            onClick={addRule}
+                            data-testid="medical-rules-add"
+                        >
+                            {t('Add')}
+                        </Button>
+                    </div>
+                </section>
+
+                <section className="space-y-2">
+                    <Typography.Title>{t('Try the rules')}</Typography.Title>
+                    <Textarea
+                        value={sample}
+                        onChange={(e) => setSample(e.target.value)}
+                        placeholder={t('Type or paste a transcription...')}
+                    />
+                    {preview.length > 0 && (
+                        <p className="text-sm" data-testid="medical-rules-preview">
+                            {preview}
+                        </p>
+                    )}
+                </section>
+
+                {showBuiltIn && (
+                    <section className="space-y-2" data-testid="medical-rules-search">
+                        <Typography.Title>{t('Find a built-in rule')}</Typography.Title>
                         <Typography.Paragraph>
                             {t('Search by the right word, or by what the transcription wrote.')}
                         </Typography.Paragraph>
@@ -100,58 +145,8 @@ export const MedicalRules = () => {
                             );
                         })}
                     </section>
-
-                    {edits.length > 0 && (
-                        <section className="space-y-2">
-                            <Typography.Title>{t('Your changes')}</Typography.Title>
-                            {orphaned.size > 0 && (
-                                <Typography.Paragraph data-testid="medical-rules-orphaned">
-                                    {t(
-                                        '{{count}} of your edits refer to rules that no longer exist in the medical data in use. They are kept but change nothing.',
-                                        { count: orphaned.size }
-                                    )}
-                                </Typography.Paragraph>
-                            )}
-                            {edits.map((edit, index) => (
-                                <MedicalRuleRow
-                                    key={`${edit.original ?? 'new'}-${index}`}
-                                    rule={edit}
-                                    status={editStatus(edit, orphaned)}
-                                    onSave={(changed) => saveEdits(replaceEditAt(edits, index, changed))}
-                                    onRemove={() => saveEdits(removeEditAt(edits, index))}
-                                />
-                            ))}
-                        </section>
-                    )}
-
-                    <section className="space-y-2">
-                        <Typography.Title>{t('Add a rule')}</Typography.Title>
-                        <div className="flex items-center gap-2">
-                            <Input
-                                value={newCore}
-                                onChange={(e) => setNewCore(e.target.value)}
-                                placeholder={t('Misheard text')}
-                                className="font-mono text-xs"
-                            />
-                            <span className="text-muted-foreground">→</span>
-                            <Input
-                                value={newReplacement}
-                                onChange={(e) => setNewReplacement(e.target.value)}
-                                placeholder={t('Replacement')}
-                            />
-                            <Button
-                                variant="secondary"
-                                size="sm"
-                                disabled={newCore.trim().length === 0 || newReplacement.trim().length === 0}
-                                onClick={addRule}
-                                data-testid="medical-rules-add"
-                            >
-                                {t('Add')}
-                            </Button>
-                        </div>
-                    </section>
-                </CollapsibleContent>
-            </Collapsible>
-        </SettingsUI.Container>
+                )}
+            </div>
+        </SettingsUI.Section>
     );
 };

@@ -3,8 +3,7 @@ import { Home } from './features/home/home';
 import { Layout } from './features/layout/layout';
 import { About } from './features/about/about';
 import { Shortcuts } from './features/settings/shortcuts/shortcuts';
-import { CustomDictionary } from './features/personalize/custom-dictionary/custom-dictionary';
-import { FormattingRules } from './features/personalize/formatting-rules/formatting-rules';
+import { Corrections } from './features/corrections/corrections';
 import { System } from './features/settings/system/system';
 import { VoiceMode } from './features/extensions/voice-mode/voice-mode';
 import { ImportExport } from './features/settings/import-export/import-export';
@@ -26,16 +25,23 @@ const settingsShortcutsRoute = createRoute({
     component: Shortcuts,
 });
 
+const correctionsRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/corrections',
+    component: Corrections,
+});
+
+// Plumed: the dictionary and the formatting rules moved into the Corrections page
 const personalizeCustomDictionaryRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/personalize/custom-dictionary',
-    component: CustomDictionary,
+    component: () => <Navigate to="/corrections" hash="dictionary" />,
 });
 
 const personalizeFormattingRulesRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/personalize/formatting-rules',
-    component: FormattingRules,
+    component: () => <Navigate to="/corrections" hash="rules" />,
 });
 
 const settingsSystemRoute = createRoute({
@@ -53,7 +59,7 @@ const settingsIndexRoute = createRoute({
 const personalizeIndexRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/personalize',
-    component: () => <Navigate to="/personalize/custom-dictionary" />,
+    component: () => <Navigate to="/corrections" hash="dictionary" />,
 });
 
 const extensionsVoiceModeRoute = createRoute({
@@ -98,6 +104,7 @@ const routeTree = rootRoute.addChildren([
     settingsShortcutsRoute,
     settingsSystemRoute,
     settingsImportExportRoute,
+    correctionsRoute,
     personalizeIndexRoute,
     personalizeCustomDictionaryRoute,
     personalizeFormattingRulesRoute,

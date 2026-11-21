@@ -3,6 +3,7 @@ import { AlertTriangle } from 'lucide-react';
 import { Input } from '@/components/input';
 import { Page } from '@/components/page';
 import { InternalLink } from '@/components/internal-link';
+import { CORRECTIONS_PATH } from '@/features/corrections/corrections.helpers';
 import { useTranslation } from '@/i18n';
 
 interface DictionaryToolbarProps {
@@ -60,7 +61,7 @@ export const DictionaryToolbar = ({ onAdd }: DictionaryToolbarProps) => {
                     <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5" />
                     <span>
                         {t('Numbers are not supported in the dictionary. Use')}{' '}
-                        <InternalLink to="/personalize/formatting-rules" hash="custom-rules">
+                        <InternalLink to={CORRECTIONS_PATH} hash="rules">
                             {t('Formatting Rules')}
                         </InternalLink>{' '}
                         {t('to handle words with digits.')}

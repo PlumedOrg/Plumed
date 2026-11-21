@@ -4,15 +4,13 @@ import {
     Info,
     ChevronRight,
     Keyboard,
-    BookText,
     Power,
     Bug,
-    Wrench,
-    AlignLeft,
     Newspaper,
     Mic,
     ArrowDownUp,
     RadioTower,
+    SpellCheck,
 } from 'lucide-react';
 import { Link, useLocation } from '@tanstack/react-router';
 import { useState } from 'react';
@@ -41,21 +39,6 @@ import { useIsWayland } from '@/components/hooks/use-linux-session-type';
 import { useShortcut, SHORTCUT_CONFIGS } from '@/features/settings/shortcuts/hooks/use-shortcut';
 import { PLUMED_LATEST_RELEASE_URL, PLUMED_NEW_ISSUE_URL, PLUMED_RELEASES_URL } from '@/utils/plumed-links';
 
-const getPersonalizeSubItems = (t: (key: string) => string) => [
-    {
-        name: t('Dictionary'),
-        url: '/personalize/custom-dictionary',
-        icon: BookText,
-        dataTestId: 'dictionary-tab',
-    },
-    {
-        name: t('Formatting Rules'),
-        url: '/personalize/formatting-rules',
-        icon: AlignLeft,
-        dataTestId: 'formatting-rules-tab',
-    },
-];
-
 const getTopLevelItems = (t: (key: string) => string) => [
     {
         name: t('Voice Mode'),
@@ -72,6 +55,12 @@ const getTopLevelItems = (t: (key: string) => string) => [
 ];
 
 const getSettingsSubItems = (t: (key: string) => string) => [
+    {
+        name: t('Corrections'),
+        url: '/corrections',
+        icon: SpellCheck,
+        dataTestId: 'corrections-tab',
+    },
     {
         name: t('Shortcuts'),
         url: '/settings/shortcuts',
@@ -94,16 +83,13 @@ const getSettingsSubItems = (t: (key: string) => string) => [
 
 export const AppSidebar = () => {
     const { pathname } = useLocation();
-    const [personalizeOpen, setPersonalizeOpen] = useState(true);
-    const [settingsOpen, setSettingsOpen] = useState(pathname.startsWith('/settings'));
+    const [settingsOpen, setSettingsOpen] = useState(true);
     const version = useGetVersion();
     const { t } = useTranslation();
     const { seen: revampSeen } = useDictionaryRevampSeen();
-    const personalizeSubItems = getPersonalizeSubItems(t);
     const topLevelItems = getTopLevelItems(t);
     const settingsSubItems = getSettingsSubItems(t);
     const showRevampDot = !revampSeen;
-    const isPersonalizeActive = isPathInItems(pathname, personalizeSubItems);
     const isSettingsActive = isPathInItems(pathname, settingsSubItems);
     const isAboutActive = pathname === '/about';
     const { shortcut: recordShortcut } = useShortcut(SHORTCUT_CONFIGS.record);
@@ -143,40 +129,6 @@ export const AppSidebar = () => {
 
                         <SidebarMenuItem>
                             <SidebarMenuButton
-                                onClick={() => setPersonalizeOpen(!personalizeOpen)}
-                                data-testid="personalize-tab"
-                            >
-                                <Wrench className={isPersonalizeActive ? 'text-sky-400' : undefined} />
-                                <span>{t('Personalize')}</span>
-                                <ChevronRight
-                                    className={`ml-auto transition-transform ${personalizeOpen ? 'rotate-90' : ''}`}
-                                />
-                            </SidebarMenuButton>
-                            {personalizeOpen && (
-                                <SidebarMenuSub>
-                                    {personalizeSubItems.map((item) => (
-                                        <SidebarMenuSubItem key={item.url} data-testid={item.dataTestId}>
-                                            <SidebarMenuSubButton asChild isActive={pathname === item.url}>
-                                                <Link to={item.url}>
-                                                    <item.icon />
-                                                    <span>{item.name}</span>
-                                                    {item.url === '/personalize/custom-dictionary' && showRevampDot && (
-                                                        <span
-                                                            className="ml-auto h-2 w-2 rounded-full bg-sky-500"
-                                                            title={t('Improved')}
-                                                            aria-label={t('Improved')}
-                                                        />
-                                                    )}
-                                                </Link>
-                                            </SidebarMenuSubButton>
-                                        </SidebarMenuSubItem>
-                                    ))}
-                                </SidebarMenuSub>
-                            )}
-                        </SidebarMenuItem>
-
-                        <SidebarMenuItem>
-                            <SidebarMenuButton
                                 onClick={() => setSettingsOpen(!settingsOpen)}
                                 data-testid="settings-tab"
                             >
@@ -194,6 +146,13 @@ export const AppSidebar = () => {
                                                 <Link to={item.url}>
                                                     <item.icon />
                                                     <span>{item.name}</span>
+                                                    {item.url === '/corrections' && showRevampDot && (
+                                                        <span
+                                                            className="ml-auto h-2 w-2 rounded-full bg-sky-500"
+                                                            title={t('Improved')}
+                                                            aria-label={t('Improved')}
+                                                        />
+                                                    )}
                                                 </Link>
                                             </SidebarMenuSubButton>
                                         </SidebarMenuSubItem>
