@@ -8,7 +8,6 @@ import { FormattingRules } from './features/personalize/formatting-rules/formatt
 import { System } from './features/settings/system/system';
 import { VoiceMode } from './features/extensions/voice-mode/voice-mode';
 import { ImportExport } from './features/settings/import-export/import-export';
-import { SmartMic } from './features/extensions/smart-mic/smart-mic';
 import { RemoteMic } from './features/extensions/remote-mic/remote-mic';
 
 const rootRoute = createRootRoute({
@@ -63,12 +62,6 @@ const extensionsVoiceModeRoute = createRoute({
     component: VoiceMode,
 });
 
-const extensionsSmartMicRoute = createRoute({
-    getParentRoute: () => rootRoute,
-    path: '/extensions/smart-mic',
-    component: SmartMic,
-});
-
 const extensionsRemoteMicRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/extensions/remote-mic',
@@ -111,7 +104,6 @@ const routeTree = rootRoute.addChildren([
     personalizeVoiceModeRedirectRoute,
     extensionsIndexRoute,
     extensionsVoiceModeRoute,
-    extensionsSmartMicRoute,
     extensionsRemoteMicRoute,
     aboutRoute,
 ]);

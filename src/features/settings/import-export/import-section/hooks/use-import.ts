@@ -18,7 +18,6 @@ const CATEGORY_LABEL_KEYS: Record<CategoryKey, string> = {
     dictionary: 'Importing dictionary...',
     shortcuts: 'Importing shortcuts...',
     voice_mode: 'Importing Voice Mode settings...',
-    smartmic: 'Importing SmartMic settings...',
     settings: 'Importing system settings...',
 };
 

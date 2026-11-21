@@ -34,7 +34,7 @@ export const useCopyFeedback = (text: string) => {
 };
 
 // We use the standard browser clipboard API rather than the Tauri plugin
-// to stay consistent with the rest of the app (history copy, smartmic copy).
+// to stay consistent with the rest of the app (history copy, CLI commands).
 // The Tauri webview enables clipboard write permissions by default.
 const copyCommandToClipboard = async (command: string): Promise<void> => {
     if (navigator.clipboard?.writeText === undefined) {

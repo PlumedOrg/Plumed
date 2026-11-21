@@ -12,12 +12,7 @@ import {
     ExportedCategories,
     AppSettings,
 } from '../../import-export.types';
-import {
-    extractSystemSettings,
-    extractShortcuts,
-    extractVoiceMode,
-    extractSmartMic,
-} from '../../import-export.helpers';
+import { extractSystemSettings, extractShortcuts, extractVoiceMode } from '../../import-export.helpers';
 import { FormattingSettings } from '@/features/personalize/formatting-rules/types';
 
 interface PreloadedData {
@@ -63,10 +58,6 @@ export const useExport = () => {
 
             if (selectedCategories.includes('voice_mode')) {
                 categories.voice_mode = extractVoiceMode(allSettings);
-            }
-
-            if (selectedCategories.includes('smartmic')) {
-                categories.smartmic = extractSmartMic(allSettings);
             }
 
             if (selectedCategories.includes('formatting_rules')) {

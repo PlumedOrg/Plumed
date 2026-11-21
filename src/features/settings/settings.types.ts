@@ -52,15 +52,4 @@ export interface VoiceModeSettings {
     silence_timeout_ms: number;
 }
 
-export interface SmartMicSettings {
-    smartmic_enabled: boolean;
-    smartmic_port: number;
-    smartmic_relay_enabled: boolean;
-    smartmic_relay_url: string | null;
-    smartmic_machine_id_enabled: boolean;
-    smartmic_machine_id: string | null;
-    smartmic_token_ttl_hours: number | null;
-    smartmic_bind_address: string | null;
-}
-
-export interface AppSettings extends SystemSettings, ShortcutSettings, VoiceModeSettings, SmartMicSettings {}
+export interface AppSettings extends SystemSettings, ShortcutSettings, VoiceModeSettings {}

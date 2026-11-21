@@ -1,6 +1,5 @@
 import { listen } from '@tauri-apps/api/event';
 import { useEffect, useState } from 'react';
-import { i18n } from '@/i18n';
 
 const DISMISS_MS = 4000;
 
@@ -14,13 +13,9 @@ export const useOverlayError = () => {
         const unlistenChunkError = listen<string>('transcription-chunk-error', () => {
             setError('Transcription partial');
         });
-        const unlistenLimitReached = listen<string>('recording-limit-reached', () => {
-            setError(i18n.t('Recording limited to 20 min'));
-        });
         return () => {
             unlistenRecordingError.then((u) => u());
             unlistenChunkError.then((u) => u());
-            unlistenLimitReached.then((u) => u());
         };
     }, []);
 

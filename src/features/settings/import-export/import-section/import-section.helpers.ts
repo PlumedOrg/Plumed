@@ -68,21 +68,6 @@ const applyVoiceMode = async (categories: ExportedCategories): Promise<void> => 
     await invoke('set_silence_timeout_ms', { value: voiceMode.silence_timeout_ms });
 };
 
-const applySmartMic = async (categories: ExportedCategories): Promise<void> => {
-    const smartmic = categories.smartmic;
-    if (smartmic == null) {
-        return;
-    }
-    await invoke('set_smartmic_enabled', { enabled: smartmic.smartmic_enabled });
-    await invoke('set_smartmic_port', { port: smartmic.smartmic_port });
-    await invoke('set_smartmic_relay_enabled', { enabled: smartmic.smartmic_relay_enabled });
-    await invoke('set_smartmic_relay_url', { url: smartmic.smartmic_relay_url });
-    await invoke('set_smartmic_machine_id_enabled', { enabled: smartmic.smartmic_machine_id_enabled });
-    await invoke('set_smartmic_machine_id', { id: smartmic.smartmic_machine_id });
-    await invoke('set_smartmic_token_ttl_hours', { hours: smartmic.smartmic_token_ttl_hours });
-    await invoke('set_smartmic_bind_address', { address: smartmic.smartmic_bind_address });
-};
-
 const applyShortcuts = async (categories: ExportedCategories): Promise<void> => {
     const shortcuts = categories.shortcuts;
     if (shortcuts == null) {
@@ -183,9 +168,6 @@ export const applySingleCategory = async (
             break;
         case 'voice_mode':
             await applyVoiceMode(categories);
-            break;
-        case 'smartmic':
-            await applySmartMic(categories);
             break;
         case 'formatting_rules':
             await applyFormattingRules(categories, strategies.formatting_rules ?? 'replace');

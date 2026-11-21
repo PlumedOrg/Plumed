@@ -9,7 +9,6 @@ import {
     ExportedSystemSettings,
     ShortcutSettings,
     VoiceModeSettings,
-    SmartMicSettings,
     AppSettings,
 } from './import-export.types';
 import { CATEGORY_DEFINITIONS, SUB_ITEM_KEY } from './import-export.constants';
@@ -98,19 +97,6 @@ export const extractVoiceMode = (all: AppSettings): VoiceModeSettings => {
     };
 };
 
-export const extractSmartMic = (all: AppSettings): SmartMicSettings => {
-    return {
-        smartmic_enabled: all.smartmic_enabled,
-        smartmic_port: all.smartmic_port,
-        smartmic_relay_enabled: all.smartmic_relay_enabled,
-        smartmic_relay_url: all.smartmic_relay_url,
-        smartmic_machine_id_enabled: all.smartmic_machine_id_enabled,
-        smartmic_machine_id: all.smartmic_machine_id,
-        smartmic_token_ttl_hours: all.smartmic_token_ttl_hours,
-        smartmic_bind_address: all.smartmic_bind_address,
-    };
-};
-
 export const extractShortcuts = (all: AppSettings): ShortcutSettings => {
     return {
         record_shortcut: all.record_shortcut,
@@ -166,9 +152,6 @@ export const buildFilteredCategories = (
     }
     if (selection.voice_mode?.selected && categories.voice_mode != null) {
         filtered.voice_mode = categories.voice_mode;
-    }
-    if (selection.smartmic?.selected && categories.smartmic != null) {
-        filtered.smartmic = categories.smartmic;
     }
     if (selection.formatting_rules?.selected && categories.formatting_rules != null) {
         filtered.formatting_rules = filterFormattingRules(
