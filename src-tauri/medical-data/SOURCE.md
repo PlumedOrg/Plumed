@@ -8,6 +8,10 @@ Drug-name and medical-term fix rules (25,099 regexes, mined from the errors of t
 - How the rules are built: https://github.com/UltiMed-Org/UltiMed-ASR-FR-v2-regex-fixes/tree/main/scripts
 - License: AGPL-3.0-or-later, like the rules repo. Drug names come from French open data (Licence Ouverte / Etalab 2.0: OPEN_MEDIC, RETROCEDAM, BDPM); medical terms come from public French sources (terms only, no definitions). See the rules repo README for the attribution.
 
+## plumed-rules/
+
+`plumed_fix_rules.jsonl`: Plumed's own fix rules, for fixes that should not (or not yet) go to the UltiMed rules repo. Same JSONL shape as UltiMed's `manual_fix_rules.jsonl` (`pattern`, `replacement`, `variant`), applied after every UltiMed file. Empty for now. The test `every_plumed_rule_compiles` checks each line. ParakeetWeb does not have these rules: once the file is not empty, the parity check against ParakeetWeb (below) differs on texts they change.
+
 User edits made in the app (disabled, changed or added rules) are stored in `medical_rules.json` in the app data folder, separate from the user's formatting rules. Deleting them ("Reset") goes back to exactly these files.
 
 ### Refresh

@@ -43,15 +43,21 @@ use std::sync::{Arc, OnceLock};
 use unicode_normalization::char::is_combining_mark;
 use unicode_normalization::UnicodeNormalization;
 
-/// The bundled rule files, in the order they are applied.
-const BUNDLED_SOURCES: [&str; 6] = [
+/// The bundled rule files, in the order they are applied: UltiMed's, then
+/// Plumed's own (fixes not upstreamed to UltiMed), last so they can also
+/// respell what an UltiMed rule wrote.
+const BUNDLED_SOURCES: [&str; 7] = [
     include_str!("../../medical-data/regex-fixes/drug_fix_rules.jsonl"),
     include_str!("../../medical-data/regex-fixes/dictionary_fix_rules.jsonl"),
     include_str!("../../medical-data/regex-fixes/parhaf_fix_rules.jsonl"),
     include_str!("../../medical-data/regex-fixes/parrot_fix_rules.jsonl"),
     include_str!("../../medical-data/regex-fixes/acronyms_fix_rules.jsonl"),
     include_str!("../../medical-data/regex-fixes/manual_fix_rules.jsonl"),
+    PLUMED_RULES,
 ];
+
+/// Plumed-only rules, same JSONL shape as UltiMed's `manual_fix_rules.jsonl`.
+const PLUMED_RULES: &str = include_str!("../../medical-data/plumed-rules/plumed_fix_rules.jsonl");
 
 const WORD_CLASS: &str = r"[0-9A-Za-z_\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u024F";
 /// Consuming equivalent of SUFFIX: a non-word, non-hyphen char, or the end.

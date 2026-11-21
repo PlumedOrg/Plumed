@@ -295,3 +295,9 @@ fn bundled_rules_match_parakeetweb_corpus() {
     }
     assert_eq!(diffs, 0, "{diffs}/{total} differ");
 }
+
+#[test]
+fn every_plumed_rule_compiles() {
+    let bundled = Bundled::from_jsonl(&[PLUMED_RULES]);
+    assert!(bundled.rules.iter().all(Option::is_some));
+}
