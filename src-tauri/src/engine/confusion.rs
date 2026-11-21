@@ -18,7 +18,7 @@
 //! word's tokens plus the candidate's tokens over those frames, from the
 //! model's unboosted log-probabilities. All candidates explain the same
 //! frames, so their scores compare directly. The decoded word is replaced
-//! only when a candidate beats it by `margin` nats: when the audio cannot
+//! only when a candidate scores higher (by more than `margin` nats): when the audio cannot
 //! tell them apart (singular and plural often sound the same), the decoded
 //! text stays and the regex pass still runs after it.
 //!
@@ -36,8 +36,11 @@ use super::beam::log_sum_exp;
 use super::engine::DecodedSequence;
 use super::types::{DecoderState, ParakeetEngine, ParakeetError, ParakeetModel};
 
-/// Nats a candidate must win by over the decoded word to replace it.
-pub const DEFAULT_MARGIN: f64 = 2.0;
+/// Nats a candidate must win by over the decoded word to replace it. On the
+/// v2 model, 233 held-out confusion cases: margin 0 fixed 6 and broke none,
+/// margin 1 fixed 1, margin 2 none; on the 400 general benchmark clips margin 0
+/// changed no output.
+pub const DEFAULT_MARGIN: f64 = 0.0;
 /// Windows longer than this (frames of 80 ms) are skipped: a heard form is at
 /// most 3 words, so a longer window means a timestamp oddity.
 const MAX_WINDOW_FRAMES: usize = 150;
@@ -325,7 +328,7 @@ impl ParakeetModel {
                     self.align_scores(encodings, window_start, frames, start_row, &sequences)?;
                 let best = (1..scores.len())
                     .max_by(|&a, &b| scores[a].total_cmp(&scores[b]))
-                    .filter(|&b| scores[b] - scores[0] >= groups.margin);
+                    .filter(|&b| scores[b] - scores[0] > groups.margin);
                 log::debug!(
                     "confusion pass: {} options over {} frames, margin {:.2}, replaced: {}",
                     options.len(),
