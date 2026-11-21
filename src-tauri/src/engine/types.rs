@@ -50,6 +50,8 @@ pub struct ParakeetModel {
     pub boost_words: Vec<String>,
     /// Phrase list trie (Plumed), boosted on top of the dictionary.
     pub phrase_trie: Option<BoostingTrie>,
+    /// Confusion groups of the second pass (Plumed), see `confusion.rs`.
+    pub confusion: Option<super::confusion::ConfusionGroups>,
 }
 
 #[derive(Debug, Clone, PartialEq)]

@@ -217,6 +217,7 @@ impl ParakeetModel {
             boost_alpha: BOOST_ALPHA_MAX,
             boost_words: Vec::new(),
             phrase_trie: None,
+            confusion: None,
         })
     }
 
@@ -621,8 +622,14 @@ impl ParakeetModel {
         // Decode for each batch item
         let mut results = Vec::new();
         for (encodings, &encodings_len) in encoder_out.outer_iter().zip(encoder_out_lens.iter()) {
-            let (tokens, timestamps, probs) =
-                self.decode_sequence(&encodings.view(), encodings_len as usize, beam_width)?;
+            let encodings_len = encodings_len as usize;
+            let mut sequence =
+                self.decode_sequence(&encodings.view(), encodings_len, beam_width)?;
+            // Final transcriptions only: the preview and the wake word are greedy.
+            if beam_width > 1 {
+                sequence = self.rescore_confusions(&encodings.view(), encodings_len, sequence)?;
+            }
+            let (tokens, timestamps, probs) = sequence;
             let result = self.decode_tokens(tokens, timestamps, probs);
             results.push(result);
         }

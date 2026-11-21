@@ -46,6 +46,8 @@ mod tests {
     /// PLUMED_BOOST_WORDS_FILE (dictionary words, one per line) and
     /// PLUMED_BOOST_LIST (a ParakeetWeb phrase list). PLUMED_BEAM_WIDTH sets
     /// the beam (default: the app's final transcription width, 1 is greedy).
+    /// PLUMED_CONFUSION (a confusion_groups.jsonl) arms the second pass,
+    /// PLUMED_CONFUSION_MARGIN overrides its margin.
     /// Clips are padded with silence like the app does: unpadded, the model
     /// drifts into English (WER 50% instead of 18% on French medical clips).
     /// `PLUMED_MODEL_DIR=... PLUMED_BENCH_WAVS=... cargo test --release
@@ -65,6 +67,12 @@ mod tests {
         }
         if let Some(path) = env("PLUMED_BOOST_LIST") {
             engine.set_boost_list(&read(path));
+        }
+        if let Some(path) = env("PLUMED_CONFUSION") {
+            engine.set_confusion_groups(&read(path));
+        }
+        if let Some(margin) = env("PLUMED_CONFUSION_MARGIN") {
+            engine.set_confusion_margin(margin.parse().expect("PLUMED_CONFUSION_MARGIN"));
         }
         let mut params = ParakeetInferenceParams::default();
         if let Some(width) = env("PLUMED_BEAM_WIDTH") {

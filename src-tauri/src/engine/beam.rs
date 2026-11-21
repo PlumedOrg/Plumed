@@ -39,7 +39,7 @@ const MAES_PREFIX_ALPHA: usize = 1;
 /// duration 0 that every step takes with certainty.
 const NO_DURATION: [f32; 1] = [0.0];
 
-fn log_sum_exp(values: &[f32]) -> f64 {
+pub(super) fn log_sum_exp(values: &[f32]) -> f64 {
     let max = values.iter().copied().fold(f32::NEG_INFINITY, f32::max) as f64;
     if !max.is_finite() {
         return max;
