@@ -4,8 +4,8 @@
 # (MODEL_FILENAME in src-tauri/src/model/model.rs). The folder keeps upstream's name so
 # no Rust code changes, even though it now holds UltiMed instead of the stock model.
 #
-# Model: https://huggingface.co/Olicorne/parakeet-tdt-0.6b-v3-ultra-UltiMed-onnx
-# (French medical fine-tune of Parakeet TDT 0.6B v3, same vocabulary and file layout).
+# Model: https://huggingface.co/Olicorne/parakeet-tdt-0.6b-v3-ultra-UltiMed-v2-onnx
+# (UltiMed v2, French medical fine-tune of Parakeet TDT 0.6B v3, same vocabulary and file layout).
 #
 # Usage:
 #   scripts/fetch-ultimed-model.sh                   # download from Hugging Face (used by CI)
@@ -17,14 +17,14 @@
 # Set up with Claude Code.
 set -euo pipefail
 
-REPO="Olicorne/parakeet-tdt-0.6b-v3-ultra-UltiMed-onnx"
-REVISION="ed3164a5aa5b0cd8a3e5627126109cc2483b0449"
+REPO="Olicorne/parakeet-tdt-0.6b-v3-ultra-UltiMed-v2-onnx"
+REVISION="675b4b8d7ee9f3ee15a273e3037f76ddc3e730bb"
 DEST="resources/parakeet-tdt-0.6b-v3-int8"
 
 # "<path in the model repo> <sha256>", installed flat into DEST
 FILES=(
-    "int8/encoder-model.int8.onnx f524b0d415dd142502fd504fb7dfe722f455edbe280131ac8fadf9eab3af23a3"
-    "int8/decoder_joint-model.int8.onnx 5c621d9d3769505c764e7c2de0c7508427cc1afdba73e1174003d52d4b784468"
+    "int8/encoder-model.int8.onnx 837c1689edd757b69f52b562b50667ab53f8d2693d58645108702c6621ca3fbd"
+    "int8/decoder_joint-model.int8.onnx e1070b64c54a42c14172a6c8ee7e61e56dc92fdb7c4691da46b3944aa844de23"
     "nemo128.onnx a9fde1486ebfcc08f328d75ad4610c67835fea58c73ba57e3209a6f6cf019e9f"
     "vocab.txt d58544679ea4bc6ac563d1f545eb7d474bd6cfa467f0a6e2c1dc1c7d37e3c35d"
     "config.json 666903c76b9798caf2c210afd4f6cd60b08a8dbf9800ec8d7a3bc0d2148ac466"
