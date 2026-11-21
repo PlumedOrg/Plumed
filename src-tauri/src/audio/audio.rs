@@ -126,6 +126,7 @@ fn show_recording_notification(app: &AppHandle, event: &'static str, payload: St
 }
 
 fn notify_recording_error(app: &AppHandle) {
+    crate::telemetry::count_error(app, crate::telemetry::ErrorKind::Microphone);
     let s = crate::settings::load_settings(app);
     let mic_name = s.mic_label.or(s.mic_id).unwrap_or_default();
     show_recording_notification(app, "recording-error", mic_name);
@@ -201,11 +202,13 @@ fn finalize_chunked_session(
     my_gen: u64,
 ) {
     let _ = app.emit("transcription-processing-start", ());
+    let processing_started = std::time::Instant::now();
     let accumulated = pipeline.finalize();
     let _ = app.emit("transcription-processing-end", ());
 
     match crate::audio::pipeline::merge_all_chunks(app, accumulated, path) {
         Ok(text) => {
+            crate::telemetry::record_transcription(app, path, &text, processing_started.elapsed());
             let text = strip_and_record(app, state, text);
             if let Err(e) = write_transcription(app, &text) {
                 error!("Failed to use clipboard: {}", e);
@@ -309,6 +312,7 @@ pub fn write_transcription(app: &AppHandle, transcription: &str) -> Result<()> {
 
     if let Err(e) = clipboard::paste(transcription, app) {
         error!("Failed to paste text: {}", e);
+        crate::telemetry::count_error(app, crate::telemetry::ErrorKind::Paste);
     }
 
     if let Err(e) = cleanup_recordings(app) {
@@ -359,7 +363,10 @@ pub fn preload_engine(app: &AppHandle) -> Result<()> {
             .map_err(|e| anyhow::anyhow!("Failed to get model path: {}", e))?;
 
         let mut new_engine = ParakeetEngine::load_int8(&model_path, model.get_tokenizer_path())
-            .map_err(|e| anyhow::anyhow!("Failed to load model: {}", e))?;
+            .map_err(|e| {
+                crate::telemetry::count_error(app, crate::telemetry::ErrorKind::ModelLoad);
+                anyhow::anyhow!("Failed to load model: {}", e)
+            })?;
         crate::medical::engine_lists::arm(app, &mut new_engine);
 
         *engine = Some(new_engine);

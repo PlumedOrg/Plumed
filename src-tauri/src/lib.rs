@@ -337,7 +337,10 @@ pub fn run() {
                 }
 
                 match preload_engine(&startup_handle) {
-                    Ok(_) => info!("Transcription engine initialized and ready"),
+                    Ok(_) => {
+                        info!("Transcription engine initialized and ready");
+                        telemetry::send_if_due(&startup_handle);
+                    }
                     Err(e) => info!("Transcription engine will be loaded on first use: {}", e),
                 }
             });
