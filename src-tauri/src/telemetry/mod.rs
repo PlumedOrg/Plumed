@@ -32,12 +32,20 @@ const ENDPOINT: &str = match option_env!("PLUMED_TELEMETRY_URL") {
     None => DEFAULT_ENDPOINT,
 };
 
-/// Umami website id, set at build time. TODO: create the Plumed website in
-/// Umami and set the `PLUMED_TELEMETRY_WEBSITE_ID` repository variable on
-/// GitHub, release builds stay inert until then.
+/// Umami website id, set at build time (`PLUMED_TELEMETRY_WEBSITE_ID`, a
+/// repository secret in the release workflows). Unset means inert.
 const WEBSITE_ID: Option<&str> = option_env!("PLUMED_TELEMETRY_WEBSITE_ID");
 
 const SEND_TIMEOUT: Duration = Duration::from_secs(15);
+
+/// A due send waits a random delay up to this long, so its time does not
+/// reveal when the app was started, opted in, or used.
+const MAX_SEND_DELAY_SECS: u128 = 15 * 60;
+
+/// Uniform random delay in `[0, MAX_SEND_DELAY_SECS)`, from a v4 UUID's random bits.
+fn random_send_delay() -> Duration {
+    Duration::from_secs((uuid::Uuid::new_v4().as_u128() % MAX_SEND_DELAY_SECS) as u64)
+}
 
 /// One send at a time (startup and end of a transcription may race).
 static SENDING: AtomicBool = AtomicBool::new(false);
@@ -137,7 +145,8 @@ pub fn count_error(app: &AppHandle, kind: ErrorKind) {
     }
 }
 
-/// Sends the counters in the background when enabled and due.
+/// Sends the counters in the background when enabled and due, after a random
+/// delay of up to 15 minutes (the "due" check runs again after the wait).
 pub fn send_if_due(app: &AppHandle) {
     let Some(website_id) = website_id() else {
         return;
@@ -147,6 +156,7 @@ pub fn send_if_due(app: &AppHandle) {
     }
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
+        tokio::time::sleep(random_send_delay()).await;
         if let Err(e) = send(&app, website_id).await {
             warn!("Usage statistics not sent: {e}");
         }
@@ -202,7 +212,23 @@ pub fn set_enabled(app: &AppHandle, enabled: bool) -> Result<(), String> {
     settings.telemetry_asked = true;
     crate::settings::save_settings(app, &settings)?;
     match enabled {
-        true => state::update(app, today(), |_| {}).map(|_| ()),
+        true => {
+            state::update(app, today(), |_| {})?;
+            send_if_due(app);
+            Ok(())
+        }
         false => state::delete(app),
+    }
+}
+
+#[cfg(test)]
+mod delay_tests {
+    use super::*;
+
+    #[test]
+    fn send_delay_stays_under_15_minutes_and_varies() {
+        let delays: Vec<Duration> = (0..200).map(|_| random_send_delay()).collect();
+        assert!(delays.iter().all(|d| d.as_secs() < 15 * 60));
+        assert!(delays.iter().any(|d| *d != delays[0]));
     }
 }
