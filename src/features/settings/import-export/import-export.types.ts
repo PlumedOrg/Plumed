@@ -21,6 +21,8 @@ export type ExportedSystemSettings = Omit<
     | 'remote_mic_enabled'
     | 'remote_mic_url'
     | 'remote_mic_prompt_version'
+    | 'telemetry_enabled'
+    | 'telemetry_asked'
 >;
 
 export interface MurmureExportData {

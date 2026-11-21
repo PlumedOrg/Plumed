@@ -92,6 +92,11 @@ pub struct AppSettings {
     // "use your phone as microphone?" (asked when no microphone is found).
     // Empty means never answered. Never exported.
     pub remote_mic_prompt_version: String,
+    // Plumed fork: opt-in anonymous usage statistics (see `telemetry`).
+    // `telemetry_asked` records that the consent dialog was answered, either
+    // way. Never exported, so a settings file cannot turn telemetry on.
+    pub telemetry_enabled: bool,
+    pub telemetry_asked: bool,
 }
 
 impl Default for AppSettings {
@@ -194,6 +199,8 @@ impl Default for AppSettings {
             remote_mic_enabled: false,
             remote_mic_url: "https://turn.plumed.fr".to_string(),
             remote_mic_prompt_version: String::new(),
+            telemetry_enabled: false,
+            telemetry_asked: false,
         }
     }
 }

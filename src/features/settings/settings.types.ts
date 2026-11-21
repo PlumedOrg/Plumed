@@ -29,6 +29,8 @@ export interface SystemSettings {
     remote_mic_enabled: boolean;
     remote_mic_url: string;
     remote_mic_prompt_version: string;
+    telemetry_enabled: boolean;
+    telemetry_asked: boolean;
 }
 
 export interface ShortcutSettings {
