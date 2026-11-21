@@ -81,10 +81,10 @@ mod tests {
 
     #[test]
     fn removed_feature_keys_are_ignored() {
-        // Settings files written before the local API, command mode and
-        // prompt mode were removed must still load with their other values.
+        // Settings files written before the local API, command mode, prompt
+        // mode and SmartMic were removed must still load with their other values.
         let settings = parse_settings(
-            r#"{"api_enabled":true,"api_port":4900,"command_shortcut":"ctrl+shift+x","llm_mode_1_shortcut":"ctrl+shift+1","wake_word_command":"alix command","sound_volume":42}"#,
+            r#"{"api_enabled":true,"api_port":4900,"command_shortcut":"ctrl+shift+x","llm_mode_1_shortcut":"ctrl+shift+1","wake_word_command":"alix command","smartmic_enabled":true,"smartmic_port":4801,"smartmic_relay_url":"https://relay.example","sound_volume":42}"#,
         );
 
         assert_eq!(settings.sound_volume, 42);

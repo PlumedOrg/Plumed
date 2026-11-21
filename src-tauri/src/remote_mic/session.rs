@@ -9,9 +9,9 @@
 //! drops a room (restart, 24 h limit), a new lobby is opened, or the phone
 //! must scan again.
 
+use super::audio::transcribe_pcm;
 use super::client::{phone_link, ClientError, RelayClient, Room};
 use super::protocol::{Event, Outgoing, Pairing, Step, Via, CANDIDATE_TTL};
-use crate::smartmic::audio_bridge::transcribe_pcm;
 use log::{info, warn};
 use parking_lot::Mutex;
 use plumed_relay_protocol::Frame;
@@ -126,7 +126,7 @@ impl Ui<'_> {
         let fingerprint = pairing.fingerprint().map(str::to_owned);
         self.update(|s| {
             if s.link.as_deref() != Some(link.as_str()) {
-                s.qr = crate::smartmic::qr::encode_svg_data_uri(&link).ok();
+                s.qr = super::qr::encode_svg_data_uri(&link).ok();
                 s.link = Some(link);
             }
             s.status = status;

@@ -21,8 +21,8 @@
 //! Sequence numbers must be contiguous inside a recording: a gap (the relay
 //! withheld a chunk or the END of the previous one) drops the recording.
 
+use super::audio::accumulate_pcm;
 use super::crypto::{decode_public_key, pair_fingerprint, CryptoError, KeyPair, SessionKeys};
-use crate::smartmic::audio_bridge::accumulate_pcm;
 use plumed_relay_protocol::{
     op, open_inner, seal_inner, valid_inbox_tag, Frame, Role, MAX_FRAME, SAMPLE_RATES,
 };

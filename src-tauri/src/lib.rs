@@ -15,7 +15,6 @@ mod overlay;
 mod remote_mic;
 mod settings;
 mod shortcuts;
-mod smartmic;
 mod stats;
 mod telemetry;
 mod utils;
@@ -32,7 +31,6 @@ use dictionary::Dictionary;
 use log::{error, info, warn};
 use model::Model;
 use overlay::tray::setup_tray;
-use smartmic::SmartMicState;
 use std::str::FromStr;
 use std::sync::Arc;
 use tauri::{DeviceEventFilter, Manager};
@@ -305,7 +303,6 @@ pub fn run() {
                 return Ok(());
             }
 
-            app.manage(SmartMicState::new());
             app.manage(remote_mic::session::RemoteMicState::default());
             app.manage(utils::enigo_session::EnigoState::default());
 
@@ -359,21 +356,6 @@ pub fn run() {
             audio::output_volume::restore_pending(app.handle());
 
             audio::microphone::init_mic_cache_if_needed(app.handle(), s.mic_id.clone());
-
-            if s.smartmic_enabled {
-                if crate::utils::platform::is_wayland_session() {
-                    info!("Smart Mic disabled on Wayland, skipping server startup.");
-                } else {
-                    let app_handle = app.handle().clone();
-                    let state = app_handle.state::<SmartMicState>().inner().clone();
-                    crate::smartmic::spawn_smartmic_thread(
-                        app_handle,
-                        s.smartmic_port,
-                        state,
-                        Some(std::time::Duration::from_secs(2)),
-                    );
-                }
-            }
 
             if s.wake_word_enabled {
                 let app_handle = app.handle().clone();
@@ -522,30 +504,6 @@ pub fn run() {
             set_silence_timeout_ms,
             get_auto_enter_after_wake_word,
             set_auto_enter_after_wake_word,
-            get_smartmic_enabled,
-            set_smartmic_enabled,
-            get_smartmic_port,
-            set_smartmic_port,
-            start_smartmic_server,
-            stop_smartmic_server,
-            get_smartmic_qr_code,
-            get_paired_devices,
-            remove_paired_device,
-            reset_smartmic_tokens,
-            get_smartmic_relay_enabled,
-            set_smartmic_relay_enabled,
-            get_smartmic_relay_url,
-            set_smartmic_relay_url,
-            get_smartmic_machine_id,
-            set_smartmic_machine_id,
-            get_smartmic_machine_id_enabled,
-            set_smartmic_machine_id_enabled,
-            get_smartmic_token_ttl_hours,
-            set_smartmic_token_ttl_hours,
-            get_smartmic_bind_address,
-            set_smartmic_bind_address,
-            list_smartmic_network_interfaces,
-            get_smartmic_hostname,
             get_streaming_preview,
             set_streaming_preview,
             set_overlay_size,
@@ -580,7 +538,6 @@ pub fn run() {
                 #[cfg(target_os = "linux")]
                 crate::utils::wayland_inject::shutdown();
                 crate::utils::enigo_session::shutdown(app_handle);
-                crate::smartmic::input_bridge::shutdown();
                 audio::output_volume::restore_pending(app_handle);
             }
         });

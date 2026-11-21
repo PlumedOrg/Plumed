@@ -1,9 +1,11 @@
 //! Plumed fork: phone microphone through the Plumed relay
 //! (`remote_microphone_server/`, HTTPS long-poll only, end-to-end encrypted).
 
+pub mod audio;
 pub mod client;
 pub mod crypto;
 pub mod protocol;
+pub mod qr;
 pub mod session;
 
 /// End-to-end check against a running relay, with a simulated phone:

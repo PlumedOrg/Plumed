@@ -32,7 +32,6 @@ fn category_display_name(key: &str) -> &str {
         "settings" => "System Settings",
         "shortcuts" => "Shortcuts",
         "voice_mode" => "Voice Mode",
-        "smartmic" => "SmartMic",
         "formatting_rules" => "Formatting Rules",
         "dictionary" => "Dictionary",
         _ => key,
@@ -69,9 +68,8 @@ pub fn execute_import(
     let has_settings = data.categories.settings.is_some();
     let has_shortcuts = data.categories.shortcuts.is_some();
     let has_voice_mode = data.categories.voice_mode.is_some();
-    let has_smartmic = data.categories.smartmic.is_some();
 
-    if has_settings || has_shortcuts || has_voice_mode || has_smartmic {
+    if has_settings || has_shortcuts || has_voice_mode {
         let mut current = crate::settings::load_settings(app);
 
         if let Some(ref s) = data.categories.settings {
@@ -117,18 +115,6 @@ pub fn execute_import(
             current.auto_enter_after_wake_word = vm.auto_enter_after_wake_word;
             current.silence_timeout_ms = vm.silence_timeout_ms;
             imported_categories.push("voice_mode");
-        }
-
-        if let Some(ref sm) = data.categories.smartmic {
-            current.smartmic_enabled = sm.smartmic_enabled;
-            current.smartmic_port = sm.smartmic_port;
-            current.smartmic_relay_enabled = sm.smartmic_relay_enabled;
-            current.smartmic_relay_url = sm.smartmic_relay_url.clone();
-            current.smartmic_machine_id_enabled = sm.smartmic_machine_id_enabled;
-            current.smartmic_machine_id = sm.smartmic_machine_id.clone();
-            current.smartmic_token_ttl_hours = sm.smartmic_token_ttl_hours;
-            current.smartmic_bind_address = sm.smartmic_bind_address.clone();
-            imported_categories.push("smartmic");
         }
 
         crate::settings::save_settings(app, &current)?;
@@ -384,8 +370,8 @@ mod tests {
 
     #[test]
     fn test_parse_export_ignores_removed_feature_keys() {
-        // Exports made before the local API, command mode and prompt mode
-        // were removed must still import their remaining settings.
+        // Exports made before the local API, command mode, prompt mode and
+        // SmartMic were removed must still import their remaining settings.
         let content = r#"{
             "version": 1,
             "app_version": "1.0.0",
@@ -394,7 +380,8 @@ mod tests {
                 "settings": { "api_enabled": true, "api_port": 4900, "sound_volume": 42 },
                 "shortcuts": { "command_shortcut": "ctrl+shift+x", "llm_mode_1_shortcut": "ctrl+shift+1" },
                 "voice_mode": { "wake_word_command": "alix command", "wake_word_record": "ok alix" },
-                "llm_connect": { "url": "http://localhost:11434/api", "modes": [] }
+                "llm_connect": { "url": "http://localhost:11434/api", "modes": [] },
+                "smartmic": { "smartmic_enabled": true, "smartmic_port": 4801 }
             }
         }"#;
 

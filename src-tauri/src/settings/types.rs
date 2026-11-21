@@ -57,14 +57,6 @@ pub struct AppSettings {
     pub auto_enter_after_wake_word: bool,
     pub silence_timeout_ms: u64,
     pub show_in_dock: bool,
-    pub smartmic_enabled: bool,
-    pub smartmic_port: u16,
-    pub smartmic_relay_enabled: bool, // Relay URL is ignored when false
-    pub smartmic_relay_url: Option<String>, // e.g. "https://smartmic.hospital.com"
-    pub smartmic_machine_id_enabled: bool, // Gates inclusion of machine_id in the relay URL
-    pub smartmic_machine_id: Option<String>,
-    pub smartmic_token_ttl_hours: Option<u64>, // None or 0 means infinite
-    pub smartmic_bind_address: Option<String>, // None means auto-detect
     pub streaming_preview: bool,
     pub overlay_size: String, // "small" | "medium" | "large"
     pub streaming_text_width: u32,
@@ -181,14 +173,6 @@ impl Default for AppSettings {
             auto_enter_after_wake_word: false,
             silence_timeout_ms: 1500,
             show_in_dock: true,
-            smartmic_enabled: false,
-            smartmic_port: 4801,
-            smartmic_relay_enabled: false,
-            smartmic_relay_url: None,
-            smartmic_machine_id_enabled: false,
-            smartmic_machine_id: None,
-            smartmic_token_ttl_hours: None,
-            smartmic_bind_address: None,
             streaming_preview: true,
             overlay_size: "small".to_string(),
             streaming_text_width: 450,

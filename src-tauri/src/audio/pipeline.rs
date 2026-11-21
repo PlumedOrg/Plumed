@@ -243,7 +243,7 @@ fn save_stats_and_history(app: &AppHandle, file_path: &Path, text: &str) -> Resu
     Ok(())
 }
 
-/// Process a recording from raw samples (no WAV file), used by SmartMic.
+/// Process a recording from raw samples (no WAV file), used by the remote mic.
 /// Bypasses file I/O and enters the pipeline directly from PCM samples.
 pub fn process_recording_from_samples(app: &AppHandle, samples: Vec<f32>) -> Result<String> {
     // 1. Transcribe directly from samples

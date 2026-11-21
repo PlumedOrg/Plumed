@@ -132,10 +132,6 @@ fn notify_recording_error(app: &AppHandle) {
     show_recording_notification(app, "recording-error", mic_name);
 }
 
-pub fn notify_recording_limit(app: &AppHandle) {
-    show_recording_notification(app, "recording-limit-reached", String::new());
-}
-
 pub fn stop_recording(app: &AppHandle) -> Option<std::path::PathBuf> {
     debug!("Stopping audio recording...");
     let state = app.state::<AudioState>();

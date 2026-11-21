@@ -43,7 +43,6 @@ pub struct ExportedCategories {
     pub settings: Option<SystemSettings>,
     pub shortcuts: Option<ShortcutSettings>,
     pub voice_mode: Option<VoiceModeSettings>,
-    pub smartmic: Option<SmartMicSettings>,
     pub formatting_rules: Option<FormattingSettings>,
     pub dictionary: Option<DictionaryExport>,
 }
@@ -142,34 +141,6 @@ impl Default for VoiceModeSettings {
             wake_word_submit: "thank you alix".to_string(),
             auto_enter_after_wake_word: false,
             silence_timeout_ms: 1500,
-        }
-    }
-}
-
-#[derive(Deserialize)]
-#[serde(default)]
-pub struct SmartMicSettings {
-    pub smartmic_enabled: bool,
-    pub smartmic_port: u16,
-    pub smartmic_relay_enabled: bool,
-    pub smartmic_relay_url: Option<String>,
-    pub smartmic_machine_id_enabled: bool,
-    pub smartmic_machine_id: Option<String>,
-    pub smartmic_token_ttl_hours: Option<u64>,
-    pub smartmic_bind_address: Option<String>,
-}
-
-impl Default for SmartMicSettings {
-    fn default() -> Self {
-        Self {
-            smartmic_enabled: false,
-            smartmic_port: 4801,
-            smartmic_relay_enabled: false,
-            smartmic_relay_url: None,
-            smartmic_machine_id_enabled: false,
-            smartmic_machine_id: None,
-            smartmic_token_ttl_hours: None,
-            smartmic_bind_address: None,
         }
     }
 }
