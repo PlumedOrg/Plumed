@@ -67,7 +67,7 @@ jobs:
 
             - name: Build
               env:
-                  PLUMED_TELEMETRY_WEBSITE_ID: ${{ vars.PLUMED_TELEMETRY_WEBSITE_ID }}
+                  PLUMED_TELEMETRY_WEBSITE_ID: ${{ secrets.PLUMED_TELEMETRY_WEBSITE_ID }}
               run: pnpm tauri build ${{ inputs.dry && '--no-bundle' || '' }}
               shell: pwsh
 

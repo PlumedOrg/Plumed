@@ -102,7 +102,9 @@ WinGet (`.github/workflows/publish-winget.yml`, id `Olicorne.Plumed`, NSIS `-set
 
 Usage statistics (opt-in, `src-tauri/src/telemetry/`, section written with Claude Code) are configured at build time through two environment variables read with `option_env!`:
 
-- `PLUMED_TELEMETRY_WEBSITE_ID`: the Umami website id. Every workflow that runs `tauri build` passes it from the GitHub Actions **repository variable** of the same name (`${{ vars.PLUMED_TELEMETRY_WEBSITE_ID }}`, Settings > Secrets and variables > Actions > Variables). When it is unset or empty, telemetry is inert: no consent dialog, no setting, nothing sent. TODO: create the Plumed website in Umami (EU host, data purged after 25 months) and set that repository variable.
+- `PLUMED_TELEMETRY_WEBSITE_ID`: the Umami website id. Every workflow that runs `tauri build` passes it from the GitHub Actions **repository secret** of the same name (`${{ secrets.PLUMED_TELEMETRY_WEBSITE_ID }}`, set on 2026-11-21). When it is unset or empty, telemetry is inert: no consent dialog, no setting, nothing sent. A due send waits a random delay of up to 15 minutes, so its time reveals neither the launch nor the opt-in nor the use.
+
+Server side (VPS, set up on 2026-11-21): Caddy proxies only `POST metrics.plumed.fr/api/send` to Umami (`localhost:3823`), with `log_skip` so no access log records client IPs; every other path answers 404. Umami has no retention setting, so the root timer `umami-purge-plumed.timer` runs `/usr/local/sbin/umami-purge-plumed.sh` daily: it deletes the Plumed website's rows older than 25 months from every Umami table that has a `website_id` (events, event data, sessions with no event left, ...). `RETENTION='0 seconds'` runs it as a test.
 - `PLUMED_TELEMETRY_URL` (optional): the Umami 3 collect endpoint, default `https://metrics.plumed.fr/api/send`. Not passed by the workflows on purpose (an empty variable would override the default); set it only for local test builds.
 
 ## 7. Other
