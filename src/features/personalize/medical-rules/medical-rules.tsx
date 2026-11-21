@@ -10,8 +10,9 @@ import { Typography } from '@/components/typography';
 import { useTranslation } from '@/i18n';
 import { useDebouncedInvoke } from './hooks/use-debounced-invoke';
 import { useMedicalRules } from './hooks/use-medical-rules';
+import { useOrphanedEdits } from './hooks/use-orphaned-edits';
 import { MedicalRuleRow } from './medical-rule-row/medical-rule-row';
-import { findEdit, removeEditAt, replaceEditAt, upsertEdit } from './medical-rules.helpers';
+import { editStatus, findEdit, removeEditAt, replaceEditAt, upsertEdit } from './medical-rules.helpers';
 import { MedicalRuleView } from './types';
 
 const NO_RESULTS: MedicalRuleView[] = [];
@@ -27,6 +28,7 @@ export const MedicalRules = () => {
 
     const results = useDebouncedInvoke('search_medical_rules', 'query', query, NO_RESULTS);
     const preview = useDebouncedInvoke('preview_medical_fixes', 'text', sample, '', edits);
+    const orphaned = useOrphanedEdits(edits);
 
     const addRule = async () => {
         const saved = await saveEdits([
@@ -102,11 +104,19 @@ export const MedicalRules = () => {
                     {edits.length > 0 && (
                         <section className="space-y-2">
                             <Typography.Title>{t('Your changes')}</Typography.Title>
+                            {orphaned.size > 0 && (
+                                <Typography.Paragraph data-testid="medical-rules-orphaned">
+                                    {t(
+                                        '{{count}} of your edits refer to rules that no longer exist in the medical data in use. They are kept but change nothing.',
+                                        { count: orphaned.size }
+                                    )}
+                                </Typography.Paragraph>
+                            )}
                             {edits.map((edit, index) => (
                                 <MedicalRuleRow
                                     key={`${edit.original ?? 'new'}-${index}`}
                                     rule={edit}
-                                    status={edit.original == null ? 'added' : 'changed'}
+                                    status={editStatus(edit, orphaned)}
                                     onSave={(changed) => saveEdits(replaceEditAt(edits, index, changed))}
                                     onRemove={() => saveEdits(removeEditAt(edits, index))}
                                 />

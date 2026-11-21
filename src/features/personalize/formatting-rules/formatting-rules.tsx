@@ -34,6 +34,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import { FormattingRule } from './types';
 import { MedicalRules } from '../medical-rules/medical-rules';
+import { MedicalDataSettings } from '@/features/medical-data/medical-data-settings/medical-data-settings';
 
 interface SortableRuleCardProps {
     rule: FormattingRule;
@@ -149,6 +150,7 @@ export const FormattingRules = () => {
                             </SettingsUI.Item>
                         </SettingsUI.Container>
                         {settings.built_in.medical_fixes && <MedicalRules />}
+                        <MedicalDataSettings />
 
                         <SettingsUI.Container>
                             <SettingsUI.Item>

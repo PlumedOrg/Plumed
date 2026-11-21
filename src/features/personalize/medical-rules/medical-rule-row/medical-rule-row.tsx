@@ -5,12 +5,11 @@ import { Input } from '@/components/input';
 import { Switch } from '@/components/switch';
 import { ResetButton } from '@/components/reset-button';
 import { useTranslation } from '@/i18n';
-import { MedicalRuleEdit } from '../types';
+import { MedicalRuleEdit, MedicalRuleStatus } from '../types';
 
 interface MedicalRuleRowProps {
     rule: MedicalRuleEdit;
-    /** 'added' rules are deleted, 'changed' ones reverted to the bundled rule. */
-    status: 'bundled' | 'changed' | 'added';
+    status: MedicalRuleStatus;
     onSave: (rule: MedicalRuleEdit) => Promise<boolean>;
     onRemove?: () => void;
 }
@@ -55,7 +54,12 @@ export const MedicalRuleRow = ({ rule, status, onSave, onRemove }: MedicalRuleRo
             {status === 'changed' && onRemove != null && (
                 <ResetButton label={t('Restore the bundled rule')} onClick={onRemove} />
             )}
-            {status === 'added' && onRemove != null && (
+            {status === 'orphaned' && (
+                <span className="text-xs italic text-muted-foreground whitespace-nowrap">
+                    {t('Rule no longer exists')}
+                </span>
+            )}
+            {(status === 'added' || status === 'orphaned') && onRemove != null && (
                 <Button variant="subtle" size="icon-sm" aria-label={t('Delete')} onClick={onRemove}>
                     <Trash2 />
                 </Button>

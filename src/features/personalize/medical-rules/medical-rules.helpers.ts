@@ -1,4 +1,12 @@
-import { MedicalRuleEdit } from './types';
+import { MedicalRuleEdit, MedicalRuleStatus } from './types';
+
+/** How the "Your changes" list shows an edit; `orphaned` holds the patterns of rules that no longer exist. */
+export const editStatus = (edit: MedicalRuleEdit, orphaned: Set<string>): MedicalRuleStatus => {
+    if (edit.original == null) {
+        return 'added';
+    }
+    return orphaned.has(edit.original) ? 'orphaned' : 'changed';
+};
 
 /** The edit of a bundled rule, if the user changed it. */
 export const findEdit = (edits: MedicalRuleEdit[], original: string): MedicalRuleEdit | undefined =>
