@@ -46,10 +46,6 @@ When disabled (default), Plumed does not listen to your microphone outside of an
 
 Enabled by default. To recognize very short dictations better (under 2 seconds, or 3 words or fewer), Plumed keeps the last 10 seconds of recent dictation audio **in memory only** and transcribes the short dictation behind it. This audio is never written to disk, never leaves your computer, and is discarded 5 minutes after the last dictation, when Plumed closes, or when the option is turned off.
 
-## Smart Mic
-
-Smart Mic lets a phone on the same local network act as a microphone. It is **disabled by default**. When enabled, audio travels from the phone to this computer over the local network only. If you configure a relay URL, audio transits through that relay server: use only a relay you host yourself for medical dictation.
-
 ## Remote microphone (alpha)
 
 This feature is an alpha pre-release: expect bugs.

@@ -47,9 +47,6 @@ jobs:
             - name: Install frontend deps
               run: pnpm install --ignore-scripts
 
-            - name: Build SmartMic frontend
-              run: pnpm build:smartmic
-
             - name: Clippy
               run: pnpm run clippy
 

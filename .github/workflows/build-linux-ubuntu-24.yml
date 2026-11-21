@@ -56,9 +56,6 @@ jobs:
             - name: Install frontend deps
               run: pnpm install --ignore-scripts
 
-            - name: Build SmartMic frontend
-              run: pnpm build:smartmic
-
             - name: Build (AppImage)
               env:
                   PLUMED_TELEMETRY_WEBSITE_ID: ${{ secrets.PLUMED_TELEMETRY_WEBSITE_ID }}

@@ -61,10 +61,6 @@ jobs:
               run: pnpm install --ignore-scripts
               shell: pwsh
 
-            - name: Build SmartMic frontend
-              run: pnpm build:smartmic
-              shell: pwsh
-
             - name: Build
               env:
                   PLUMED_TELEMETRY_WEBSITE_ID: ${{ secrets.PLUMED_TELEMETRY_WEBSITE_ID }}

@@ -110,9 +110,6 @@ jobs:
             - name: Install frontend deps
               run: pnpm install --ignore-scripts
 
-            - name: Build SmartMic frontend
-              run: pnpm build:smartmic
-
             # ── Build ────────────────────────────────────────────────────
             # APPLE_SIGNING_IDENTITY is set so Tauri signs the .app with
             # hardened runtime during the build (required for notarization)
