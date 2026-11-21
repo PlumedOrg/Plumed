@@ -17,6 +17,7 @@ mod settings;
 mod shortcuts;
 mod smartmic;
 mod stats;
+mod telemetry;
 mod utils;
 mod wake_word;
 
@@ -489,6 +490,9 @@ pub fn run() {
             get_remote_mic_state,
             remote_mic_prompt_due,
             answer_remote_mic_prompt,
+            is_telemetry_available,
+            get_telemetry_preview,
+            set_telemetry_enabled,
             get_recordings_dir,
             open_accessibility_settings,
             check_accessibility_permission,

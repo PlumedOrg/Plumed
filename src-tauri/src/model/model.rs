@@ -3,7 +3,7 @@ use log::debug;
 use std::path::PathBuf;
 use tauri::{AppHandle, Manager};
 
-const MODEL_FILENAME: &str = "parakeet-tdt-0.6b-v3-int8";
+pub const MODEL_FILENAME: &str = "parakeet-tdt-0.6b-v3-int8";
 
 pub struct Model {
     app_handle: AppHandle,

@@ -207,9 +207,9 @@ fn apply_formatting_rules(app: &AppHandle, text: String) -> String {
     }
 }
 
-fn save_stats_and_history(app: &AppHandle, file_path: &Path, text: &str) -> Result<()> {
-    // Calculate duration and size
-    let (duration_seconds, wav_size_bytes) = match hound::WavReader::open(file_path) {
+/// Duration (seconds) and size (bytes) of a WAV file, zeros when unreadable.
+pub fn wav_duration_and_size(file_path: &Path) -> (f64, u64) {
+    match hound::WavReader::open(file_path) {
         Ok(reader) => {
             let spec = reader.spec();
             let total_samples = reader.duration() as f64;
@@ -222,7 +222,11 @@ fn save_stats_and_history(app: &AppHandle, file_path: &Path, text: &str) -> Resu
             (seconds, size)
         }
         Err(_) => (0.0, 0),
-    };
+    }
+}
+
+fn save_stats_and_history(app: &AppHandle, file_path: &Path, text: &str) -> Result<()> {
+    let (duration_seconds, wav_size_bytes) = wav_duration_and_size(file_path);
 
     let word_count: u64 = text.split_whitespace().filter(|s| !s.is_empty()).count() as u64;
 
