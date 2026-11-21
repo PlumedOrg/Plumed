@@ -97,6 +97,11 @@ pub struct AppSettings {
     // way. Never exported, so a settings file cannot turn telemetry on.
     pub telemetry_enabled: bool,
     pub telemetry_asked: bool,
+    // Plumed fork: look for a newer signed medical data set at startup (only
+    // asks, never downloads without a click), and the version the user chose
+    // to skip. Never exported.
+    pub medical_data_update_check: bool,
+    pub medical_data_skipped_version: String,
 }
 
 impl Default for AppSettings {
@@ -201,6 +206,8 @@ impl Default for AppSettings {
             remote_mic_prompt_version: String::new(),
             telemetry_enabled: false,
             telemetry_asked: false,
+            medical_data_update_check: true,
+            medical_data_skipped_version: String::new(),
         }
     }
 }

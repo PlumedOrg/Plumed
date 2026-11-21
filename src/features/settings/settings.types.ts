@@ -31,6 +31,8 @@ export interface SystemSettings {
     remote_mic_prompt_version: string;
     telemetry_enabled: boolean;
     telemetry_asked: boolean;
+    medical_data_update_check: boolean;
+    medical_data_skipped_version: string;
 }
 
 export interface ShortcutSettings {

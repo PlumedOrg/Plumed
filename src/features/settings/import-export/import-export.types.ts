@@ -23,6 +23,8 @@ export type ExportedSystemSettings = Omit<
     | 'remote_mic_prompt_version'
     | 'telemetry_enabled'
     | 'telemetry_asked'
+    | 'medical_data_update_check'
+    | 'medical_data_skipped_version'
 >;
 
 export interface MurmureExportData {
