@@ -10,6 +10,7 @@ Plumed is a privacy-first, open-source speech-to-text desktop application. It is
 - Your audio and transcriptions are processed **locally** on your device.
 - Plumed stores only what it needs to operate (settings, custom words/rules). No transcription is written to disk by default.
 - On startup, Plumed checks for updates by contacting the configured updater endpoint (currently hosted on GitHub). Downloading updates is opt-in.
+- On startup, if the setting is on (it is by default, in the formatting rules page), Plumed also asks GitHub whether newer medical rules exist: a plain download of a small signed file, with no identifier. The new rules are downloaded only when you click "Download".
 
 ## What Plumed does not do
 
@@ -27,6 +28,7 @@ Plumed stores the following locally in the app's data directory:
 - **Medical rules** (`medical_rules.json`, your edits to the drug and medical term corrections)
 - **Application logs** (do not contain transcriptions by default)
 - **Usage statistics counters** (`telemetry.json`, only if you opted in, see below)
+- **Downloaded medical rules** (`medical-data/` folder, only if you chose to download a medical data update; no personal data)
 
 By default, **no transcription is persisted to disk**. Transcription history is kept in memory only and is cleared when the application closes. If you explicitly enable the "Persist history" option, the last 5 transcriptions will be saved on disk in the app's data directory.
 
@@ -90,8 +92,9 @@ Plumed may access the network only for:
 - **Downloading and installing updates** (only when you choose to install an update)
 - **The remote microphone** (only after you enable it and click "Connect a phone"; see above)
 - **Anonymous usage statistics** (only if you opted in; see above)
+- **Checking for medical data updates** (on launch, from GitHub, only while "check for medical data updates at startup" is on; no identifier, cookie or usage data is sent) and **downloading them** (only when you click "Download")
 
-The update check does not include your audio or transcriptions.
+The update checks do not include your audio or transcriptions.
 
 Third-party policy (GitHub): [GitHub Privacy Statement](https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement)
 
