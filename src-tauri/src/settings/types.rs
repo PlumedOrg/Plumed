@@ -88,6 +88,10 @@ pub struct AppSettings {
     // so a settings file cannot redirect dictation audio to another server.
     pub remote_mic_enabled: bool,
     pub remote_mic_url: String,
+    // Plumed fork: app version on which the user answered the startup question
+    // "use your phone as microphone?" (asked when no microphone is found).
+    // Empty means never answered. Never exported.
+    pub remote_mic_prompt_version: String,
 }
 
 impl Default for AppSettings {
@@ -189,6 +193,7 @@ impl Default for AppSettings {
             short_dictation_context: true,
             remote_mic_enabled: false,
             remote_mic_url: "https://turn.plumed.fr".to_string(),
+            remote_mic_prompt_version: String::new(),
         }
     }
 }

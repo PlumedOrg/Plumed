@@ -487,6 +487,8 @@ pub fn run() {
             remote_mic_stop,
             remote_mic_confirm,
             get_remote_mic_state,
+            remote_mic_prompt_due,
+            answer_remote_mic_prompt,
             get_recordings_dir,
             open_accessibility_settings,
             check_accessibility_permission,

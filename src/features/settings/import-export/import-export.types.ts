@@ -20,6 +20,7 @@ export type ExportedSystemSettings = Omit<
     | 'short_dictation_context'
     | 'remote_mic_enabled'
     | 'remote_mic_url'
+    | 'remote_mic_prompt_version'
 >;
 
 export interface MurmureExportData {

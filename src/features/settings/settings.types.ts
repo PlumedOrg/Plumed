@@ -28,6 +28,7 @@ export interface SystemSettings {
     short_dictation_context: boolean;
     remote_mic_enabled: boolean;
     remote_mic_url: string;
+    remote_mic_prompt_version: string;
 }
 
 export interface ShortcutSettings {

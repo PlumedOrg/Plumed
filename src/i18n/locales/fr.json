@@ -498,5 +498,11 @@
     "Server that forwards the encrypted audio between the phone and this computer. Use only a server you or your institution trust.": "Serveur qui transmet l'audio chiffré entre le téléphone et cet ordinateur. N'utilisez qu'un serveur de confiance (le vôtre ou celui de votre établissement).",
     "the remote microphone is disabled in the settings": "le micro distant est désactivé dans les réglages",
     "the remote microphone is already running": "le micro distant est déjà lancé",
-    "the relay URL must be https://": "l'URL du relais doit commencer par https://"
+    "the relay URL must be https://": "l'URL du relais doit commencer par https://",
+    "No microphone found": "Aucun microphone détecté",
+    "Plumed did not find a microphone on this computer. Do you want to use your phone as a microphone instead?": "Plumed n'a trouvé aucun microphone sur cet ordinateur. Voulez-vous utiliser votre téléphone comme microphone ?",
+    "The phone microphone is an alpha feature: it may not be suitable for real patient data yet.": "Le microphone du téléphone est une fonctionnalité alpha : il peut ne pas encore convenir à de vraies données de patients.",
+    "Any cheap microphone works well with Plumed: a USB or headset microphone costs less than 5 euros online.": "N'importe quel microphone bon marché fonctionne bien avec Plumed : un micro USB ou un casque micro coûte moins de 5 euros en ligne.",
+    "No thanks": "Non merci",
+    "Use my phone": "Utiliser mon téléphone"
 }
