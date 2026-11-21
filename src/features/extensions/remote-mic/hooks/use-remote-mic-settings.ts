@@ -36,5 +36,11 @@ export const useRemoteMicSettings = () => {
         }
     };
 
-    return { enabled, setEnabled, url, setUrl, saveUrl };
+    /** The relay dialog already saved `origin`: mirror it without saving again. */
+    const applySavedUrl = (origin: string) => {
+        setUrl(origin);
+        setSavedUrl(origin);
+    };
+
+    return { enabled, setEnabled, url, setUrl, saveUrl, applySavedUrl };
 };

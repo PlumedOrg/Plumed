@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Lock, RadioTower } from 'lucide-react';
 import { ExtensionPageLayout } from '@/features/extensions/extension-page-layout/extension-page-layout';
 import { ExtensionHeader } from '@/features/extensions/extension-header/extension-header';
@@ -7,12 +8,14 @@ import { useRemoteMic } from './hooks/use-remote-mic';
 import { useRemoteMicSettings } from './hooks/use-remote-mic-settings';
 import { RemoteMicSession } from './remote-mic-session/remote-mic-session';
 import { RemoteMicUrlSettings } from './remote-mic-url-settings/remote-mic-url-settings';
+import { RemoteMicRelayDialog } from './remote-mic-relay-dialog/remote-mic-relay-dialog';
 
 export const RemoteMic = () => {
     const { t } = useTranslation();
     const settings = useRemoteMicSettings();
     const session = useRemoteMic();
     const title = t('Remote microphone');
+    const [choosingRelay, setChoosingRelay] = useState(false);
 
     if (!settings.enabled) {
         return (
@@ -28,13 +31,22 @@ export const RemoteMic = () => {
                 <ExtensionEnableAction
                     icon={RadioTower}
                     label={t('Enable the remote microphone')}
-                    onEnable={() => settings.setEnabled(true)}
+                    onEnable={() => setChoosingRelay(true)}
                     testId="remote-mic-enable"
                     colorScheme="standard"
                     hintIcon={Lock}
                     hint={t(
                         'Audio is end-to-end encrypted: the relay cannot listen to it. Nothing is sent before you connect a phone.'
                     )}
+                />
+                <RemoteMicRelayDialog
+                    open={choosingRelay}
+                    onCancel={() => setChoosingRelay(false)}
+                    onConfirmed={(origin) => {
+                        setChoosingRelay(false);
+                        settings.applySavedUrl(origin);
+                        settings.setEnabled(true);
+                    }}
                 />
             </ExtensionPageLayout>
         );
