@@ -58,8 +58,10 @@ pub async fn set_phrase_overlay(
     medical::set_overlay(&app, overlay)
 }
 
+/// Async, like the other list searches: going through ~77,000 phrases takes
+/// a few tens of milliseconds, off the main thread.
 #[command]
-pub fn search_phrases(
+pub async fn search_phrases(
     app: AppHandle,
     query: String,
     offset: usize,
@@ -82,7 +84,7 @@ pub async fn set_confusion_overlay(
 }
 
 #[command]
-pub fn search_confusion_groups(
+pub async fn search_confusion_groups(
     app: AppHandle,
     query: String,
     offset: usize,
