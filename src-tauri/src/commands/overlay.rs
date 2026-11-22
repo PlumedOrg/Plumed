@@ -1,4 +1,4 @@
-use crate::overlay::overlay::{FinalResultPayload, PendingFlashState};
+use crate::overlay::overlay::FinalResultPayload;
 use crate::settings;
 use serde::Serialize;
 use tauri::{command, AppHandle, Emitter, Manager};
@@ -125,11 +125,6 @@ pub fn set_overlay_input_region(
 }
 
 #[command]
-pub fn consume_pending_mode_flash(state: tauri::State<PendingFlashState>) -> Option<String> {
-    state.0.lock().take()
-}
-
-#[command]
 pub fn consume_pending_result() -> Option<FinalResultPayload> {
     crate::overlay::overlay::take_pending_result()
 }
@@ -141,11 +136,6 @@ pub fn consume_pending_result() -> Option<FinalResultPayload> {
 pub fn ack_result_panel_shown() -> Result<(), String> {
     crate::overlay::overlay::acknowledge_result_panel_shown();
     Ok(())
-}
-
-#[command]
-pub fn flash_text_in_overlay(app: AppHandle, text: String) {
-    crate::overlay::overlay::flash_text_in_overlay_internal(&app, text);
 }
 
 #[command]

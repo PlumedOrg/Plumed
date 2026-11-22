@@ -110,7 +110,6 @@ fn start_new_recorder(
 }
 
 fn show_recording_notification(app: &AppHandle, event: &'static str, payload: String) {
-    overlay::clear_pending_flash(app);
     overlay::show_recording_overlay(app);
     let app_clone = app.clone();
     std::thread::spawn(move || {

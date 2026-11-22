@@ -12,12 +12,6 @@ use crate::overlay::layer_shell::{self, Edge};
 #[cfg(target_os = "linux")]
 use std::sync::atomic::AtomicBool;
 
-// Cold-start handoff: the webview consumes this on mount when the
-// flash shortcut fires before the overlay window exists. Ignored on
-// the hot path (the `mode-flash` event is emitted directly).
-#[derive(Default)]
-pub struct PendingFlashState(pub Mutex<Option<String>>);
-
 pub const MIN_RESULT_PANEL_SECS: u64 = 2;
 pub const MAX_RESULT_PANEL_SECS: u64 = 15;
 
@@ -27,8 +21,7 @@ pub struct FinalResultPayload {
     pub text: String,
 }
 
-// Same cold-start handoff as PendingFlashState: when the overlay window
-// has to be recreated, the `final-result` event fires before the webview
+// Cold-start handoff: when the overlay window has to be recreated, the `final-result` event fires before the webview
 // mounts, so the payload has to survive until it is consumed on mount.
 static PENDING_RESULT: Mutex<Option<FinalResultPayload>> = Mutex::new(None);
 static RESULT_PANEL_GENERATION: AtomicU64 = AtomicU64::new(0);
@@ -357,7 +350,6 @@ fn present_recording_overlay(app_handle: &AppHandle) {
 // and a displayed result panel would keep the overlay for itself indefinitely.
 pub fn begin_overlay_session(app_handle: &AppHandle) {
     invalidate_result_panel();
-    clear_pending_flash(app_handle);
     if settings::load_settings(app_handle).overlay_mode.as_str() == "hidden" {
         emit_overlay_session_start(app_handle);
         return;
@@ -466,7 +458,7 @@ fn spawn_result_panel_watchdog(app: &AppHandle, generation: u64) {
 
 // Honors the "always" overlay mode and keeps the window up while a session is
 // in flight; otherwise tears the overlay down so it does not linger between
-// flashes.
+// dictations.
 pub fn hide_overlay_if_idle(app: &AppHandle) {
     invalidate_result_panel();
     if settings::load_settings(app).overlay_mode.as_str() == "always" {
@@ -498,31 +490,6 @@ pub fn has_pending_result() -> bool {
 pub fn invalidate_result_panel() {
     RESULT_PANEL_GENERATION.fetch_add(1, Ordering::SeqCst);
     *PENDING_RESULT.lock() = None;
-}
-
-// Reuse the existing window on the hot path. Destroying+recreating
-// per press caused a visible double-overlay flicker. React handles
-// auto-hide via hide_overlay_if_idle.
-pub fn flash_text_in_overlay_internal(app: &AppHandle, text: String) {
-    if let Some(window) = app.get_webview_window("recording_overlay") {
-        let app_clone = app.clone();
-        let _ = app.run_on_main_thread(move || {
-            let _ = window.emit("mode-flash", &text);
-            let _ = window.show();
-            let _ = window.set_always_on_top(true);
-            crate::overlay::input_region::on_overlay_shown(&window);
-            update_overlay_position(&app_clone);
-        });
-        return;
-    }
-
-    // Cold start: no window yet. Stage the payload so the webview can pick
-    // it up at mount via `consume_pending_mode_flash`.
-    {
-        let state = app.state::<PendingFlashState>();
-        *state.0.lock() = Some(text);
-    }
-    show_recording_overlay(app);
 }
 
 pub fn update_overlay_position(app_handle: &AppHandle) {
@@ -591,11 +558,6 @@ pub fn hide_recording_overlay(app_handle: &AppHandle) {
     } else {
         debug!("recording_overlay already absent on hide_recording_overlay");
     }
-    clear_pending_flash(app_handle);
-}
-
-pub fn clear_pending_flash(app_handle: &AppHandle) {
-    *app_handle.state::<PendingFlashState>().0.lock() = None;
 }
 
 #[cfg(test)]

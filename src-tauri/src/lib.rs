@@ -210,7 +210,6 @@ pub fn run() {
                 Arc::new(Model::new(app.handle().clone()).expect("Failed to initialize model"));
             app.manage(model);
             app.manage(AudioState::new());
-            app.manage(crate::overlay::overlay::PendingFlashState::default());
 
             let mut s = settings::load_settings(app.handle());
 
@@ -493,14 +492,12 @@ pub fn run() {
             set_streaming_preview,
             set_overlay_size,
             set_streaming_text_settings,
-            consume_pending_mode_flash,
             consume_pending_result,
             ack_result_panel_shown,
             copy_result_text,
             set_result_panel_mode,
             set_result_panel_duration,
             set_overlay_input_region,
-            flash_text_in_overlay,
             hide_overlay_if_idle
         ])
         .build(tauri::generate_context!())

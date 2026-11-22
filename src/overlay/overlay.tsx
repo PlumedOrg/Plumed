@@ -6,8 +6,6 @@ import clsx from 'clsx';
 import { VISUALIZER_CONFIG } from './visualizer-config';
 import { useOverlayConfig } from './use-overlay-config';
 import { useOverlayError } from './use-overlay-error';
-import { useModeFlash } from './mode-flash/hooks/use-mode-flash';
-import { ModeFlash } from './mode-flash/mode-flash';
 import { CancelButton } from './cancel-button';
 import { useOverlayInputRegion } from './use-overlay-input-region';
 import { ResultPanel } from './result-panel/result-panel';
@@ -18,7 +16,6 @@ export const Overlay = () => {
     const resultPanel = useResultPanel(resultPanelDurationSecs, overlayPosition !== undefined);
     const error = useOverlayError();
     const { frozenSegments, provisional, hasStreamingText } = useStreamingState();
-    const { text: flashText, isFadingOut } = useModeFlash();
     const { isProcessing } = useProcessingState();
     const setRoot = useOverlayInputRegion();
 
@@ -48,9 +45,6 @@ export const Overlay = () => {
                     {error}
                 </span>
             );
-        }
-        if (flashText != null && !hasStreamingText) {
-            return <ModeFlash text={flashText} isFadingOut={isFadingOut} />;
         }
         if (resultPanel.result != null) {
             return (
