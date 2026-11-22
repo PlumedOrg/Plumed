@@ -9,11 +9,13 @@ export const useMedicalRules = () => {
     const [edits, setEdits] = useState<MedicalRuleEdit[]>([]);
     const { t } = useTranslation();
 
-    useEffect(() => {
+    const reload = useCallback(() => {
         invoke<MedicalRuleEdit[]>('get_medical_rule_edits')
             .then(setEdits)
             .catch((error: unknown) => console.error('Failed to load medical rule edits:', error));
     }, []);
+
+    useEffect(reload, [reload]);
 
     /** Saves the whole list; the backend refuses it if one edit is invalid. */
     const saveEdits = useCallback(
@@ -30,5 +32,5 @@ export const useMedicalRules = () => {
         [t]
     );
 
-    return { edits, saveEdits };
+    return { edits, saveEdits, reload };
 };

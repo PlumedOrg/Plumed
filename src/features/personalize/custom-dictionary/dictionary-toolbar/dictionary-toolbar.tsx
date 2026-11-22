@@ -61,7 +61,7 @@ export const DictionaryToolbar = ({ onAdd }: DictionaryToolbarProps) => {
                     <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5" />
                     <span>
                         {t('Numbers are not supported in the dictionary. Use')}{' '}
-                        <InternalLink to={CORRECTIONS_PATH} hash="rules">
+                        <InternalLink to={CORRECTIONS_PATH} hash="formatting">
                             {t('Formatting Rules')}
                         </InternalLink>{' '}
                         {t('to handle words with digits.')}

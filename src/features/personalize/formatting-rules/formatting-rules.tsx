@@ -30,8 +30,6 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import { FormattingRule } from './types';
-import { MedicalRules } from '../medical-rules/medical-rules';
-import { MedicalDataSettings } from '@/features/medical-data/medical-data-settings/medical-data-settings';
 import { RULES_ANCHORS } from '@/features/corrections/corrections.helpers';
 
 interface SortableRuleCardProps {
@@ -61,18 +59,20 @@ const SortableRuleCard = ({ rule, ...props }: SortableRuleCardProps) => {
 };
 
 interface FormattingRulesProps {
-    /** Also list the built-in options and the bundled medical rules. */
+    /** The settings, shared with the tab's header (reset, import). */
+    formatting: ReturnType<typeof useFormattingRules>;
+    /** Also list the built-in options. */
     showBuiltIn: boolean;
     onShowBuiltInChange: (show: boolean) => void;
     /** Id of the block to scroll to once loaded (see `RULES_ANCHORS`). */
     anchor: string | null;
 }
 
-/** Rules tab of the Corrections page: the user's rules, plus the built-in ones on request. */
-export const FormattingRules = ({ showBuiltIn, onShowBuiltInChange, anchor }: FormattingRulesProps) => {
+/** Formatting tab of the Corrections page: the user's rules, plus the built-in options on request. */
+export const FormattingRules = ({ formatting, showBuiltIn, onShowBuiltInChange, anchor }: FormattingRulesProps) => {
     const { t } = useTranslation();
     const { settings, isLoading, updateBuiltInOption, addRule, updateRule, deleteRule, duplicateRule, reorderRules } =
-        useFormattingRules();
+        formatting;
     const { removeHesitations, setRemoveHesitations } = useRemoveHesitations();
 
     const shortTextThreshold = settings.built_in.short_text_correction;
@@ -117,10 +117,10 @@ export const FormattingRules = ({ showBuiltIn, onShowBuiltInChange, anchor }: Fo
             <SettingsUI.Container>
                 <SettingsUI.Item>
                     <SettingsUI.Description className="w-150">
-                        <Typography.Title>{t('Show the built-in rules')}</Typography.Title>
+                        <Typography.Title>{t('Show the pre-installed rules')}</Typography.Title>
                         <Typography.Paragraph>
                             {t(
-                                'Also lists the built-in options, the medical data updates and a search of the bundled drug and medical term rules. Your own rules are always shown.'
+                                'Also lists the pre-installed formatting options: short text correction, spaces, numbers in digits, hesitation removal. Your own rules are always shown.'
                             )}
                         </Typography.Paragraph>
                     </SettingsUI.Description>
@@ -190,79 +190,9 @@ export const FormattingRules = ({ showBuiltIn, onShowBuiltInChange, anchor }: Fo
                 </div>
             </SettingsUI.Section>
 
-            {settings.built_in.medical_fixes && (
-                <div id={RULES_ANCHORS.medicalRules}>
-                    <MedicalRules showBuiltIn={showBuiltIn} />
-                </div>
-            )}
-
             {showBuiltIn && (
                 <section id={RULES_ANCHORS.builtInOptions} className="space-y-3" data-testid="built-in-options">
-                    <Typography.Title>{t('Built-in Options')}</Typography.Title>
-                    <SettingsUI.Container id={RULES_ANCHORS.medicalFixes}>
-                        <SettingsUI.Item>
-                            <SettingsUI.Description className="w-150">
-                                <Typography.Title>{t('Fix drug names and medical terms')}</Typography.Title>
-                                <Typography.Paragraph>
-                                    {t(
-                                        'Corrects misheard French drug names and medical terms with about 25,000 bundled rules.'
-                                    )}
-                                    <span className="block text-xs text-muted-foreground mt-1">
-                                        {t('Example: "tacadol" → "Takadol"')}
-                                    </span>
-                                </Typography.Paragraph>
-                            </SettingsUI.Description>
-                            <Switch
-                                checked={settings.built_in.medical_fixes}
-                                onCheckedChange={(checked) => updateBuiltInOption('medical_fixes', checked)}
-                                data-testid="option-medical-fixes"
-                            />
-                        </SettingsUI.Item>
-                    </SettingsUI.Container>
-                    <div id={RULES_ANCHORS.medicalData}>
-                        <MedicalDataSettings />
-                    </div>
-
-                    <SettingsUI.Container id={RULES_ANCHORS.phraseBoosting}>
-                        <SettingsUI.Item>
-                            <SettingsUI.Description className="w-150">
-                                <Typography.Title>{t('Boost medical vocabulary')}</Typography.Title>
-                                <Typography.Paragraph>
-                                    {t(
-                                        'Helps the model recognize about 77,000 French medical words and phrases while you speak.'
-                                    )}
-                                </Typography.Paragraph>
-                            </SettingsUI.Description>
-                            <Switch
-                                checked={settings.built_in.phrase_boosting}
-                                onCheckedChange={(checked) => updateBuiltInOption('phrase_boosting', checked)}
-                                data-testid="option-phrase-boosting"
-                            />
-                        </SettingsUI.Item>
-                    </SettingsUI.Container>
-
-                    <SettingsUI.Container id={RULES_ANCHORS.confusionRescoring}>
-                        <SettingsUI.Item>
-                            <SettingsUI.Description className="w-150">
-                                <Typography.Title>{t('Resolve sound-alike medical words')}</Typography.Title>
-                                <Typography.Paragraph>
-                                    {t(
-                                        'When a word sounds like several medical terms, listens to that passage again and keeps the one the audio supports.'
-                                    )}
-                                    <br />
-                                    <span className="text-xs italic text-muted-foreground">
-                                        {t('Example: "singulaire" → "Singulair" or "cingulaire"')}
-                                    </span>
-                                </Typography.Paragraph>
-                            </SettingsUI.Description>
-                            <Switch
-                                checked={settings.built_in.confusion_rescoring}
-                                onCheckedChange={(checked) => updateBuiltInOption('confusion_rescoring', checked)}
-                                data-testid="option-confusion-rescoring"
-                            />
-                        </SettingsUI.Item>
-                    </SettingsUI.Container>
-
+                    <Typography.Title>{t('Pre-installed options')}</Typography.Title>
                     <SettingsUI.Container id={RULES_ANCHORS.shortText}>
                         <SettingsUI.Item>
                             <SettingsUI.Description className="w-150">

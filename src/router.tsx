@@ -41,7 +41,7 @@ const personalizeCustomDictionaryRoute = createRoute({
 const personalizeFormattingRulesRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/personalize/formatting-rules',
-    component: () => <Navigate to="/corrections" hash="rules" />,
+    component: () => <Navigate to="/corrections" hash="formatting" />,
 });
 
 const settingsSystemRoute = createRoute({

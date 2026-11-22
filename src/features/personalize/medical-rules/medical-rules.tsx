@@ -1,37 +1,37 @@
 import { useState } from 'react';
 import { Button } from '@/components/button';
 import { Input } from '@/components/input';
-import { ResetButton } from '@/components/reset-button';
 import { SettingsUI } from '@/components/settings-ui';
 import { Textarea } from '@/components/textarea';
 import { Typography } from '@/components/typography';
 import { useTranslation } from '@/i18n';
-import { useDebouncedInvoke } from './hooks/use-debounced-invoke';
-import { useMedicalRules } from './hooks/use-medical-rules';
+import { PAGE_SIZE, Pagination } from '@/features/corrections/pagination/pagination';
+import { textArgs, useDebouncedInvoke } from './hooks/use-debounced-invoke';
 import { useOrphanedEdits } from './hooks/use-orphaned-edits';
 import { MedicalRuleRow } from './medical-rule-row/medical-rule-row';
 import { editStatus, findEdit, removeEditAt, replaceEditAt, upsertEdit } from './medical-rules.helpers';
-import { MedicalRuleView } from './types';
+import { MedicalRuleEdit, MedicalRuleView } from './types';
 
 const NO_RESULTS: MedicalRuleView[] = [];
 
 interface MedicalRulesProps {
-    /** Also lets the user search the bundled rules (to change or disable one). */
-    showBuiltIn: boolean;
+    edits: MedicalRuleEdit[];
+    saveEdits: (edits: MedicalRuleEdit[]) => Promise<boolean>;
 }
 
-/** The user's changes to the drug and medical term rules: list, add, try, and search of the bundled rules. */
-export const MedicalRules = ({ showBuiltIn }: MedicalRulesProps) => {
+/** The user's changes to the drug and medical term rules: search of the bundled rules, list, add, try. */
+export const MedicalRules = ({ edits, saveEdits }: MedicalRulesProps) => {
     const { t } = useTranslation();
-    const { edits, saveEdits } = useMedicalRules();
     const [query, setQuery] = useState('');
     const [sample, setSample] = useState('');
     const [newCore, setNewCore] = useState('');
     const [newReplacement, setNewReplacement] = useState('');
+    const [offset, setOffset] = useState(0);
 
-    const results = useDebouncedInvoke('search_medical_rules', 'query', query, NO_RESULTS);
-    const preview = useDebouncedInvoke('preview_medical_fixes', 'text', sample, '', edits);
+    const results = useDebouncedInvoke('search_medical_rules', textArgs('query', query), NO_RESULTS);
+    const preview = useDebouncedInvoke('preview_medical_fixes', textArgs('text', sample), '', edits);
     const orphaned = useOrphanedEdits(edits);
+    const shownEdits = edits.slice(offset, offset + PAGE_SIZE);
 
     const addRule = async () => {
         const saved = await saveEdits([
@@ -46,20 +46,32 @@ export const MedicalRules = ({ showBuiltIn }: MedicalRulesProps) => {
 
     return (
         <SettingsUI.Section
-            title={t('Your changes to the drug and medical term rules')}
+            title={t('Correction rules')}
             titleTestId="medical-rules-title"
-            aside={
-                edits.length > 0 && (
-                    <ResetButton
-                        label={t('Reset all changes to the bundled rules')}
-                        onClick={() => saveEdits([])}
-                        data-testid="medical-rules-reset"
-                    />
-                )
-            }
+            aside={<span className="text-xs text-muted-foreground">{edits.length}</span>}
         >
             <div className="space-y-6 p-4">
+                <section className="space-y-2" data-testid="medical-rules-search">
+                    <Typography.Title>{t('Find a pre-installed rule')}</Typography.Title>
+                    <Typography.Paragraph>
+                        {t('Search by the right word, or by what the transcription wrote.')}
+                    </Typography.Paragraph>
+                    <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="rispéridone" />
+                    {results.map((rule) => {
+                        const edit = findEdit(edits, rule.original);
+                        return (
+                            <MedicalRuleRow
+                                key={rule.original}
+                                rule={edit ?? { ...rule, enabled: true }}
+                                status={edit == null ? 'bundled' : 'changed'}
+                                onSave={(changed) => saveEdits(upsertEdit(edits, changed))}
+                                onRemove={() => saveEdits(edits.filter((other) => other !== edit))}
+                            />
+                        );
+                    })}
+                </section>
                 <section className="space-y-2">
+                    <Typography.Title>{t('Your changes')}</Typography.Title>
                     {edits.length === 0 && (
                         <Typography.Paragraph data-testid="medical-rules-no-changes">
                             {t('No changes yet: the bundled rules apply as they are.')}
@@ -73,15 +85,19 @@ export const MedicalRules = ({ showBuiltIn }: MedicalRulesProps) => {
                             )}
                         </Typography.Paragraph>
                     )}
-                    {edits.map((edit, index) => (
-                        <MedicalRuleRow
-                            key={`${edit.original ?? 'new'}-${index}`}
-                            rule={edit}
-                            status={editStatus(edit, orphaned)}
-                            onSave={(changed) => saveEdits(replaceEditAt(edits, index, changed))}
-                            onRemove={() => saveEdits(removeEditAt(edits, index))}
-                        />
-                    ))}
+                    {shownEdits.map((edit, shownIndex) => {
+                        const index = offset + shownIndex;
+                        return (
+                            <MedicalRuleRow
+                                key={`${edit.original ?? 'new'}-${index}`}
+                                rule={edit}
+                                status={editStatus(edit, orphaned)}
+                                onSave={(changed) => saveEdits(replaceEditAt(edits, index, changed))}
+                                onRemove={() => saveEdits(removeEditAt(edits, index))}
+                            />
+                        );
+                    })}
+                    <Pagination offset={offset} total={edits.length} onOffsetChange={setOffset} />
                 </section>
 
                 <section className="space-y-2">
@@ -124,28 +140,6 @@ export const MedicalRules = ({ showBuiltIn }: MedicalRulesProps) => {
                         </p>
                     )}
                 </section>
-
-                {showBuiltIn && (
-                    <section className="space-y-2" data-testid="medical-rules-search">
-                        <Typography.Title>{t('Find a built-in rule')}</Typography.Title>
-                        <Typography.Paragraph>
-                            {t('Search by the right word, or by what the transcription wrote.')}
-                        </Typography.Paragraph>
-                        <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="rispéridone" />
-                        {results.map((rule) => {
-                            const edit = findEdit(edits, rule.original);
-                            return (
-                                <MedicalRuleRow
-                                    key={rule.original}
-                                    rule={edit ?? { ...rule, enabled: true }}
-                                    status={edit == null ? 'bundled' : 'changed'}
-                                    onSave={(changed) => saveEdits(upsertEdit(edits, changed))}
-                                    onRemove={() => saveEdits(edits.filter((other) => other !== edit))}
-                                />
-                            );
-                        })}
-                    </section>
-                )}
             </div>
         </SettingsUI.Section>
     );

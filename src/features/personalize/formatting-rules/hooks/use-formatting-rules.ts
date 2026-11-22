@@ -137,6 +137,8 @@ export const useFormattingRules = () => {
     return {
         settings,
         isLoading,
+        loadSettings,
+        saveSettings,
         updateBuiltInOption,
         addRule,
         updateRule,
