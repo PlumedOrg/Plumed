@@ -2,33 +2,40 @@
 
 Fonctionnalités propres au fork Plumed, absentes de Murmure.
 
-**Paramètres > Corrections** regroupe tout ce qui modifie le texte transcrit, avec un onglet par liste :
+**Paramètres > Corrections** regroupe tout ce qui modifie le texte transcrit. Le texte passe par six étapes, toujours dans cet ordre, une par onglet (le numéro de l'étape est affiché dans une pastille devant le nom de l'onglet) :
 
-- **Explication** : une carte par étape de correction, dans l'ordre où le code les applique, reliées par des flèches. Chaque carte montre un exemple avant et après, si l'étape est activée, et un bouton vers sa liste ou son option.
-- **Vocabulaire médical** : les quelque 77 000 expressions vers lesquelles le modèle est orienté pendant la reconnaissance (« microangiopathie » rend « thrombotique » plus probable).
-- **Mots qui se ressemblent** : les groupes de mots que Plumed départage en réécoutant le passage (« ituximab » devient « rituximab » après « instaure », « cetuximab » après « on passe »).
-- **Dictionnaire personnel** : vos mots, favorisés pendant la reconnaissance puis écrits avec votre orthographe.
-- **Corrections du modèle** : les règles qui corrigent les erreurs fréquentes du modèle (« veine lafaxine » devient « venlafaxine »).
-- **Règles de mise en forme** : vos propres règles (au départ celles d'InterHop) ; l'interrupteur **Afficher les règles préinstallées** (mémorisé) ajoute les options de mise en forme préinstallées.
+- **Explication** : une carte par étape, reliées par des flèches. Chaque carte montre un exemple avant et après, si l'étape est activée, et un bouton vers sa liste ou son option.
+- **1 Vocabulaire médical** : les quelque 77 000 expressions vers lesquelles le modèle est orienté pendant la reconnaissance (« microangiopathie » rend « thrombotique » plus probable).
+- **2 Mots qui se ressemblent** : les groupes de mots que Plumed départage en réécoutant le passage (« ituximab » devient « rituximab » après « instaure », « cetuximab » après « on passe »).
+- **3 Dictionnaire personnel** : vos mots, favorisés pendant la reconnaissance puis écrits avec votre orthographe.
+- **4 Nettoyage et uniformisation** : les options préinstallées (hésitations, mots répétés, correction de texte court, espace avant ? et !, nombres en chiffres, espace finale). La correction de texte court s'applique en fait après l'étape 5 et la mise en forme préinstallée après l'étape 6, ce qui est indiqué à côté d'elles.
+- **5 Erreurs résiduelles** : les règles qui corrigent les erreurs fréquentes du modèle (« veine lafaxine » devient « venlafaxine »).
+- **6 Formatage** : vos propres règles de mise en forme (au départ celles d'InterHop).
 
-Chaque liste se recherche (sans tenir compte des accents ni des majuscules), et chaque entrée préinstallée peut être désactivée ou complétée par les vôtres. Chaque onglet a aussi **Importer**, **Exporter** (dans le format de la liste : une expression par ligne pour le vocabulaire, JSONL comme les fichiers d'UltiMed pour les mots qui se ressemblent et les corrections du modèle, fichier `.murmure` pour les règles de mise en forme) et **Revenir à la liste d'origine**, qui supprime vos modifications après confirmation. Un import invalide (expression régulière incorrecte, groupe de moins de 2 candidats) est refusé en entier, avec la liste des erreurs.
+Dans l'historique de la page d'accueil, la flèche d'une transcription montre ce que chaque étape a changé ; la correction de texte court et la mise en forme préinstallée y apparaissent sous l'étape 4.
 
-Vos modifications des listes médicales sont enregistrées à part, une liste par fichier (`medical_rules.json`, `medical_phrases.json`, `medical_confusion_groups.json`), jamais exportées avec les paramètres, et conservées lors d'une mise à jour des données médicales.
+Chaque liste se recherche (sans tenir compte des accents ni des majuscules), et chaque entrée préinstallée peut être désactivée ou complétée par les vôtres. Chaque onglet a aussi **Importer**, **Exporter** (dans le format de la liste : une expression par ligne pour le vocabulaire, JSONL comme les fichiers d'UltiMed pour les mots qui se ressemblent et les erreurs résiduelles, fichier `.murmure` pour les règles de mise en forme) et **Revenir à la liste d'origine**, qui supprime vos modifications après confirmation. Un import invalide (expression régulière incorrecte, groupe de moins de 2 candidats) est refusé en entier, avec la liste des erreurs.
+
+Vos modifications des listes médicales sont enregistrées à part, une liste par fichier (`medical_rules.json`, `medical_phrases.json`, `medical_confusion_groups.json`), et conservées lors d'une mise à jour des données médicales. L'export des paramètres (**Paramètres > Importer / Exporter**, fichier `.murmure`) les contient, une catégorie par onglet (Vocabulaire médical, Mots qui se ressemblent, Erreurs résiduelles) : seules vos modifications sont exportées, jamais les listes fournies. À l'import, chaque liste est vérifiée comme dans son onglet, et une liste invalide n'enregistre rien. Les fichiers `.murmure` plus anciens, sans ces catégories, s'importent comme avant.
+
+## Ce qui passe par Internet
+
+**Paramètres > Système > En ligne** liste tout ce qui passe par le réseau : la vérification des mises à jour de l'application (à chaque démarrage, impossible à désactiver, rien n'est installé sans votre clic), la vérification des mises à jour des données médicales et les statistiques d'utilisation anonymes (désactivées sauf si vous avez accepté, réglables dans cet onglet), et PhoneMic (seulement si vous l'activez). Ces réglages ne font jamais partie de l'export des paramètres.
 
 ## Correction des noms de médicaments et des termes médicaux
 
-Activée par défaut : **Paramètres > Corrections > Corrections du modèle**, interrupteur en haut de l'onglet.
+Activée par défaut : **Paramètres > Corrections > Erreurs résiduelles**, interrupteur en haut de l'onglet.
 
 Environ 25 000 règles préinstallées corrigent les noms de médicaments et les termes médicaux que la reconnaissance vocale entend mal, par exemple « tacadol » devient « Takadol », « polllachiurie » devient « pollakiurie » et « soucrural » devient « sous-crural ». Ce sont les mêmes règles que le mode médical de [ParakeetWeb](http://parakeetweb.olicorne.org/?mode=med), appliquées en local, avant toutes les autres règles de formatage. Provenance et licence (AGPL-3.0-or-later) : [`src-tauri/medical-data/SOURCE.md`](src-tauri/medical-data/SOURCE.md).
 
-Dans l'onglet **Corrections du modèle**, la section **Règles de correction** permet de :
+Dans l'onglet **Erreurs résiduelles**, la section **Règles de correction** permet de :
 
 - **Essayer les règles** : tapez une phrase pour voir ce que les règles en font.
 - **Trouver une règle préinstallée** : cherchez par le mot correct (« Takadol ») ou par ce que la transcription a écrit (« tacadol »), puis modifiez le texte reconnu ou le remplacement, ou désactivez la règle.
 - **Ajouter une règle** : un texte mal reconnu (expression régulière, sans distinction de casse, limites de mot ajoutées automatiquement) et son remplacement. Les règles ajoutées passent avant les règles préinstallées.
 - **Vos modifications** montre tout ce que vous avez changé. Chaque règle peut être rétablie, et **Revenir à la liste d'origine** revient exactement aux règles préinstallées.
 
-Ces modifications sont enregistrées à part (`medical_rules.json`), séparément de vos règles de mise en forme : importer ou réinitialiser l'un ne touche pas l'autre. Pour corriger autre chose qu'un médicament (un nom propre, par exemple), utilisez plutôt les règles personnalisées.
+Ces modifications sont enregistrées à part (`medical_rules.json`), séparément de vos règles de mise en forme : importer ou réinitialiser l'un ne touche pas l'autre (dans l'export des paramètres, ce sont deux catégories distinctes). Pour corriger autre chose qu'un médicament (un nom propre, par exemple), utilisez plutôt les règles personnalisées.
 
 ## Contexte pour les dictées courtes
 
@@ -59,7 +66,7 @@ Seul le relais HTTPS est utilisé (pas de WebRTC, souvent bloqué sur les résea
 
 L'association [InterHop](https://interhop.org/) maintient des règles de dictée médicale pour Murmure (unités, constantes, ponctuation dictée, modèles d'examen déclenchés par « ajoute la commande ... ») : [framagit.org/interhop/murmure-regex](https://framagit.org/interhop/murmure-regex). Par exemple « tension 120 80 » devient « TA : 120/80 » et « 3 fois par jour » devient « 3/j ».
 
-Une nouvelle installation de Plumed les contient déjà dans **Paramètres > Corrections > Règles de mise en forme**, comme règles personnalisées ordinaires : vous pouvez les modifier, les désactiver ou les supprimer, et ajouter les vôtres. Elles s'appliquent après la correction des médicaments. **Revenir à la liste d'origine** remet exactement ces règles.
+Une nouvelle installation de Plumed les contient déjà dans **Paramètres > Corrections > Formatage**, comme règles personnalisées ordinaires : vous pouvez les modifier, les désactiver ou les supprimer, et ajouter les vôtres. Elles s'appliquent après la correction des médicaments. **Revenir à la liste d'origine** remet exactement ces règles.
 
 Sur une installation existante (ou après les avoir supprimées), vous pouvez les importer :
 
