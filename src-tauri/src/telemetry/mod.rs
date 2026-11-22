@@ -99,7 +99,7 @@ fn request(
     website_id: &str,
     state: &TelemetryState,
     today: NaiveDate,
-) -> (Value, String) {
+) -> ([Value; 2], String) {
     let settings = crate::settings::load_settings(app);
     let env = environment(app, &settings);
     let data = payload::event_data(
@@ -108,8 +108,11 @@ fn request(
         &state.counters,
         state.days_since_install(today),
     );
-    let body = payload::umami_body(website_id, &state.id, &env.language, data);
-    (body, payload::user_agent(&env))
+    let bodies = [
+        payload::umami_pageview(website_id, &state.id, &env.language),
+        payload::umami_body(website_id, &state.id, &env.language, data),
+    ];
+    (bodies, payload::user_agent(&env))
 }
 
 /// Counts a finished transcription (`processing` is the time from the end
@@ -167,16 +170,18 @@ async fn send(app: &AppHandle, website_id: &str) -> Result<(), String> {
     if !state.send_due(today) {
         return Ok(());
     }
-    let (body, user_agent) = request(app, website_id, &state, today);
+    let (bodies, user_agent) = request(app, website_id, &state, today);
     let client = crate::utils::http::client(ENDPOINT, SEND_TIMEOUT, &user_agent, 0)?;
-    let response = client
-        .post(ENDPOINT)
-        .json(&body)
-        .send()
-        .await
-        .map_err(|e| e.to_string())?;
-    if !response.status().is_success() {
-        return Err(format!("HTTP {}", response.status()));
+    for body in &bodies {
+        let response = client
+            .post(ENDPOINT)
+            .json(body)
+            .send()
+            .await
+            .map_err(|e| e.to_string())?;
+        if !response.status().is_success() {
+            return Err(format!("HTTP {}", response.status()));
+        }
     }
     // Turned off while sending: the state file is gone and must stay so.
     if !is_enabled(app) {

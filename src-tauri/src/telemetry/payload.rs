@@ -130,6 +130,22 @@ pub fn umami_body(website_id: &str, id: &str, language: &str, data: Map<String, 
     })
 }
 
+/// A page view on the same page, sent with each daily event: Umami's main
+/// dashboard (visitors, views) only counts page views, so this makes each
+/// active install show up there. Carries no data beyond the event's own.
+pub fn umami_pageview(website_id: &str, id: &str, language: &str) -> Value {
+    json!({
+        "type": "event",
+        "payload": {
+            "website": website_id,
+            "hostname": HOSTNAME,
+            "url": URL,
+            "language": language,
+            "id": id,
+        }
+    })
+}
+
 /// A browser-like User-Agent: Umami drops requests whose User-Agent looks
 /// like a bot, and reads the operating system from it.
 pub fn user_agent(env: &Environment) -> String {
@@ -170,6 +186,19 @@ mod tests {
             confusion_rescoring: true,
             phrase_boosting: true,
         }
+    }
+
+    #[test]
+    fn pageview_carries_no_event_name_nor_data() {
+        let body = umami_pageview("website", "id", "fr");
+        let mut keys: Vec<&str> = body["payload"]
+            .as_object()
+            .unwrap()
+            .keys()
+            .map(String::as_str)
+            .collect();
+        keys.sort_unstable();
+        assert_eq!(keys, ["hostname", "id", "language", "url", "website"]);
     }
 
     #[test]
