@@ -303,7 +303,7 @@ pub fn write_transcription(app: &AppHandle, transcription: &str) -> Result<()> {
         error!("Failed to cleanup recordings: {}", e);
     }
 
-    debug!("Transcription written to clipboard {}", transcription);
+    debug!("Transcription written ({} bytes)", transcription.len());
     Ok(())
 }
 
@@ -312,7 +312,7 @@ pub fn write_last_transcription(app: &AppHandle, transcription: &str) -> Result<
         error!("Failed to paste last transcription: {}", e);
     }
 
-    debug!("Last transcription written to clipboard {}", transcription);
+    debug!("Last transcription written ({} bytes)", transcription.len());
     Ok(())
 }
 
