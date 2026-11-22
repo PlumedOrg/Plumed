@@ -1,36 +1,35 @@
 //! Checks for, and on the user's explicit request downloads, a newer signed
 //! medical data set published on the `medical-data` release (Plumed fork,
-//! see `medical-data/SOURCE.md`). The startup check fetches only the small
-//! signed manifest, with no identifier and no cookie; nothing else is
-//! downloaded without a click. Written with Claude Code.
+//! see `medical-data/SOURCE.md`). The startup check only runs once the user
+//! agreed to it, and fetches only the small signed manifest, with no
+//! identifier and no cookie; nothing else is downloaded without a click.
+//! The same set can also be installed from files downloaded by hand, with
+//! the same checks. Written with Claude Code.
 
-use super::data_set::{self, manifest, manifest::DataVersion, manifest::Manifest};
+use super::data_set::{self, manifest::Manifest, ActiveData, SetError, StagedFile};
+use crate::settings::AppSettings;
 use log::warn;
 use serde::Serialize;
-use std::fs::File;
-use std::io::Write;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Mutex, PoisonError};
-use std::time::Duration;
+use std::sync::{Arc, Mutex, PoisonError};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tauri::{AppHandle, Emitter};
 
 /// Assets of the `medical-data` release, which must never be the "latest"
 /// release (the app updater reads `releases/latest/download/latest.json`).
 const RELEASE_URL: &str = "https://github.com/PlumedOrg/Plumed/releases/download/medical-data/";
-const MANIFEST_NAME: &str = "manifest.json";
-const SIGNATURE_NAME: &str = "manifest.json.minisig";
-const MAX_MANIFEST_SIZE: u64 = 64 * 1024;
-const MAX_SIGNATURE_SIZE: u64 = 4 * 1024;
 const CHECK_TIMEOUT: Duration = Duration::from_secs(30);
-/// Per file: the dictionary rules are about 10 MB, hospital networks are slow.
+/// Per file: the dictionary rules are about 10 MB, hospital networks slow.
 const DOWNLOAD_TIMEOUT: Duration = Duration::from_secs(600);
 /// GitHub sends release assets through a redirect to its storage host.
 const MAX_REDIRECTS: usize = 5;
-/// No version, no system: nothing that tells users apart.
+/// No version, no system: nothing tells users apart.
 const USER_AGENT: &str = "Plumed";
 
 const OFFER_EVENT: &str = "medical-data-update-available";
 const PROGRESS_EVENT: &str = "medical-data-download-progress";
+const CHECK_FAILED_EVENT: &str = "medical-data-check-failed";
 
 /// What the update dialog shows.
 #[derive(Debug, Clone, Serialize)]
@@ -41,7 +40,7 @@ pub struct UpdateOffer {
     pub total_size: u64,
 }
 
-/// The data now in use after a download or a reset.
+/// The data now in use after a download, a manual install or a reset.
 #[derive(Debug, Clone, Serialize)]
 pub struct DataChange {
     pub version: String,
@@ -64,12 +63,67 @@ struct Pending {
     prompt: bool,
 }
 
+/// What the last check found.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(tag = "outcome", rename_all = "snake_case")]
+pub enum CheckOutcome {
+    UpToDate,
+    UpdateFound { version: String },
+    Failed { error: String },
+}
+
+/// The last check of this launch, shown in the settings (kept in memory
+/// only).
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct CheckReport {
+    /// Unix time in milliseconds.
+    pub checked_at: u64,
+    #[serde(flatten)]
+    pub outcome: CheckOutcome,
+}
+
+/// The checks of this launch, and the failure notice the frontend shows at
+/// most once per launch when the startup check failed.
+#[derive(Default)]
+struct CheckHistory {
+    last: Option<CheckReport>,
+    failure_notice: Option<String>,
+    notice_given: bool,
+}
+
+impl CheckHistory {
+    fn record(&mut self, report: CheckReport, at_startup: bool) {
+        if let (true, false, CheckOutcome::Failed { error }) =
+            (at_startup, self.notice_given, &report.outcome)
+        {
+            self.failure_notice = Some(error.clone());
+        }
+        self.last = Some(report);
+    }
+
+    /// The startup failure to tell the user about, once.
+    fn take_failure_notice(&mut self) -> Option<String> {
+        let notice = self.failure_notice.take();
+        self.notice_given |= notice.is_some();
+        notice
+    }
+}
+
 static PENDING: Mutex<Option<Pending>> = Mutex::new(None);
+static HISTORY: Mutex<CheckHistory> = Mutex::new(CheckHistory {
+    last: None,
+    failure_notice: None,
+    notice_given: false,
+});
 static CHECKED_AT_STARTUP: AtomicBool = AtomicBool::new(false);
-static DOWNLOADING: AtomicBool = AtomicBool::new(false);
+static INSTALLING: AtomicBool = AtomicBool::new(false);
 
 fn pending() -> std::sync::MutexGuard<'static, Option<Pending>> {
     PENDING.lock().unwrap_or_else(PoisonError::into_inner)
+}
+
+fn history() -> std::sync::MutexGuard<'static, CheckHistory> {
+    HISTORY.lock().unwrap_or_else(PoisonError::into_inner)
 }
 
 fn offer_of(manifest: &Manifest) -> UpdateOffer {
@@ -78,6 +132,29 @@ fn offer_of(manifest: &Manifest) -> UpdateOffer {
         notes: manifest.notes.clone(),
         file_count: manifest.files.len(),
         total_size: manifest.total_size(),
+    }
+}
+
+fn now_ms() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or_default()
+}
+
+fn report_of(result: &Result<Option<Pending>, String>) -> CheckReport {
+    let outcome = match result {
+        Ok(Some(found)) => CheckOutcome::UpdateFound {
+            version: found.manifest.version.clone(),
+        },
+        Ok(None) => CheckOutcome::UpToDate,
+        Err(error) => CheckOutcome::Failed {
+            error: error.clone(),
+        },
+    };
+    CheckReport {
+        checked_at: now_ms(),
+        outcome,
     }
 }
 
@@ -117,43 +194,73 @@ async fn fetch_small(client: &reqwest::Client, name: &str, max: u64) -> Result<V
     Ok(bytes)
 }
 
-/// The online manifest when it is valid and newer than the active data.
+/// The online manifest if it is valid and newer than the active data.
 async fn fetch_newer() -> Result<Option<Pending>, String> {
     let key = data_set::public_key().ok_or("Medical data updates are not available")?;
     let app_version = data_set::app_version().ok_or("No app data folder")?;
     let client = crate::utils::http::client(RELEASE_URL, CHECK_TIMEOUT, USER_AGENT, MAX_REDIRECTS)?;
-    let bytes = fetch_small(&client, MANIFEST_NAME, MAX_MANIFEST_SIZE).await?;
-    let signature = fetch_small(&client, SIGNATURE_NAME, MAX_SIGNATURE_SIZE).await?;
+    let bytes = fetch_small(
+        &client,
+        data_set::MANIFEST_FILE,
+        data_set::manifest::MAX_MANIFEST_SIZE,
+    )
+    .await?;
+    let signature = fetch_small(
+        &client,
+        data_set::SIGNATURE_FILE,
+        data_set::manifest::MAX_SIGNATURE_SIZE,
+    )
+    .await?;
     let signature = String::from_utf8(signature).map_err(|e| e.to_string())?;
-    let (manifest, version) = manifest::parse_signed(key, &bytes, &signature, app_version)?;
     let active = tauri::async_runtime::spawn_blocking(|| data_set::current().version().to_string())
         .await
         .map_err(|e| e.to_string())?;
-    match DataVersion::parse(&active) {
-        Some(active) if version <= active => Ok(None),
-        _ => Ok(Some(Pending {
-            manifest,
-            bytes,
-            signature,
-            prompt: false,
-        })),
-    }
+    let (manifest, newer) =
+        data_set::checked_manifest(key, &bytes, &signature, app_version, &active)?;
+    Ok(newer.then_some(Pending {
+        manifest,
+        bytes,
+        signature,
+        prompt: false,
+    }))
+}
+
+/// Whether the startup check may run: only once the user agreed to it, on
+/// the first launch question or with the toggle.
+fn startup_check_allowed(settings: &AppSettings) -> bool {
+    settings.medical_data_update_asked && settings.medical_data_update_check
+}
+
+/// The first launch question is due until the user answered it, including
+/// on installs from before the question existed.
+fn question_due(settings: &AppSettings) -> bool {
+    !settings.medical_data_update_asked
+}
+
+/// The answer to the first launch question, or the toggle: both count as
+/// the user's choice.
+fn apply_check_choice(settings: &mut AppSettings, enabled: bool) {
+    settings.medical_data_update_check = enabled;
+    settings.medical_data_update_asked = true;
 }
 
 /// Once per launch, after the model loaded: looks for a newer data set and
-/// tells the frontend, which asks the user. Does nothing when the check is
-/// off, in builds without a public key, or for the skipped version.
+/// tells the frontend, which asks the user, or tells it the check failed.
+/// Does nothing until the user agreed to the check, in builds without a
+/// public key, or for the skipped version.
 pub fn check_at_startup(app: &AppHandle) {
-    if !data_set::is_available() || CHECKED_AT_STARTUP.swap(true, Ordering::AcqRel) {
-        return;
-    }
     let settings = crate::settings::load_settings(app);
-    if !settings.medical_data_update_check {
+    if !data_set::is_available()
+        || !startup_check_allowed(&settings)
+        || CHECKED_AT_STARTUP.swap(true, Ordering::AcqRel)
+    {
         return;
     }
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
-        match fetch_newer().await {
+        let result = fetch_newer().await;
+        history().record(report_of(&result), true);
+        match result {
             Ok(Some(found)) if found.manifest.version != settings.medical_data_skipped_version => {
                 let offer = offer_of(&found.manifest);
                 *pending() = Some(Pending {
@@ -165,7 +272,12 @@ pub fn check_at_startup(app: &AppHandle) {
                 }
             }
             Ok(_) => {}
-            Err(e) => warn!("Medical data update check failed: {e}"),
+            Err(e) => {
+                warn!("Medical data update check failed: {e}");
+                if let Err(e) = app.emit(CHECK_FAILED_EVENT, ()) {
+                    warn!("Could not announce the failed medical data check: {e}");
+                }
+            }
         }
     });
 }
@@ -176,6 +288,12 @@ pub fn startup_offer() -> Option<UpdateOffer> {
         .as_ref()
         .filter(|p| p.prompt)
         .map(|p| offer_of(&p.manifest))
+}
+
+/// Why the startup check failed, returned once per launch so the notice is
+/// never shown twice.
+pub fn take_check_failure() -> Option<String> {
+    history().take_failure_notice()
 }
 
 /// "Not now": asked again at the next launch.
@@ -195,7 +313,9 @@ pub fn skip_version(app: &AppHandle, version: &str) -> Result<(), String> {
 
 /// "Check now" in the settings: also offers a skipped version.
 pub async fn check_now() -> Result<Option<UpdateOffer>, String> {
-    let found = fetch_newer().await?;
+    let result = fetch_newer().await;
+    history().record(report_of(&result), false);
+    let found = result?;
     let offer = found.as_ref().map(|p| offer_of(&p.manifest));
     *pending() = found;
     Ok(offer)
@@ -206,7 +326,7 @@ pub async fn check_now() -> Result<Option<UpdateOffer>, String> {
 async fn download_files(
     app: &AppHandle,
     manifest: &Manifest,
-    staging: &std::path::Path,
+    staging: &Path,
 ) -> Result<(), String> {
     let client =
         crate::utils::http::client(RELEASE_URL, DOWNLOAD_TIMEOUT, USER_AGENT, MAX_REDIRECTS)?;
@@ -214,12 +334,10 @@ async fn download_files(
     let mut downloaded = 0u64;
     let mut last_percent = None;
     for file in &manifest.files {
-        let mut out = File::create(staging.join(&file.name)).map_err(|e| e.to_string())?;
-        let mut hash = ring::digest::Context::new(&ring::digest::SHA256);
+        let mut staged = StagedFile::create(staging, file)?;
         let url = format!("{RELEASE_URL}{}", file.name);
-        let size = fetch(&client, &url, file.size, |chunk| {
-            out.write_all(chunk).map_err(|e| e.to_string())?;
-            hash.update(chunk);
+        fetch(&client, &url, file.size, |chunk| {
+            staged.write(chunk)?;
             downloaded += chunk.len() as u64;
             let percent = (downloaded * 100).checked_div(total);
             if percent != last_percent {
@@ -229,23 +347,45 @@ async fn download_files(
             Ok(())
         })
         .await?;
-        if size != file.size || manifest::hex_of(hash.finish().as_ref()) != file.sha256 {
-            return Err(format!("{} does not match the manifest", file.name));
-        }
-        out.sync_all().map_err(|e| e.to_string())?;
+        staged.finish()?;
     }
     Ok(())
 }
 
-/// Downloads, verifies, installs and activates the offered `version`, live:
-/// the drug rules and the engine lists switch without a restart.
-pub async fn download(app: &AppHandle, version: &str) -> Result<DataChange, String> {
-    if DOWNLOADING.swap(true, Ordering::AcqRel) {
-        return Err("A download is already running".to_string());
+/// Runs one install at a time (download or manual install).
+async fn one_install_at_a_time<E: From<String>>(
+    job: impl std::future::Future<Output = Result<DataChange, E>>,
+) -> Result<DataChange, E> {
+    if INSTALLING.swap(true, Ordering::AcqRel) {
+        return Err(E::from("An install is already running".to_string()));
     }
-    let result = download_and_install(app, version).await;
-    DOWNLOADING.store(false, Ordering::Release);
+    let result = job.await;
+    INSTALLING.store(false, Ordering::Release);
     result
+}
+
+/// Runs `install` off the async runtime, then switches the drug rules and
+/// the engine lists to the new data, live.
+async fn activate<E>(
+    app: &AppHandle,
+    install: impl FnOnce() -> Result<Arc<ActiveData>, E> + Send + 'static,
+) -> Result<DataChange, E>
+where
+    E: From<String> + Send + 'static,
+{
+    let app = app.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        install()?;
+        *pending() = None;
+        Ok(reactivate(&app))
+    })
+    .await
+    .map_err(|e| E::from(e.to_string()))?
+}
+
+/// Downloads, verifies, installs and activates the offered `version`.
+pub async fn download(app: &AppHandle, version: &str) -> Result<DataChange, String> {
+    one_install_at_a_time(download_and_install(app, version)).await
 }
 
 async fn download_and_install(app: &AppHandle, version: &str) -> Result<DataChange, String> {
@@ -259,30 +399,22 @@ async fn download_and_install(app: &AppHandle, version: &str) -> Result<DataChan
         let _ = std::fs::remove_dir_all(&staging);
         return Err(e);
     }
-    let app = app.clone();
     let version = version.to_string();
-    tauri::async_runtime::spawn_blocking(move || {
-        let installed = data_set::install(&staging, &version, &bytes, &signature);
-        if installed.is_err() {
-            let _ = std::fs::remove_dir_all(&staging);
-        }
-        installed?;
-        *pending() = None;
-        Ok(reactivate(&app))
+    activate(app, move || {
+        data_set::install(&staging, &version, &bytes, &signature)
     })
     .await
-    .map_err(|e| e.to_string())?
+}
+
+/// "Install a downloaded update": verifies and activates a set from the
+/// files the user picked (the release assets downloaded with a browser).
+pub async fn install_picked(app: &AppHandle, paths: Vec<PathBuf>) -> Result<DataChange, SetError> {
+    one_install_at_a_time(activate(app, move || data_set::install_picked(&paths))).await
 }
 
 /// "Return to the bundled data": deletes every downloaded set.
 pub async fn reset(app: &AppHandle) -> Result<DataChange, String> {
-    let app = app.clone();
-    tauri::async_runtime::spawn_blocking(move || {
-        data_set::reset()?;
-        Ok(reactivate(&app))
-    })
-    .await
-    .map_err(|e| e.to_string())?
+    activate(app, data_set::reset).await
 }
 
 fn reactivate(app: &AppHandle) -> DataChange {
@@ -296,11 +428,14 @@ fn reactivate(app: &AppHandle) -> DataChange {
 /// What the settings show about the medical data.
 #[derive(Debug, Clone, Serialize)]
 pub struct DataStatus {
-    /// Updates possible in this build (public key set at build time).
+    /// Updates are possible in this build (public key set at build time).
     pub available: bool,
     pub bundled_version: &'static str,
     pub downloaded_version: Option<String>,
+    /// The startup check runs (the user agreed to it).
     pub check_enabled: bool,
+    /// The last check of this launch, `None` before the first one.
+    pub last_check: Option<CheckReport>,
 }
 
 pub async fn status(app: &AppHandle) -> Result<DataStatus, String> {
@@ -312,12 +447,90 @@ pub async fn status(app: &AppHandle) -> Result<DataStatus, String> {
         available: data_set::is_available(),
         bundled_version: data_set::BUNDLED_VERSION,
         downloaded_version,
-        check_enabled: crate::settings::load_settings(app).medical_data_update_check,
+        check_enabled: startup_check_allowed(&crate::settings::load_settings(app)),
+        last_check: history().last.clone(),
     })
 }
 
+/// Whether to ask, this launch, if the check may run at each start.
+pub fn question_due_now(app: &AppHandle) -> bool {
+    data_set::is_available() && question_due(&crate::settings::load_settings(app))
+}
+
+/// Saves the user's choice (first launch question or toggle). A "yes"
+/// checks from the next start on, so this launch shows no second dialog.
 pub fn set_check_enabled(app: &AppHandle, enabled: bool) -> Result<(), String> {
     let mut settings = crate::settings::load_settings(app);
-    settings.medical_data_update_check = enabled;
+    apply_check_choice(&mut settings, enabled);
     crate::settings::save_settings(app, &settings)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn no_check_before_the_user_answered() {
+        let fresh = AppSettings::default();
+        assert!(question_due(&fresh));
+        assert!(!startup_check_allowed(&fresh));
+
+        // An install from before the question: the check was on by default.
+        let older: AppSettings =
+            serde_json::from_str(r#"{"medical_data_update_check": true}"#).unwrap();
+        assert!(question_due(&older));
+        assert!(!startup_check_allowed(&older));
+
+        let mut agreed = older.clone();
+        apply_check_choice(&mut agreed, true);
+        assert!(!question_due(&agreed));
+        assert!(startup_check_allowed(&agreed));
+
+        let mut refused = fresh;
+        apply_check_choice(&mut refused, false);
+        assert!(!question_due(&refused));
+        assert!(!startup_check_allowed(&refused));
+    }
+
+    fn report(outcome: CheckOutcome) -> CheckReport {
+        CheckReport {
+            checked_at: 1,
+            outcome,
+        }
+    }
+
+    fn failed(error: &str) -> CheckOutcome {
+        CheckOutcome::Failed {
+            error: error.to_string(),
+        }
+    }
+
+    #[test]
+    fn the_failure_notice_is_given_once_per_launch() {
+        let mut history = CheckHistory::default();
+        assert_eq!(history.take_failure_notice(), None);
+
+        // "Check now" shows its own error, no notice.
+        history.record(report(failed("offline")), false);
+        assert_eq!(history.take_failure_notice(), None);
+        assert_eq!(history.last, Some(report(failed("offline"))));
+
+        history.record(report(failed("timeout")), true);
+        assert_eq!(history.take_failure_notice().as_deref(), Some("timeout"));
+        assert_eq!(history.take_failure_notice(), None);
+
+        // Never twice in a launch.
+        history.record(report(failed("again")), true);
+        assert_eq!(history.take_failure_notice(), None);
+
+        history.record(report(CheckOutcome::UpToDate), false);
+        assert_eq!(history.last, Some(report(CheckOutcome::UpToDate)));
+    }
+
+    #[test]
+    fn a_successful_startup_check_gives_no_notice() {
+        let mut history = CheckHistory::default();
+        history.record(report(CheckOutcome::UpToDate), true);
+        assert_eq!(history.take_failure_notice(), None);
+    }
 }

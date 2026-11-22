@@ -2,13 +2,16 @@
 //! `medical-data/SOURCE.md`): what is checked before anything is downloaded
 //! or loaded. Written with Claude Code.
 
-use super::{CONFUSION_FILE, MODEL_ID, PHRASE_FILE, RULE_FILES};
+use super::{SetError, CONFUSION_FILE, MODEL_ID, PHRASE_FILE, RULE_FILES};
 use minisign_verify::{PublicKey, Signature};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
 /// Largest file a manifest may list, so a bad manifest cannot fill the disk.
 pub const MAX_FILE_SIZE: u64 = 50 * 1024 * 1024;
+/// Largest manifest and signature accepted, downloaded or picked by hand.
+pub const MAX_MANIFEST_SIZE: u64 = 64 * 1024;
+pub const MAX_SIGNATURE_SIZE: u64 = 4 * 1024;
 /// Longest release notes shown in the update dialog.
 const MAX_NOTES_CHARS: usize = 2_000;
 
@@ -74,40 +77,51 @@ fn is_allowed_name(name: &str) -> bool {
 impl Manifest {
     /// Checks everything that does not depend on what is installed: file
     /// allowlist, complete rule set, hashes and sizes, model, app version.
-    pub fn check(&self, app_version: &semver::Version) -> Result<DataVersion, String> {
-        let version = DataVersion::parse(&self.version)
-            .ok_or_else(|| format!("Invalid data version \"{}\"", self.version))?;
+    pub fn check(&self, app_version: &semver::Version) -> Result<DataVersion, SetError> {
+        let version = DataVersion::parse(&self.version).ok_or_else(|| {
+            SetError::invalid(format!("invalid data version \"{}\"", self.version))
+        })?;
         if self.model != MODEL_ID {
-            return Err(format!(
-                "Data set for model \"{}\", this app uses \"{MODEL_ID}\"",
-                self.model
-            ));
+            return Err(SetError::WrongModel {
+                model: self.model.clone(),
+                expected: MODEL_ID.to_string(),
+            });
         }
         let min_app = semver::Version::parse(&self.min_app_version)
-            .map_err(|e| format!("Invalid min_app_version: {e}"))?;
+            .map_err(|e| SetError::invalid(format!("invalid min_app_version: {e}")))?;
         if min_app > *app_version {
-            return Err(format!("Data set needs Plumed {min_app} or newer"));
+            return Err(SetError::AppTooOld {
+                min_app_version: min_app.to_string(),
+            });
         }
         if self.notes.chars().count() > MAX_NOTES_CHARS {
-            return Err("Release notes too long".to_string());
+            return Err(SetError::invalid("release notes too long"));
         }
         let mut names = HashSet::new();
         for file in &self.files {
             if !is_allowed_name(&file.name) {
-                return Err(format!("Unexpected file \"{}\"", file.name));
+                return Err(SetError::invalid(format!(
+                    "unexpected file \"{}\"",
+                    file.name
+                )));
             }
             if !names.insert(file.name.as_str()) {
-                return Err(format!("File \"{}\" listed twice", file.name));
+                return Err(SetError::invalid(format!("\"{}\" listed twice", file.name)));
             }
             if !is_sha256_hex(&file.sha256) {
-                return Err(format!("Invalid SHA-256 for \"{}\"", file.name));
+                return Err(SetError::invalid(format!(
+                    "invalid SHA-256 for \"{}\"",
+                    file.name
+                )));
             }
             if file.size > MAX_FILE_SIZE {
-                return Err(format!("File \"{}\" too large", file.name));
+                return Err(SetError::invalid(format!("\"{}\" too large", file.name)));
             }
         }
         match RULE_FILES.iter().find(|name| !names.contains(*name)) {
-            Some(missing) => Err(format!("Incomplete rule set, \"{missing}\" missing")),
+            Some(missing) => Err(SetError::invalid(format!(
+                "incomplete rule set, \"{missing}\" missing"
+            ))),
             None => Ok(version),
         }
     }
@@ -120,16 +134,19 @@ impl Manifest {
 /// Checks the minisign `signature` of `message`. `public_key` is the base64
 /// key line, or a whole `.pub` file (its last line is used). Legacy (not
 /// prehashed) signatures are accepted, like the Tauri updater does.
-pub fn verify_signature(public_key: &str, message: &[u8], signature: &str) -> Result<(), String> {
+pub fn verify_signature(public_key: &str, message: &[u8], signature: &str) -> Result<(), SetError> {
     let key_line = public_key
         .lines()
         .map(str::trim)
         .rfind(|l| !l.is_empty())
         .ok_or("No public key")?;
-    let key = PublicKey::from_base64(key_line).map_err(|e| format!("Invalid public key: {e}"))?;
-    let signature = Signature::decode(signature).map_err(|e| format!("Invalid signature: {e}"))?;
-    key.verify(message, &signature, true)
-        .map_err(|e| format!("Bad signature: {e}"))
+    let key = PublicKey::from_base64(key_line)
+        .map_err(|e| SetError::other(format!("Invalid public key: {e}")))?;
+    let bad = |e: minisign_verify::Error| SetError::BadSignature {
+        detail: e.to_string(),
+    };
+    let signature = Signature::decode(signature).map_err(bad)?;
+    key.verify(message, &signature, true).map_err(bad)
 }
 
 /// A verified, parsed and checked manifest.
@@ -138,10 +155,9 @@ pub fn parse_signed(
     manifest: &[u8],
     signature: &str,
     app_version: &semver::Version,
-) -> Result<(Manifest, DataVersion), String> {
+) -> Result<(Manifest, DataVersion), SetError> {
     verify_signature(public_key, manifest, signature)?;
-    let parsed: Manifest =
-        serde_json::from_slice(manifest).map_err(|e| format!("Invalid manifest: {e}"))?;
+    let parsed: Manifest = serde_json::from_slice(manifest).map_err(SetError::invalid)?;
     let version = parsed.check(app_version)?;
     Ok((parsed, version))
 }

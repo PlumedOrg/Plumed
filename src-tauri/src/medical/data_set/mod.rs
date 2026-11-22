@@ -6,9 +6,13 @@
 //! or does not parse. Written with Claude Code.
 
 mod disk;
+mod error;
 pub mod manifest;
 #[cfg(test)]
 mod tests;
+
+pub use disk::{StagedFile, MANIFEST_FILE, SIGNATURE_FILE};
+pub use error::SetError;
 
 use super::drug_rules::Bundled;
 use crate::engine::confusion::ConfusionGroups;
@@ -249,10 +253,27 @@ pub fn new_staging() -> Result<PathBuf, String> {
     disk::new_staging(&context.dir)
 }
 
+/// The signed manifest of a set, found online or picked by the user,
+/// verified against the compiled public key and checked for this app
+/// (allowlist, hashes, sizes, model, `min_app_version`), with whether it is
+/// newer than the `active` version.
+pub fn checked_manifest(
+    key: &str,
+    manifest: &[u8],
+    signature: &str,
+    app_version: &semver::Version,
+    active: &str,
+) -> Result<(manifest::Manifest, bool), SetError> {
+    let (parsed, version) = manifest::parse_signed(key, manifest, signature, app_version)?;
+    let newer = DataVersion::parse(active).is_none_or(|active| version > active);
+    Ok((parsed, newer))
+}
+
 /// Installs the verified files in `staging`, with the signed manifest they
-/// were checked against, as `version` and makes them the active data. The
-/// previous set stays active, and on disk, unless the new one loads fine;
-/// older sets are deleted after the switch.
+/// were checked against, as `version` and makes them the active data: the
+/// one way a set is installed, downloaded or picked by hand. The previous
+/// set stays active, and on disk, unless the new one loads fine; older sets
+/// are deleted after the switch. `staging` is deleted on failure.
 pub fn install(
     staging: &Path,
     version: &str,
@@ -260,19 +281,109 @@ pub fn install(
     signature: &str,
 ) -> Result<Arc<ActiveData>, String> {
     let (context, key) = context()?;
-    disk::write_manifest(staging, manifest, signature)?;
-    disk::commit_staging(&context.dir, staging, version)?;
-    let data = match load_set(&context.dir, version, key, &context.app_version) {
-        Ok(data) => Arc::new(data),
+    let data = Arc::new(install_in(
+        &context.dir,
+        key,
+        &context.app_version,
+        staging,
+        version,
+        manifest,
+        signature,
+    )?);
+    set_active(data.clone());
+    Ok(data)
+}
+
+fn install_in(
+    dir: &Path,
+    key: &str,
+    app_version: &semver::Version,
+    staging: &Path,
+    version: &str,
+    manifest: &[u8],
+    signature: &str,
+) -> Result<ActiveData, String> {
+    let committed = disk::write_manifest(staging, manifest, signature)
+        .and_then(|()| disk::commit_staging(dir, staging, version));
+    if let Err(e) = committed {
+        let _ = std::fs::remove_dir_all(staging);
+        return Err(e);
+    }
+    let data = match load_set(dir, version, key, app_version) {
+        Ok(data) => data,
         Err(e) => {
-            disk::remove_set(&context.dir, version);
+            disk::remove_set(dir, version);
             return Err(e);
         }
     };
-    disk::write_active(&context.dir, version)?;
-    set_active(data.clone());
-    disk::remove_others(&context.dir, version);
+    disk::write_active(dir, version)?;
+    disk::remove_others(dir, version);
     Ok(data)
+}
+
+/// Installs a set from files the user downloaded by hand (the manifest, its
+/// signature and the data files, any other file is ignored), with the same
+/// checks as an online update.
+pub fn install_picked(paths: &[PathBuf]) -> Result<Arc<ActiveData>, SetError> {
+    let (context, key) = context()?;
+    let active = current().version().to_string();
+    let data = Arc::new(install_picked_in(
+        &context.dir,
+        key,
+        &context.app_version,
+        &active,
+        paths,
+    )?);
+    set_active(data.clone());
+    Ok(data)
+}
+
+fn install_picked_in(
+    dir: &Path,
+    key: &str,
+    app_version: &semver::Version,
+    active: &str,
+    paths: &[PathBuf],
+) -> Result<ActiveData, SetError> {
+    let picked: HashMap<String, PathBuf> = paths
+        .iter()
+        .filter_map(|path| Some((path.file_name()?.to_str()?.to_string(), path.clone())))
+        .collect();
+    let read_small = |name: &str, max: u64| -> Result<Vec<u8>, SetError> {
+        let path = picked.get(name).ok_or(SetError::MissingFile {
+            name: name.to_string(),
+        })?;
+        if std::fs::metadata(path).map_err(SetError::other)?.len() > max {
+            return Err(SetError::invalid(format!("{name} too large")));
+        }
+        std::fs::read(path).map_err(SetError::other)
+    };
+    let manifest = read_small(MANIFEST_FILE, manifest::MAX_MANIFEST_SIZE)?;
+    let signature = String::from_utf8(read_small(SIGNATURE_FILE, manifest::MAX_SIGNATURE_SIZE)?)
+        .map_err(|e| SetError::BadSignature {
+            detail: e.to_string(),
+        })?;
+    let (parsed, newer) = checked_manifest(key, &manifest, &signature, app_version, active)?;
+    if !newer {
+        return Err(SetError::NotNewer {
+            version: parsed.version,
+            active: active.to_string(),
+        });
+    }
+    let staging = disk::new_staging(dir)?;
+    if let Err(e) = disk::stage_picked(&staging, &parsed, &picked) {
+        let _ = std::fs::remove_dir_all(&staging);
+        return Err(e);
+    }
+    Ok(install_in(
+        dir,
+        key,
+        app_version,
+        &staging,
+        &parsed.version,
+        &manifest,
+        &signature,
+    )?)
 }
 
 /// Deletes every downloaded set and goes back to the bundled data.

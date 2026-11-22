@@ -1,7 +1,9 @@
 //! Medical data updates (Plumed fork, see `medical::data_update`). Written
 //! with Claude Code.
 
+use crate::medical::data_set::SetError;
 use crate::medical::data_update::{self, DataChange, DataStatus, UpdateOffer};
+use std::path::PathBuf;
 use tauri::{command, AppHandle};
 
 #[command]
@@ -47,7 +49,29 @@ pub async fn reset_medical_data(app: AppHandle) -> Result<DataChange, String> {
     data_update::reset(&app).await
 }
 
+/// The first launch answer or the settings toggle.
 #[command]
 pub fn set_medical_data_update_check(app: AppHandle, enabled: bool) -> Result<(), String> {
     data_update::set_check_enabled(&app, enabled)
+}
+
+/// Whether to ask if the check may run at each start (not answered yet).
+#[command]
+pub fn medical_data_question_due(app: AppHandle) -> bool {
+    data_update::question_due_now(&app)
+}
+
+/// Why the startup check failed, once per launch.
+#[command]
+pub fn take_medical_data_check_failure() -> Option<String> {
+    data_update::take_check_failure()
+}
+
+/// "Install a downloaded update" from the files the user picked.
+#[command]
+pub async fn install_medical_data_files(
+    app: AppHandle,
+    paths: Vec<PathBuf>,
+) -> Result<DataChange, SetError> {
+    data_update::install_picked(&app, paths).await
 }

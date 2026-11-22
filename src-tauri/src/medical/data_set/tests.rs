@@ -330,6 +330,180 @@ fn older_sets_are_removed_but_the_kept_one() {
     fs::remove_dir_all(dir).unwrap();
 }
 
+/// The release assets as a browser downloads them, in a folder of their
+/// own next to an unrelated file. Returns the paths the user would pick.
+fn write_downloads(
+    downloads: &Path,
+    key: &TestKey,
+    manifest: &Manifest,
+    files: &[(String, String)],
+) -> Vec<PathBuf> {
+    let bytes = serde_json::to_vec(manifest).unwrap();
+    let mut written = vec![
+        (MANIFEST_FILE.to_string(), bytes.clone()),
+        (SIGNATURE_FILE.to_string(), key.sign(&bytes).into_bytes()),
+        ("holiday.jpg".to_string(), b"not a data file".to_vec()),
+    ];
+    written.extend(
+        files
+            .iter()
+            .map(|(name, content)| (name.clone(), content.clone().into_bytes())),
+    );
+    written
+        .into_iter()
+        .map(|(name, content)| {
+            let path = downloads.join(name);
+            fs::write(&path, content).unwrap();
+            path
+        })
+        .collect()
+}
+
+fn install_picked_test(dir: &Path, key: &TestKey, paths: &[PathBuf]) -> Result<String, SetError> {
+    install_picked_in(dir, &key.public(), &app_version(), BUNDLED_VERSION, paths)
+        .map(|data| data.version().to_string())
+}
+
+#[test]
+fn a_manually_downloaded_set_is_installed() {
+    let (dir, downloads) = (temp_dir(), temp_dir());
+    let key = TestKey::new(6);
+    let files = rule_files();
+    let paths = write_downloads(
+        &downloads,
+        &key,
+        &manifest_for("2099.01.01", &files),
+        &files,
+    );
+    assert_eq!(
+        install_picked_test(&dir, &key, &paths).as_deref(),
+        Ok("2099.01.01")
+    );
+    // Installed like an online update: active, and loaded again at start.
+    assert_eq!(
+        disk::read_active(&dir).unwrap().as_deref(),
+        Some("2099.01.01")
+    );
+    let data = load_or_bundled(&dir, &key.public(), &app_version());
+    assert_eq!(data.downloaded.as_deref(), Some("2099.01.01"));
+    fs::remove_dir_all(dir).unwrap();
+    fs::remove_dir_all(downloads).unwrap();
+}
+
+/// What a test does to the downloaded files before picking them.
+type Tampering = (
+    &'static str,
+    fn(&Path, &mut Vec<PathBuf>),
+    fn(&SetError) -> bool,
+);
+
+#[test]
+fn tampered_or_incomplete_downloads_are_refused() {
+    let key = TestKey::new(7);
+    let files = rule_files();
+    let tamperings: [Tampering; 6] = [
+        (
+            "data file changed",
+            |d, _| fs::write(d.join("drug_fix_rules.jsonl"), "{}").unwrap(),
+            |e| matches!(e, SetError::FileMismatch { name } if name == "drug_fix_rules.jsonl"),
+        ),
+        (
+            "manifest changed",
+            |d, _| {
+                let text = fs::read_to_string(d.join(MANIFEST_FILE)).unwrap();
+                fs::write(d.join(MANIFEST_FILE), text.replace("2099", "2098")).unwrap()
+            },
+            |e| matches!(e, SetError::BadSignature { .. }),
+        ),
+        (
+            "signed by another key",
+            |d, _| {
+                let bytes = fs::read(d.join(MANIFEST_FILE)).unwrap();
+                fs::write(d.join(SIGNATURE_FILE), TestKey::new(7).sign(&bytes)).unwrap()
+            },
+            |e| matches!(e, SetError::BadSignature { .. }),
+        ),
+        (
+            "data file not picked",
+            |_, paths| paths.retain(|p| !p.ends_with("manual_fix_rules.jsonl")),
+            |e| matches!(e, SetError::MissingFile { name } if name == "manual_fix_rules.jsonl"),
+        ),
+        (
+            "signature not picked",
+            |_, paths| paths.retain(|p| !p.ends_with(SIGNATURE_FILE)),
+            |e| matches!(e, SetError::MissingFile { name } if name == SIGNATURE_FILE),
+        ),
+        (
+            "renamed by the browser",
+            |_, paths| {
+                for path in paths.iter_mut().filter(|p| p.ends_with(MANIFEST_FILE)) {
+                    let renamed = path.with_file_name("manifest(1).json");
+                    fs::rename(&path, &renamed).unwrap();
+                    *path = renamed;
+                }
+            },
+            |e| matches!(e, SetError::MissingFile { name } if name == MANIFEST_FILE),
+        ),
+    ];
+    for (what, tamper, expected) in tamperings {
+        let (dir, downloads) = (temp_dir(), temp_dir());
+        let mut paths = write_downloads(
+            &downloads,
+            &key,
+            &manifest_for("2099.01.01", &files),
+            &files,
+        );
+        tamper(&downloads, &mut paths);
+        let result = install_picked_test(&dir, &key, &paths);
+        assert!(result.as_ref().is_err_and(expected), "{what}: {result:?}");
+        // Nothing installed, no staging folder left behind.
+        assert_eq!(fs::read_dir(&dir).unwrap().count(), 0, "{what}");
+        fs::remove_dir_all(dir).unwrap();
+        fs::remove_dir_all(downloads).unwrap();
+    }
+}
+
+#[test]
+fn manual_installs_check_the_version_and_the_model() {
+    let key = TestKey::new(8);
+    let files = rule_files();
+    let cases = [
+        (
+            manifest_for(BUNDLED_VERSION, &files),
+            SetError::NotNewer {
+                version: BUNDLED_VERSION.to_string(),
+                active: BUNDLED_VERSION.to_string(),
+            },
+        ),
+        (
+            Manifest {
+                model: "ultimed-v3".to_string(),
+                ..manifest_for("2099.01.01", &files)
+            },
+            SetError::WrongModel {
+                model: "ultimed-v3".to_string(),
+                expected: MODEL_ID.to_string(),
+            },
+        ),
+        (
+            Manifest {
+                min_app_version: "9.0.0".to_string(),
+                ..manifest_for("2099.01.01", &files)
+            },
+            SetError::AppTooOld {
+                min_app_version: "9.0.0".to_string(),
+            },
+        ),
+    ];
+    for (manifest, expected) in cases {
+        let (dir, downloads) = (temp_dir(), temp_dir());
+        let paths = write_downloads(&downloads, &key, &manifest, &files);
+        assert_eq!(install_picked_test(&dir, &key, &paths), Err(expected));
+        fs::remove_dir_all(dir).unwrap();
+        fs::remove_dir_all(downloads).unwrap();
+    }
+}
+
 #[test]
 fn edits_of_rules_that_no_longer_exist_are_counted() {
     let rules = Bundled::from_jsonl(&[BUNDLED_RULES[4]]);

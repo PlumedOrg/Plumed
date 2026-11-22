@@ -91,9 +91,12 @@ pub struct AppSettings {
     pub telemetry_asked: bool,
     // Plumed fork: look for a newer signed medical data set at startup (only
     // asks, never downloads without a click), and the version the user chose
-    // to skip. Never exported.
+    // to skip. `medical_data_update_asked` records that the user answered the
+    // first launch question (or used the toggle): no check runs before. Never
+    // exported, so a settings file cannot turn the network check on.
     pub medical_data_update_check: bool,
     pub medical_data_skipped_version: String,
+    pub medical_data_update_asked: bool,
 }
 
 impl Default for AppSettings {
@@ -190,8 +193,9 @@ impl Default for AppSettings {
             remote_mic_prompt_version: String::new(),
             telemetry_enabled: false,
             telemetry_asked: false,
-            medical_data_update_check: true,
+            medical_data_update_check: false,
             medical_data_skipped_version: String::new(),
+            medical_data_update_asked: false,
         }
     }
 }

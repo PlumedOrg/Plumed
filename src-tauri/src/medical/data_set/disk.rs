@@ -2,11 +2,13 @@
 //! folder: one `<version>/` folder per set (its signed manifest and its
 //! files) and `active.json` naming the one in use. Written with Claude Code.
 
-use super::manifest::{self, parse_signed};
+use super::manifest::{self, parse_signed, Manifest, ManifestFile};
+use super::SetError;
 use log::warn;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 
 const ACTIVE_FILE: &str = "active.json";
@@ -76,6 +78,80 @@ pub fn read_verified(
 pub fn write_manifest(set_dir: &Path, manifest: &[u8], signature: &str) -> Result<(), String> {
     fs::write(set_dir.join(MANIFEST_FILE), manifest).map_err(|e| e.to_string())?;
     fs::write(set_dir.join(SIGNATURE_FILE), signature).map_err(|e| e.to_string())
+}
+
+/// One file of a set being written into a staging folder, downloaded or
+/// copied from files the user picked: refused unless its size and SHA-256
+/// are those of its manifest entry.
+pub struct StagedFile<'a> {
+    entry: &'a ManifestFile,
+    out: fs::File,
+    hash: ring::digest::Context,
+    written: u64,
+}
+
+impl<'a> StagedFile<'a> {
+    /// `entry` comes from a checked manifest, so its name is allowlisted.
+    pub fn create(staging: &Path, entry: &'a ManifestFile) -> Result<Self, SetError> {
+        Ok(Self {
+            entry,
+            out: fs::File::create(staging.join(&entry.name)).map_err(SetError::other)?,
+            hash: ring::digest::Context::new(&ring::digest::SHA256),
+            written: 0,
+        })
+    }
+
+    pub fn write(&mut self, chunk: &[u8]) -> Result<(), SetError> {
+        self.written += chunk.len() as u64;
+        if self.written > self.entry.size {
+            return Err(self.mismatch());
+        }
+        self.out.write_all(chunk).map_err(SetError::other)?;
+        self.hash.update(chunk);
+        Ok(())
+    }
+
+    pub fn finish(self) -> Result<(), SetError> {
+        let mismatch = self.mismatch();
+        let Self {
+            entry,
+            out,
+            hash,
+            written,
+        } = self;
+        if written != entry.size || manifest::hex_of(hash.finish().as_ref()) != entry.sha256 {
+            return Err(mismatch);
+        }
+        out.sync_all().map_err(SetError::other)
+    }
+
+    fn mismatch(&self) -> SetError {
+        SetError::FileMismatch {
+            name: self.entry.name.clone(),
+        }
+    }
+}
+
+/// Copies the files of `manifest` from `picked` (file name to path, as the
+/// user chose them) into `staging`, checking each one.
+pub fn stage_picked(
+    staging: &Path,
+    manifest: &Manifest,
+    picked: &HashMap<String, PathBuf>,
+) -> Result<(), SetError> {
+    for entry in &manifest.files {
+        let path = picked.get(&entry.name).ok_or(SetError::MissingFile {
+            name: entry.name.clone(),
+        })?;
+        let mut staged = StagedFile::create(staging, entry)?;
+        // Size first, so a wrong file is never read whole.
+        if fs::metadata(path).map_err(SetError::other)?.len() != entry.size {
+            return Err(staged.mismatch());
+        }
+        staged.write(&fs::read(path).map_err(SetError::other)?)?;
+        staged.finish()?;
+    }
+    Ok(())
 }
 
 /// A new empty folder in `dir` to download a set into.
