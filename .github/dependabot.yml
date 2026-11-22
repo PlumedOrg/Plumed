@@ -1,0 +1,8 @@
+# Keeps the GitHub Actions pinned by commit hash in .github/workflows up to
+# date: Dependabot opens a PR that bumps the hash and its "# vN" comment.
+version: 2
+updates:
+    - package-ecosystem: github-actions
+      directory: /
+      schedule:
+          interval: weekly

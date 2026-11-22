@@ -36,19 +36,19 @@ jobs:
         env:
             HAS_SIGNPATH: ${{ secrets.SIGNPATH_API_TOKEN != '' }}
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-            - uses: actions/setup-node@v4
+            - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
               with:
                   node-version: lts/*
 
             # Plumed: Rust 1.100's cargo build-dir layout (build/<crate>/<hash>/out) breaks
             # ort-sys 2.0.0-rc.11's DLL copy on Windows; keep 1.99 until ort is upgraded.
-            - uses: dtolnay/rust-toolchain@4be9e76fd7c4901c61fb841f559994984270fce7
+            - uses: dtolnay/rust-toolchain@4be9e76fd7c4901c61fb841f559994984270fce7 # stable branch (2025-12-16), the toolchain input picks the version
               with:
                   toolchain: 1.99.1
 
-            - uses: swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5
+            - uses: swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2.8.2
               with:
                   workspaces: './src-tauri -> target'
 
@@ -85,7 +85,7 @@ jobs:
             - name: Upload unsigned artifact
               if: ${{ inputs.dry == false }}
               id: upload-unsigned-artifact
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
               with:
                   name: unsigned-binaries
                   path: unsigned_artifacts
@@ -94,7 +94,7 @@ jobs:
 
             - name: SignPath Sign
               if: ${{ inputs.dry == false && env.HAS_SIGNPATH == 'true' }}
-              uses: signpath/github-action-submit-signing-request@v2
+              uses: signpath/github-action-submit-signing-request@c92b958760219087e01f8d67a1669ed57afe2627 # v2
               with:
                   api-token: '${{ secrets.SIGNPATH_API_TOKEN }}'
                   organization-id: '${{ secrets.SIGNPATH_ORG_ID }}'
@@ -146,7 +146,7 @@ jobs:
 
             - name: Upload artifact (1 day)
               if: ${{ inputs.dry == false }}
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
               with:
                   name: plumed-windows-x64
                   path: release-bundle
