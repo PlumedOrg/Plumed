@@ -53,8 +53,10 @@ pub struct AppSettings {
     // Linux only. Persists the user's dismissal of the Wayland clipboard
     // fallback onboarding card (manual Ctrl+V hint when auto-paste fails).
     pub wayland_clipboard_fallback_dismissed: bool,
-    // Lockdown for managed devices: refuses `plumed import` from the CLI.
-    // Never exported, so a settings file cannot flip it.
+    // Refuses `plumed import` from the CLI, on by default (Plumed fork): any
+    // program running as the user could otherwise replace the settings. Never
+    // exported, so a settings file cannot flip it. Settings files saved before
+    // keep their value (every field is written on save).
     pub block_cli_import: bool,
     // Plumed fork: re-transcribe short dictations behind the previous one (RAM only).
     pub short_dictation_context: bool,
@@ -170,7 +172,7 @@ impl Default for AppSettings {
             remove_hesitations: false,
             wayland_notice_dismissed: false,
             wayland_clipboard_fallback_dismissed: false,
-            block_cli_import: false,
+            block_cli_import: true,
             short_dictation_context: true,
             remote_mic_enabled: false,
             remote_mic_url: "https://turn.plumed.fr".to_string(),
@@ -187,6 +189,13 @@ impl Default for AppSettings {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn new_installs_block_cli_import_but_saved_settings_keep_their_value() {
+        assert!(AppSettings::default().block_cli_import);
+        let saved: AppSettings = serde_json::from_str(r#"{"block_cli_import":false}"#).unwrap();
+        assert!(!saved.block_cli_import);
+    }
 
     #[test]
     fn empty_shortcut_survives_serde_round_trip() {

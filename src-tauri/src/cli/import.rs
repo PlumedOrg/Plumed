@@ -20,7 +20,10 @@ fn validate_extension(file_path: &str) -> Result<(), String> {
 fn ensure_import_allowed(block_cli_import: bool) -> Result<(), String> {
     match block_cli_import {
         true => Err(
-            "Error: Importing settings from the command line is disabled in Plumed's advanced settings."
+            "Error: Importing settings from the command line is blocked. To allow it, open Plumed, \
+             Settings > System > Advanced, and turn off \"Block command-line import\" (in French: \
+             Paramètres > Système > Avancé, \"Bloquer l'import en ligne de commande\"). You can \
+             also import the file from the app window: Import / Export."
                 .to_string(),
         ),
         false => Ok(()),
@@ -278,7 +281,7 @@ mod tests {
     fn test_import_refused_when_blocked() {
         assert!(ensure_import_allowed(true)
             .unwrap_err()
-            .contains("disabled"));
+            .contains("turn off \"Block command-line import\""));
         assert!(ensure_import_allowed(false).is_ok());
     }
 
