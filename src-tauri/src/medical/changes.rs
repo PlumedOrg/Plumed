@@ -1,7 +1,8 @@
 //! The user's changes to the three medical lists of the Corrections page, as
 //! the settings export (`.murmure` file) carries them: one category per list,
 //! `medical_phrases` (Medical vocabulary tab), `medical_confusion_groups`
-//! (Sound-alike words tab) and `medical_rules` (Residual errors tab). Only the
+//! (Sound-alike words tab), `medical_rules` (Residual errors tab) and
+//! `grammar_rules` (Grammar tab, the rules turned off and on). Only the
 //! changes travel, never the bundled lists (the phrase list alone has ~77,000
 //! entries), so a file stays small and applies on top of whatever medical
 //! data the importing computer uses, like the per-tab files do.
@@ -15,6 +16,7 @@
 use super::list_overlay::{ListOverlay, OverlayEntry, Phrase};
 use super::RuleEdit;
 use crate::engine::confusion::ConfusionGroup;
+use crate::grammar::rules::GrammarOverlay;
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 
@@ -30,6 +32,8 @@ pub struct MedicalChanges {
     pub medical_confusion_groups: Option<ListOverlay<ConfusionGroup>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub medical_rules: Option<Vec<RuleEdit>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub grammar_rules: Option<GrammarOverlay>,
 }
 
 impl MedicalChanges {
@@ -43,6 +47,7 @@ impl MedicalChanges {
                 self.medical_confusion_groups.is_some(),
             ),
             ("medical_rules", self.medical_rules.is_some()),
+            ("grammar_rules", self.grammar_rules.is_some()),
         ]
         .into_iter()
         .filter_map(|(key, present)| present.then_some(key))
@@ -108,6 +113,13 @@ fn resolve(
             medical_rules: imported
                 .medical_rules
                 .map(|edits| merged(current.medical_rules.unwrap_or_default(), edits, edit_key)),
+            grammar_rules: imported.grammar_rules.map(|overlay| {
+                let current = current.grammar_rules.unwrap_or_default();
+                GrammarOverlay {
+                    disabled: merged(current.disabled, overlay.disabled, String::clone),
+                    added: merged(current.added, overlay.added, String::clone),
+                }
+            }),
         },
     };
     if let Some(overlay) = &resolved.medical_phrases {
@@ -119,15 +131,19 @@ fn resolve(
     if let Some(edits) = &resolved.medical_rules {
         super::validate_edits(edits)?;
     }
+    if let Some(overlay) = &resolved.grammar_rules {
+        crate::grammar::rules::validate_overlay(overlay, &crate::grammar::rules::DATA.rules)?;
+    }
     Ok(resolved)
 }
 
-/// The saved changes of the three lists, for an export.
+/// The saved changes of the lists, for an export.
 pub fn current(app: &AppHandle) -> Result<MedicalChanges, String> {
     Ok(MedicalChanges {
         medical_phrases: Some(super::get_overlay(app)?),
         medical_confusion_groups: Some(super::get_overlay(app)?),
         medical_rules: Some(super::get_edits(app)?),
+        grammar_rules: Some(crate::grammar::get_overlay(app)?),
     })
 }
 
@@ -148,6 +164,9 @@ pub fn import(app: &AppHandle, imported: MedicalChanges, merge: bool) -> Result<
     }
     if let Some(edits) = resolved.medical_rules {
         super::set_edits(app, edits)?;
+    }
+    if let Some(overlay) = resolved.grammar_rules {
+        crate::grammar::set_overlay(app, overlay)?;
     }
     Ok(())
 }
@@ -211,6 +230,7 @@ mod tests {
                 ),
                 edit(None, "dolipran", "Doliprane"),
             ]),
+            grammar_rules: None,
         };
         let changed_group = group("ituximab", &["rituximab", "cetuximab", "infliximab"]);
         let imported = MedicalChanges {
@@ -227,6 +247,7 @@ mod tests {
                 ),
                 edit(None, "levotirox", "Levothyrox"),
             ]),
+            grammar_rules: None,
         };
         let resolved = resolve(current, imported, true).unwrap();
         assert_eq!(
@@ -277,6 +298,45 @@ mod tests {
             ..Default::default()
         };
         assert!(resolve(MedicalChanges::default(), bad_phrase, false).is_err());
+    }
+
+    #[test]
+    fn grammar_rule_changes_merge_by_id_and_are_checked() {
+        let ids = |list: &[&str]| list.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+        let current = MedicalChanges {
+            grammar_rules: Some(GrammarOverlay {
+                disabled: ids(&["g2__locutions_invariables"]),
+                added: ids(&["g3__gn_les_2m"]),
+            }),
+            ..Default::default()
+        };
+        let imported = MedicalChanges {
+            grammar_rules: Some(GrammarOverlay {
+                disabled: ids(&["g2__locutions_invariables", "g3__gn_couleurs_composées"]),
+                added: Vec::new(),
+            }),
+            ..Default::default()
+        };
+        let resolved = resolve(current, imported.clone(), true).unwrap();
+        assert_eq!(
+            resolved.grammar_rules,
+            Some(GrammarOverlay {
+                disabled: ids(&["g2__locutions_invariables", "g3__gn_couleurs_composées"]),
+                added: ids(&["g3__gn_les_2m"]),
+            })
+        );
+        assert_eq!(
+            resolve(MedicalChanges::default(), imported.clone(), false).unwrap(),
+            imported
+        );
+        let junk = MedicalChanges {
+            grammar_rules: Some(GrammarOverlay {
+                disabled: Vec::new(),
+                added: ids(&["bad\u{7}id"]),
+            }),
+            ..Default::default()
+        };
+        assert!(resolve(MedicalChanges::default(), junk, false).is_err());
     }
 
     #[test]

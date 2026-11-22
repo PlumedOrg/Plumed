@@ -39,6 +39,7 @@ fn category_display_name(key: &str) -> &str {
         "medical_phrases" => "Medical vocabulary (your changes)",
         "medical_confusion_groups" => "Sound-alike words (your changes)",
         "medical_rules" => "Residual errors (your changes)",
+        "grammar_rules" => "Grammar (your changes)",
         _ => key,
     }
 }
@@ -415,6 +416,10 @@ mod tests {
                 replacement: "Doliprane".to_string(),
                 enabled: true,
             }]),
+            grammar_rules: Some(ListOverlay {
+                disabled: vec!["g2__locutions_invariables".to_string()],
+                added: vec!["g3__gn_les_2m".to_string()],
+            }),
         };
         let mut categories = serde_json::to_value(&changes).unwrap();
         categories["dictionary"] = serde_json::json!(["Cornélis"]);

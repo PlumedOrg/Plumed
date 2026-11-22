@@ -45,7 +45,7 @@ pub struct ExportedCategories {
     pub dictionary: Option<DictionaryExport>,
     /// Plumed fork: the user's changes to the Corrections lists, one
     /// category each (`medical_phrases`, `medical_confusion_groups`,
-    /// `medical_rules`), absent from older files.
+    /// `medical_rules`, `grammar_rules`), absent from older files.
     #[serde(flatten)]
     pub medical: crate::medical::MedicalChanges,
 }
