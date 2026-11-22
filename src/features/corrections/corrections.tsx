@@ -9,11 +9,14 @@ import { CorrectionsExplanation } from './corrections-explanation/corrections-ex
 import { CleanUpTab } from './clean-up-tab/clean-up-tab';
 import {
     CORRECTIONS_PATH,
+    CORRECTIONS_TAB_LABELS,
+    CORRECTIONS_TABS,
     CorrectionsTab,
     CorrectionsTarget,
-    numberedTabLabel,
     tabFromHash,
+    tabStepNumber,
 } from './corrections.helpers';
+import { StepBadge } from './step-badge/step-badge';
 import { FormattingTab } from './formatting-tab/formatting-tab';
 import { MedicalVocabulary } from './medical-vocabulary/medical-vocabulary';
 import { ModelCorrections } from './model-corrections/model-corrections';
@@ -50,18 +53,14 @@ export const Corrections = () => {
             <Tabs
                 value={activeTab}
                 onValueChange={selectTab}
-                tabs={[
-                    { value: 'explanation', label: t('Explanation') },
-                    { value: 'vocabulary', label: numberedTabLabel('vocabulary', t('Medical vocabulary')) },
-                    { value: 'sound-alikes', label: numberedTabLabel('sound-alikes', t('Sound-alike words')) },
-                    { value: 'dictionary', label: numberedTabLabel('dictionary', t('Personal dictionary')) },
-                    { value: 'clean-up', label: numberedTabLabel('clean-up', t('Clean-up and standardization')) },
-                    {
-                        value: 'model-corrections',
-                        label: numberedTabLabel('model-corrections', t('Model corrections')),
-                    },
-                    { value: 'formatting', label: numberedTabLabel('formatting', t('Formatting rules')) },
-                ]}
+                tabs={CORRECTIONS_TABS.map((tab) => {
+                    const step = tabStepNumber(tab);
+                    return {
+                        value: tab,
+                        label: t(CORRECTIONS_TAB_LABELS[tab]),
+                        prefix: step === null ? undefined : <StepBadge step={step} />,
+                    };
+                })}
             >
                 {activeTab === 'explanation' && <CorrectionsExplanation onOpen={open} />}
                 {activeTab === 'vocabulary' && <MedicalVocabulary />}

@@ -1,7 +1,15 @@
 import clsx from 'clsx';
 import { useTranslation } from '@/i18n';
-import { numberedStepTitle, stepNumber } from '@/features/corrections/corrections.helpers';
-import { DiffPart, HistoryStep, HistoryStepId, StepChange, stepChanges, wordDiff } from './history-steps.helpers';
+import { cleanUpOptionTiming, pipelineStepTitle, stepNumber } from '@/features/corrections/corrections.helpers';
+import { StepBadge } from '@/features/corrections/step-badge/step-badge';
+import {
+    DiffPart,
+    HistoryStep,
+    HistoryStepId,
+    StepChange,
+    changesInStepOrder,
+    wordDiff,
+} from './history-steps.helpers';
 
 interface HistoryStepsProps {
     steps: HistoryStep[];
@@ -28,10 +36,33 @@ const Diff = ({ parts }: { parts: DiffPart[] }) => (
 export const HistorySteps = ({ steps }: HistoryStepsProps) => {
     const { t } = useTranslation();
 
-    const stepLabel = (id: HistoryStepId) =>
-        id === 'recognition'
-            ? `(${stepNumber('vocabulary')}, ${stepNumber('sound_alikes')}) ${t('Recognition')}`
-            : numberedStepTitle(id, t);
+    // Recognition carries the badges of steps 1 and 2; a Clean-up option is a
+    // sub-line of step 4 (no badge, indented) saying when it really ran.
+    const stepLabel = (id: HistoryStepId) => {
+        if (id === 'recognition') {
+            return (
+                <>
+                    <StepBadge step={stepNumber('vocabulary')} />
+                    <StepBadge step={stepNumber('sound_alikes')} />
+                    {t('Recognition')}
+                </>
+            );
+        }
+        const timing = cleanUpOptionTiming(id, t);
+        if (timing !== null) {
+            return (
+                <span className="pl-7">
+                    {pipelineStepTitle(id, t)} <span className="text-muted-foreground">({timing})</span>
+                </span>
+            );
+        }
+        return (
+            <>
+                <StepBadge step={stepNumber(id)} />
+                {pipelineStepTitle(id, t)}
+            </>
+        );
+    };
 
     const outcome = ({ step, before }: StepChange) => {
         if (before == null) {
@@ -49,11 +80,11 @@ export const HistorySteps = ({ steps }: HistoryStepsProps) => {
 
     return (
         <ul className="space-y-1 border-t border-surface-border pt-2 text-xs" data-testid="history-steps">
-            {stepChanges(steps).map((change) => (
-                <li key={change.step.step_id} className="grid grid-cols-[12rem_1fr] gap-2">
+            {changesInStepOrder(steps).map((change) => (
+                <li key={change.step.step_id} className="grid grid-cols-[14rem_1fr] gap-2">
                     <span
                         className={clsx(
-                            'text-muted-foreground',
+                            'flex items-start gap-1.5 text-muted-foreground',
                             change.before != null && change.before !== change.step.text_after && 'text-sky-300'
                         )}
                     >

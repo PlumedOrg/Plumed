@@ -16,7 +16,9 @@ import {
     PIPELINE_STEPS,
     PipelineStepId,
     RULES_ANCHORS,
+    cleanUpOptionTiming,
     pipelineStepTitle,
+    stepNumber,
 } from '../corrections.helpers';
 import { PipelineStep, Step, StepAction, StepStatus } from './pipeline-step/pipeline-step';
 
@@ -54,8 +56,13 @@ export const CorrectionsExplanation = ({ onOpen }: CorrectionsExplanationProps) 
         onClick: () => onOpen({ tab }),
         testId,
     });
-    const openOption = (anchor: string, testId: string): StepAction => ({
-        label: t('Open the option'),
+    // Several statuses on one card need their name: "Hésitations : activé".
+    const namedOnOff = (name: string, on: boolean): StepStatus => ({
+        label: on ? t('{{name}}: on', { name }) : t('{{name}}: off', { name }),
+        active: on,
+    });
+    const openOption = (anchor: string, label: string, testId: string): StepAction => ({
+        label,
         onClick: () => onOpen({ tab: 'clean-up', anchor }),
         testId,
     });
@@ -104,15 +111,35 @@ export const CorrectionsExplanation = ({ onOpen }: CorrectionsExplanationProps) 
         clean_up: {
             stage: onText,
             description: t(
-                'Words repeated by mistake are removed, and hesitation sounds like "euh" too when the option is on.'
+                'Words repeated by mistake are removed, and hesitation sounds like "euh" too when the option is on. Two more options of this tab run later: short text correction ({{shortTextTiming}}) removes capitalization and punctuation from very short transcriptions, and the pre-installed formatting ({{formattingTiming}}) adds a space before ? and !, writes numbers as digits and ends each transcription with a space.',
+                {
+                    shortTextTiming: cleanUpOptionTiming('short_text', t) ?? '',
+                    formattingTiming: cleanUpOptionTiming('built_in_formatting', t) ?? '',
+                }
             ),
             examples: [
                 { before: 'le le patient', after: 'le patient' },
                 { before: "J'ai instauré euh du paracétamol", after: "J'ai instauré du paracétamol" },
+                { before: 'Oui.', after: 'oui' },
+                { before: 'Des douleurs?', after: 'Des douleurs ?' },
             ],
-            note: t('The options of this step and of steps 6 and 8 share one tab.'),
-            statuses: [onOff(removeHesitations)],
-            actions: [openOption(RULES_ANCHORS.hesitations, 'corrections-open-hesitations')],
+            statuses: [
+                namedOnOff(t('Hesitations'), removeHesitations),
+                namedOnOff(pipelineStepTitle('short_text', t), options.short_text_correction > 0),
+                namedOnOff(
+                    pipelineStepTitle('built_in_formatting', t),
+                    options.space_before_punctuation || options.convert_text_numbers || options.trailing_space
+                ),
+            ],
+            actions: [
+                openOption(RULES_ANCHORS.hesitations, t('Open the hesitation option'), 'corrections-open-hesitations'),
+                openOption(RULES_ANCHORS.shortText, t('Open short text correction'), 'corrections-open-short-text'),
+                openOption(
+                    RULES_ANCHORS.formattingOptions,
+                    t('Open the formatting options'),
+                    'corrections-open-formatting-options'
+                ),
+            ],
         },
         model_corrections: {
             stage: onText,
@@ -128,20 +155,8 @@ export const CorrectionsExplanation = ({ onOpen }: CorrectionsExplanationProps) 
                 { label: t('{{count}} change(s) of yours', { count: edits.length }), active: edits.length > 0 },
             ],
             actions: [
-                openTab('model-corrections', t('Open the model corrections'), 'corrections-open-model-corrections'),
+                openTab('model-corrections', t('Open the residual errors'), 'corrections-open-model-corrections'),
             ],
-        },
-        short_text: {
-            stage: onText,
-            description:
-                options.short_text_correction > 0
-                    ? t('Removes capitalization and punctuation for transcriptions of {{count}} word(s) or fewer.', {
-                          count: options.short_text_correction,
-                      })
-                    : t('Removes capitalization and punctuation for short transcriptions.'),
-            examples: [{ before: 'Oui.', after: 'oui' }],
-            statuses: [onOff(options.short_text_correction > 0)],
-            actions: [openOption(RULES_ANCHORS.shortText, 'corrections-open-short-text')],
         },
         formatting_rules: {
             stage: onText,
@@ -151,17 +166,6 @@ export const CorrectionsExplanation = ({ onOpen }: CorrectionsExplanationProps) 
             examples: [{ before: 'tension 120 80', after: 'TA : 120/80' }],
             statuses: [{ label: t('{{count}} rule(s) on', { count: enabledRules }), active: enabledRules > 0 }],
             actions: [openTab('formatting', t('Open the formatting rules'), 'corrections-open-user-rules')],
-        },
-        built_in_formatting: {
-            stage: onText,
-            description: t(
-                'Last, the pre-installed options: space before ? and !, numbers written as digits, and a space at the end of each transcription.'
-            ),
-            examples: [{ before: 'Des douleurs?', after: 'Des douleurs ?' }],
-            statuses: [
-                onOff(options.space_before_punctuation || options.convert_text_numbers || options.trailing_space),
-            ],
-            actions: [openOption(RULES_ANCHORS.formattingOptions, 'corrections-open-formatting-options')],
         },
     };
     const steps: Step[] = PIPELINE_STEPS.map(({ id }) => ({ title: pipelineStepTitle(id, t), ...content[id] }));
@@ -188,7 +192,12 @@ export const CorrectionsExplanation = ({ onOpen }: CorrectionsExplanationProps) 
                     <Typography.Title>{t('Medical data')}</Typography.Title>
                     <Typography.Paragraph>
                         {t(
-                            'The medical vocabulary (step 1), the sound-alike words (step 2) and the model corrections (step 5) form the medical data.'
+                            'The medical vocabulary (step {{vocabulary}}), the sound-alike words (step {{soundAlikes}}) and the residual errors (step {{residualErrors}}) form the medical data.',
+                            {
+                                vocabulary: stepNumber('vocabulary'),
+                                soundAlikes: stepNumber('sound_alikes'),
+                                residualErrors: stepNumber('model_corrections'),
+                            }
                         )}{' '}
                         {medicalDataVersionLabel(dataStatus, t)}
                     </Typography.Paragraph>

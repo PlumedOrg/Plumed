@@ -8,14 +8,15 @@ import { Typography } from '@/components/typography';
 import { useTranslation } from '@/i18n';
 import { useFormattingRules } from '@/features/personalize/formatting-rules/hooks/use-formatting-rules';
 import { useRemoveHesitations } from '@/features/personalize/formatting-rules/hooks/use-remove-hesitations';
-import { PipelineStepId, RULES_ANCHORS, numberedStepTitle } from '../corrections.helpers';
+import { RULES_ANCHORS, TextStepId, cleanUpOptionTiming, pipelineStepTitle, stepNumber } from '../corrections.helpers';
+import { StepBadge } from '../step-badge/step-badge';
 
 interface CleanUpTabProps {
     /** Id of the block to scroll to once loaded (see `RULES_ANCHORS`). */
     anchor: string | null;
 }
 
-/** "Clean-up and standardization" tab: the pre-installed options of steps 4, 6 and 8. */
+/** "Clean-up and standardization" tab: the pre-installed options of step 4. */
 export const CleanUpTab = ({ anchor }: CleanUpTabProps) => {
     const { t } = useTranslation();
     const { settings, isLoading, updateBuiltInOption } = useFormattingRules();
@@ -33,17 +34,29 @@ export const CleanUpTab = ({ anchor }: CleanUpTabProps) => {
         return <div className="text-muted-foreground">{t('Loading...')}</div>;
     }
 
-    const stepHeading = (id: PipelineStepId) => numberedStepTitle(id, t);
+    // "4 Short text correction (applied after step 5)": every block is part of
+    // step 4, the options that run later say when.
+    const stepHeading = (id: TextStepId) => {
+        const timing = cleanUpOptionTiming(id, t);
+        return (
+            <Typography.Title className="flex items-center gap-2">
+                <StepBadge step={stepNumber(id)} />
+                {pipelineStepTitle(id, t)}
+                {timing !== null && <span className="text-xs font-normal text-muted-foreground">({timing})</span>}
+            </Typography.Title>
+        );
+    };
 
     return (
         <div className="space-y-6" data-testid="built-in-options">
             <Typography.Paragraph>
                 {t(
-                    'The pre-installed options that clean up and standardize the text. They run at steps 4, 6 and 8 of the Explanation tab.'
+                    'The pre-installed options that clean up and standardize the text, step {{step}} of the Explanation tab. Short text correction and the pre-installed formatting run later in the chain, as noted next to them.',
+                    { step: stepNumber('clean_up') }
                 )}
             </Typography.Paragraph>
             <section className="space-y-3">
-                <Typography.Title>{stepHeading('clean_up')}</Typography.Title>
+                {stepHeading('clean_up')}
                 <SettingsUI.Container id={RULES_ANCHORS.hesitations}>
                     <SettingsUI.Item>
                         <SettingsUI.Description className="w-150">
@@ -66,7 +79,7 @@ export const CleanUpTab = ({ anchor }: CleanUpTabProps) => {
             </section>
 
             <section className="space-y-3">
-                <Typography.Title>{stepHeading('short_text')}</Typography.Title>
+                {stepHeading('short_text')}
                 <SettingsUI.Container id={RULES_ANCHORS.shortText}>
                     <SettingsUI.Item>
                         <SettingsUI.Description className="w-150">
@@ -105,7 +118,7 @@ export const CleanUpTab = ({ anchor }: CleanUpTabProps) => {
             </section>
 
             <section className="space-y-3">
-                <Typography.Title>{stepHeading('built_in_formatting')}</Typography.Title>
+                {stepHeading('built_in_formatting')}
                 <SettingsUI.Container id={RULES_ANCHORS.formattingOptions}>
                     <SettingsUI.Item>
                         <SettingsUI.Description className="w-150">

@@ -1,7 +1,7 @@
-import { PipelineStepId } from '@/features/corrections/corrections.helpers';
+import { TextStepId, stepNumber } from '@/features/corrections/corrections.helpers';
 
 /** Recognition covers steps 1 and 2, the other ids are the text steps after it. */
-export type HistoryStepId = 'recognition' | Exclude<PipelineStepId, 'vocabulary' | 'sound_alikes'>;
+export type HistoryStepId = 'recognition' | Exclude<TextStepId, 'vocabulary' | 'sound_alikes'>;
 
 /** The text after one processing step (Rust `history::StepText`). */
 export interface HistoryStep {
@@ -81,3 +81,20 @@ export interface StepChange {
 /** Pairs each step with the text it started from. */
 export const stepChanges = (steps: HistoryStep[]): StepChange[] =>
     steps.map((step, index) => ({ step, before: index === 0 ? null : steps[index - 1].text_after }));
+
+/** Step number a history line is shown under: 0 for recognition (steps 1 and 2), first. */
+const displayStep = (id: HistoryStepId): number => (id === 'recognition' ? 0 : stepNumber(id));
+
+/**
+ * The changes in Explanation step order. The code runs short text correction
+ * after step 5 and the pre-installed formatting after step 6, but both are
+ * options of step 4, so they are shown under it (the sort is stable, so they
+ * follow the clean-up line in the order they ran). Each keeps the text it
+ * really started from, so its diff stays right. Example, as step ids:
+ * [recognition, dictionary, clean_up, model_corrections, short_text,
+ * formatting_rules, built_in_formatting] is shown as [recognition,
+ * dictionary, clean_up, short_text, built_in_formatting, model_corrections,
+ * formatting_rules].
+ */
+export const changesInStepOrder = (steps: HistoryStep[]): StepChange[] =>
+    [...stepChanges(steps)].sort((a, b) => displayStep(a.step.step_id) - displayStep(b.step.step_id));

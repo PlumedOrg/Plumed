@@ -2,10 +2,11 @@ import { useTranslation } from '@/i18n';
 import { useFormattingRules } from '@/features/personalize/formatting-rules/hooks/use-formatting-rules';
 import { useMedicalRules } from '@/features/personalize/medical-rules/hooks/use-medical-rules';
 import { MedicalRules } from '@/features/personalize/medical-rules/medical-rules';
+import { pipelineStepTitle } from '../corrections.helpers';
 import { useListFile } from '../hooks/use-list-file';
 import { ListHeader } from '../list-header/list-header';
 
-/** "Model corrections" tab: the UltiMed and Plumed fix rules, with the user's changes. */
+/** "Residual errors" tab: the UltiMed and Plumed fix rules, with the user's changes. */
 export const ModelCorrections = () => {
     const { t } = useTranslation();
     const { settings, updateBuiltInOption } = useFormattingRules();
@@ -15,7 +16,7 @@ export const ModelCorrections = () => {
     return (
         <div className="space-y-6">
             <ListHeader
-                title={t('Fix frequent model errors')}
+                title={pipelineStepTitle('model_corrections', t)}
                 description={t(
                     "About 25,000 rules rewrite what the model often gets wrong on drug names and medical terms: UltiMed's rules, then Plumed's own. Your changes come on top: an added rule runs before the others, a changed or turned off rule replaces its pre-installed version."
                 )}

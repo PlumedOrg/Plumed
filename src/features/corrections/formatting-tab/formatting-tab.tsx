@@ -7,7 +7,7 @@ import { FormattingRule } from '@/features/personalize/formatting-rules/types';
 import { useFormattingRulesFile } from '../hooks/use-formatting-rules-file';
 import { ListHeader } from '../list-header/list-header';
 
-/** "Formatting rules" tab: the user's rules, seeded with InterHop's. */
+/** "Formatting" tab: the user's rules, seeded with InterHop's. */
 export const FormattingTab = () => {
     const { t } = useTranslation();
     const formatting = useFormattingRules();

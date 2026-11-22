@@ -4,6 +4,7 @@ import { Typography } from '@/components/typography';
 import { useTranslation } from '@/i18n';
 import { PreviewArrow } from '@/features/extensions/extension-demo/preview-arrow/preview-arrow';
 import { PreviewCell } from '@/features/extensions/extension-demo/preview-cell/preview-cell';
+import { StepBadge } from '../../step-badge/step-badge';
 
 export interface StepStatus {
     label: string;
@@ -48,9 +49,7 @@ export const PipelineStep = ({ index, step }: PipelineStepProps) => {
             data-testid={`corrections-step-${index}`}
         >
             <div className="flex flex-wrap items-center gap-2">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sky-500/15 text-xs font-semibold text-sky-300">
-                    {index}
-                </span>
+                <StepBadge step={index} />
                 <Typography.Title>{step.title}</Typography.Title>
                 <span className="text-xs text-muted-foreground">{step.stage}</span>
                 {step.statuses.map((status) => (

@@ -27,9 +27,10 @@ export const RULES_ANCHORS = {
 } as const;
 
 /**
- * The steps that change the text, in the order the code runs them
- * (`audio/pipeline.rs`, then `formatting_rules/formatter.rs`). Ids after
- * recognition match the Rust `history::PipelineStep` the history keeps.
+ * The steps of the Explanation flow, in the order the code runs them
+ * (`audio/pipeline.rs`, then `formatting_rules/formatter.rs`), one per list
+ * tab. Ids after recognition match the Rust `history::PipelineStep` the
+ * history keeps.
  */
 export type PipelineStepId =
     | 'vocabulary'
@@ -37,35 +38,77 @@ export type PipelineStepId =
     | 'dictionary'
     | 'clean_up'
     | 'model_corrections'
-    | 'short_text'
-    | 'formatting_rules'
-    | 'built_in_formatting';
+    | 'formatting_rules';
 
-/** Each step and the tab holding its list or options. */
+/**
+ * Options of the Clean-up tab that the code runs later than step 4. They are
+ * not steps of their own: the Explanation card, the Clean-up tab and the
+ * history show them inside step 4, saying when they run.
+ */
+export type CleanUpOptionId = 'short_text' | 'built_in_formatting';
+
+/** Anything the history records a text for after recognition. */
+export type TextStepId = PipelineStepId | CleanUpOptionId;
+
+/** Each step and the tab holding its list or options. Step numbers come from this order. */
 export const PIPELINE_STEPS: { id: PipelineStepId; tab: CorrectionsTab }[] = [
     { id: 'vocabulary', tab: 'vocabulary' },
     { id: 'sound_alikes', tab: 'sound-alikes' },
     { id: 'dictionary', tab: 'dictionary' },
     { id: 'clean_up', tab: 'clean-up' },
     { id: 'model_corrections', tab: 'model-corrections' },
-    { id: 'short_text', tab: 'clean-up' },
     { id: 'formatting_rules', tab: 'formatting' },
-    { id: 'built_in_formatting', tab: 'clean-up' },
 ];
 
-/** Number of a step in the Explanation flow, starting at 1. */
-export const stepNumber = (id: PipelineStepId): number => PIPELINE_STEPS.findIndex((step) => step.id === id) + 1;
+/**
+ * The step after which each option of the Clean-up tab runs: short text
+ * correction after the residual errors (step 5), the pre-installed
+ * formatting last, after the user's formatting rules (step 6).
+ */
+export const CLEAN_UP_OPTIONS: { id: CleanUpOptionId; runsAfter: PipelineStepId }[] = [
+    { id: 'short_text', runsAfter: 'model_corrections' },
+    { id: 'built_in_formatting', runsAfter: 'formatting_rules' },
+];
 
-/** "(4, 6, 8) Label": a tab label prefixed with the numbers of the steps it covers. */
-export const numberedTabLabel = (tab: CorrectionsTab, label: string): string => {
-    const numbers = PIPELINE_STEPS.flatMap((step, index) => (step.tab === tab ? [index + 1] : []));
-    return numbers.length > 0 ? `(${numbers.join(', ')}) ${label}` : label;
+const isCleanUpOption = (id: TextStepId): id is CleanUpOptionId => CLEAN_UP_OPTIONS.some((option) => option.id === id);
+
+/** Number of a step in the Explanation flow, starting at 1. Clean-up options get the number of step 4. */
+export const stepNumber = (id: TextStepId): number => {
+    const stepId: PipelineStepId = isCleanUpOption(id) ? 'clean_up' : id;
+    return PIPELINE_STEPS.findIndex((step) => step.id === stepId) + 1;
+};
+
+/** Number of the step a Clean-up option runs after, `null` for a real step. */
+export const runsAfterStep = (id: TextStepId): number | null => {
+    const option = CLEAN_UP_OPTIONS.find((candidate) => candidate.id === id);
+    return option === undefined ? null : stepNumber(option.runsAfter);
+};
+
+/** Number of the step a tab holds, `null` for the Explanation tab. */
+export const tabStepNumber = (tab: CorrectionsTab): number | null => {
+    const index = PIPELINE_STEPS.findIndex((step) => step.tab === tab);
+    return index >= 0 ? index + 1 : null;
+};
+
+/**
+ * Tab names (English keys of `fr.json`, translate them with `t`), shared by
+ * the tabs and the categories of the settings import and export, so both
+ * read the same.
+ */
+export const CORRECTIONS_TAB_LABELS: Record<CorrectionsTab, string> = {
+    explanation: 'Explanation',
+    vocabulary: 'Medical vocabulary',
+    'sound-alikes': 'Sound-alike words',
+    dictionary: 'Personal dictionary',
+    'clean-up': 'Clean-up and standardization',
+    'model-corrections': 'Residual errors',
+    formatting: 'Formatting',
 };
 
 type Translate = (key: string, options?: Record<string, string | number>) => string;
 
-/** Title of a step, shared by the Explanation tab and the history details. */
-export const pipelineStepTitle = (id: PipelineStepId, t: Translate): string => {
+/** Title of a step or Clean-up option, shared by the Explanation tab, the Clean-up tab and the history details. */
+export const pipelineStepTitle = (id: TextStepId, t: Translate): string => {
     switch (id) {
         case 'vocabulary':
             return t('Boost medical vocabulary');
@@ -76,7 +119,7 @@ export const pipelineStepTitle = (id: PipelineStepId, t: Translate): string => {
         case 'clean_up':
             return t('Clean-up and standardization');
         case 'model_corrections':
-            return t('Fix frequent model errors');
+            return t('Fix the residual errors of the model');
         case 'short_text':
             return t('Short text correction');
         case 'formatting_rules':
@@ -86,11 +129,14 @@ export const pipelineStepTitle = (id: PipelineStepId, t: Translate): string => {
     }
 };
 
-/** "(4) Clean-up and standardization": a step title with its number. */
-export const numberedStepTitle = (id: PipelineStepId, t: Translate): string =>
-    `(${stepNumber(id)}) ${pipelineStepTitle(id, t)}`;
+/** "applied after step 5": when a Clean-up option runs, `null` for a real step. */
+export const cleanUpOptionTiming = (id: TextStepId, t: Translate): string | null => {
+    const after = runsAfterStep(id);
+    return after === null ? null : t('applied after step {{step}}', { step: after });
+};
 
-const TABS: CorrectionsTab[] = [
+/** The tabs in the order they are shown. */
+export const CORRECTIONS_TABS: CorrectionsTab[] = [
     'explanation',
     'vocabulary',
     'sound-alikes',
@@ -110,6 +156,6 @@ export const tabFromHash = (hash: string): CorrectionsTab => {
         case 'custom-rules':
             return 'formatting';
         default:
-            return pickTabFromHash(hash, TABS, 'explanation');
+            return pickTabFromHash(hash, CORRECTIONS_TABS, 'explanation');
     }
 };

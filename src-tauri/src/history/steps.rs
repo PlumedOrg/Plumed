@@ -6,7 +6,9 @@
 use serde::{Deserialize, Serialize};
 
 /// The text steps after recognition, in the order the code runs them. Mirrors
-/// the frontend `PipelineStepId` (`src/features/corrections/corrections.helpers.ts`).
+/// the frontend `TextStepId` (`src/features/corrections/corrections.helpers.ts`),
+/// where `ShortText` and `BuiltInFormatting` are options shown under the
+/// clean-up step of the Explanation flow, not steps of their own.
 /// Recognition covers the medical vocabulary and the sound-alike words, which
 /// act while decoding and cannot be told apart in the text.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
