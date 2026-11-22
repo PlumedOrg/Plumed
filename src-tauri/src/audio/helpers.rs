@@ -74,7 +74,7 @@ fn recordings_parent(
 /// rather than used.
 #[cfg(unix)]
 fn ensure_private_dir(dir: &Path) -> Result<()> {
-    use std::os::unix::fs::{DirBuilderExt, MetadataExt, PermissionsExt};
+    use std::os::unix::fs::{DirBuilderExt, MetadataExt};
     if let Err(e) = std::fs::DirBuilder::new().mode(0o700).create(dir) {
         if e.kind() != std::io::ErrorKind::AlreadyExists {
             return Err(e).context("Failed to create recordings dir");
@@ -89,10 +89,8 @@ fn ensure_private_dir(dir: &Path) -> Result<()> {
             dir.display()
         );
     }
-    if meta.permissions().mode() & 0o777 != 0o700 {
-        std::fs::set_permissions(dir, std::fs::Permissions::from_mode(0o700))
-            .context("Failed to set recordings dir permissions")?;
-    }
+    crate::utils::private_dir::restrict_to_owner(dir)
+        .context("Failed to set recordings dir permissions")?;
     Ok(())
 }
 

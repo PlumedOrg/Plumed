@@ -2,6 +2,7 @@ pub mod enigo_session;
 pub mod http;
 pub mod log_watchdog;
 pub mod platform;
+pub mod private_dir;
 pub mod resources;
 pub mod user_text;
 #[cfg(target_os = "linux")]

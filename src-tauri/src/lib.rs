@@ -151,6 +151,16 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .device_event_filter(DeviceEventFilter::Never)
         .setup(|app| {
+            // The folder's mode guards every file inside, whatever its own
+            match app.path().app_data_dir() {
+                Ok(dir) => {
+                    if let Err(e) = crate::utils::private_dir::ensure_private_app_data_dir(&dir) {
+                        log::warn!("Could not make {} private: {}", dir.display(), e);
+                    }
+                }
+                Err(e) => log::warn!("No app data dir: {}", e),
+            }
+
             let start_hidden =
                 std::env::args().any(|arg| arg == "--autostart" || arg == "--hidden");
             if start_hidden {
