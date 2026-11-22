@@ -19,22 +19,21 @@ import { LogLevelSettings } from './log-level-settings/log-level-settings';
 import { KeepRecordingsSettings } from './keep-recordings-settings/keep-recordings-settings';
 import { ShortDictationContextSettings } from './short-dictation-context-settings/short-dictation-context-settings';
 import { BlockCliImportSettings } from './block-cli-import-settings/block-cli-import-settings';
-import { TelemetrySettings } from './telemetry-settings/telemetry-settings';
-import { useTelemetryAvailable } from '@/features/telemetry/hooks/use-telemetry-available';
-import { Keyboard, Monitor, Settings, Wrench } from 'lucide-react';
+import { OnlineSettings } from './online-settings/online-settings';
+import { Globe, Keyboard, Monitor, Settings, Wrench } from 'lucide-react';
 import { useLocation, useNavigate } from '@tanstack/react-router';
 import { Tabs } from '@/components/tabs';
 import { pickTabFromHash } from '@/components/tabs.helpers';
 import { Shortcuts } from '@/features/settings/shortcuts/shortcuts';
 
 // Plumed fork (written with Claude Code): the sections are tabs, and the
-// keyboard shortcuts are the last one. The URL hash selects the tab.
-const SYSTEM_TABS = ['general', 'overlay', 'advanced', 'shortcuts'] as const;
+// keyboard shortcuts are the last one. "Online" holds every setting that
+// reaches the network. The URL hash selects the tab.
+const SYSTEM_TABS = ['general', 'overlay', 'advanced', 'online', 'shortcuts'] as const;
 type SystemTab = (typeof SYSTEM_TABS)[number];
 
 export const System = () => {
     const { t } = useTranslation();
-    const telemetryAvailable = useTelemetryAvailable();
     const { hash } = useLocation();
     const navigate = useNavigate();
     const activeTab = pickTabFromHash(hash, SYSTEM_TABS, 'general');
@@ -56,6 +55,7 @@ export const System = () => {
                         { value: 'general', label: t('General'), icon: Settings },
                         { value: 'overlay', label: t('Overlay'), icon: Monitor },
                         { value: 'advanced', label: t('Advanced'), icon: Wrench },
+                        { value: 'online', label: t('Online'), icon: Globe },
                         { value: 'shortcuts', label: t('Shortcuts'), icon: Keyboard },
                     ]}
                 >
@@ -102,14 +102,9 @@ export const System = () => {
                             <CopyToClipboardSettings />
                             <SettingsUI.Separator />
                             <BlockCliImportSettings />
-                            {telemetryAvailable && (
-                                <>
-                                    <SettingsUI.Separator />
-                                    <TelemetrySettings />
-                                </>
-                            )}
                         </SettingsUI.Container>
                     )}
+                    {activeTab === 'online' && <OnlineSettings />}
                     {activeTab === 'shortcuts' && <Shortcuts />}
                 </Tabs>
             </div>

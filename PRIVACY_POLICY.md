@@ -10,7 +10,7 @@ Plumed is a privacy-first, open-source speech-to-text desktop application. It is
 - Your audio and transcriptions are processed **locally** on your device.
 - Plumed stores only what it needs to operate (settings, custom words/rules). No transcription is written to disk by default.
 - On startup, Plumed checks for updates by contacting the configured updater endpoint (currently hosted on GitHub). Downloading updates is opt-in.
-- On first launch, Plumed asks whether it may check for medical rules updates at each start. Only if you agree (you can change it at the bottom of Settings > Corrections > Explanation) does it ask GitHub, on startup, whether newer medical rules exist: a plain download of a small signed file, with no identifier. Nothing is contacted before you answer. The new rules are downloaded only when you click "Download". You can also download them yourself with your browser and install them with "Install a downloaded update", which makes no network request.
+- On first launch, Plumed asks whether it may check for medical rules updates at each start. Only if you agree (you can change it in Settings > System > Online) does it ask GitHub, on startup, whether newer medical rules exist: a plain download of a small signed file, with no identifier. Nothing is contacted before you answer. The new rules are downloaded only when you click "Download". You can also download them yourself with your browser and install them with "Install a downloaded update", which makes no network request.
 
 ## What Plumed does not do
 
@@ -57,7 +57,7 @@ PhoneMic (the remote microphone) lets a phone on any network act as a microphone
 
 ## Anonymous usage statistics (opt-in)
 
-Plumed asks once, at startup, whether you want to share anonymous usage statistics. They are **off unless you say yes**, and you can change your answer at any time in Settings > System > Advanced. The "See exactly what is sent" button shows the exact data that would be sent.
+Plumed asks once, at startup, whether you want to share anonymous usage statistics. They are **off unless you say yes**, and you can change your answer at any time in Settings > System > Online. The "See exactly what is sent" button shows the exact data that would be sent.
 
 - **Purpose**: improve Plumed (know which versions, systems and features are used, and how often errors happen). Nothing else: no advertising, no profiling, no resale.
 - **Legal basis**: your consent (GDPR art. 6(1)(a)).

@@ -57,7 +57,7 @@ export const MedicalDataQuestion = () => {
                 <ul className="list-disc pl-5 text-sm space-y-1">
                     <li>{t('Nothing is downloaded without asking you first.')}</li>
                     <li>{t('Nothing about you is sent: no identifier, no cookie, no usage data.')}</li>
-                    <li>{t('You can change this choice at the bottom of Settings > Corrections > Explanation.')}</li>
+                    <li>{t('You can change this choice in Settings > System > Online.')}</li>
                 </ul>
                 <DialogFooter>
                     <Page.SecondaryButton

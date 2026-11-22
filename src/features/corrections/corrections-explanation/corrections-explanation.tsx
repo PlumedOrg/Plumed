@@ -4,7 +4,7 @@ import { SettingsUI } from '@/components/settings-ui';
 import { Typography } from '@/components/typography';
 import { useTranslation } from '@/i18n';
 import { PreviewArrow } from '@/features/extensions/extension-demo/preview-arrow/preview-arrow';
-import { MedicalDataSettings } from '@/features/medical-data/medical-data-settings/medical-data-settings';
+import { InternalLink } from '@/components/internal-link';
 import { useMedicalDataStatus } from '@/features/medical-data/hooks/use-medical-data-status';
 import { medicalDataVersionLabel } from '@/features/medical-data/medical-data.helpers';
 import { useFormattingRules } from '@/features/personalize/formatting-rules/hooks/use-formatting-rules';
@@ -205,12 +205,18 @@ export const CorrectionsExplanation = ({ onOpen }: CorrectionsExplanationProps) 
                         <Typography.Paragraph>
                             {t(
                                 'When a signed update is offered online, Plumed asks before downloading it. Your own changes are kept.'
-                            )}
+                            )}{' '}
+                            <InternalLink
+                                to="/settings/system"
+                                hash="online"
+                                data-testid="corrections-medical-data-settings-link"
+                            >
+                                {t('Manage medical data updates in Settings > System > Online')}
+                            </InternalLink>
                         </Typography.Paragraph>
                     )}
                 </SettingsUI.Container>
             )}
-            <MedicalDataSettings />
         </div>
     );
 };
