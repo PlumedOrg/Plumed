@@ -549,7 +549,6 @@
     "{{count}} word(s) of the personal dictionary_one": "{{count}} mot du dictionnaire personnel",
     "{{count}} word(s) of the personal dictionary_other": "{{count}} mots du dictionnaire personnel",
     "Open the personal dictionary": "Ouvrir le dictionnaire personnel",
-    "Clean up hesitations": "Nettoyer les hésitations",
     "Words repeated by mistake are removed, and hesitation sounds like \"euh\" too when the option is on.": "Les mots répétés par erreur sont supprimés, ainsi que les hésitations comme « euh » quand l'option est activée.",
     "About 25,000 rules rewrite what the model often gets wrong on drug names and medical terms: UltiMed's rules, then Plumed's own, with your changes on top.": "Environ 25 000 règles corrigent les erreurs fréquentes du modèle sur les noms de médicaments et les termes médicaux : les règles d'UltiMed, puis celles de Plumed, avec vos modifications par-dessus.",
     "This step comes after the clean-up: \"veine euh lafaxine\" first becomes \"veine lafaxine\", which the rule knows how to fix.": "Cette étape vient après le nettoyage : « veine euh lafaxine » devient d'abord « veine lafaxine », que la règle sait corriger.",
@@ -565,7 +564,7 @@
     "After": "Après",
     "Correction rules": "Règles de correction",
     "Find a pre-installed rule": "Trouver une règle préinstallée",
-    "Show the pre-installed rules": "Afficher les règles préinstallées",
-    "Also lists the pre-installed formatting options: short text correction, spaces, numbers in digits, hesitation removal. Your own rules are always shown.": "Affiche aussi les options de mise en forme préinstallées : correction des textes courts, espaces, nombres en chiffres, suppression des hésitations. Vos propres règles sont toujours affichées.",
-    "Pre-installed options": "Options préinstallées"
+    "Clean-up and standardization": "Nettoyage et uniformisation",
+    "The options of this step and of steps 6 and 8 share one tab.": "Les options de cette étape et celles des étapes 6 et 8 sont réunies dans un même onglet.",
+    "The pre-installed options that clean up and standardize the text. They run at steps 4, 6 and 8 of the Explanation tab.": "Les options préinstallées qui nettoient et uniformisent le texte. Elles interviennent aux étapes 4, 6 et 8 de l'onglet Explication."
 }

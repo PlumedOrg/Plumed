@@ -5,20 +5,13 @@ import { FormattingRules } from '@/features/personalize/formatting-rules/formatt
 import { useFormattingRules } from '@/features/personalize/formatting-rules/hooks/use-formatting-rules';
 import { FormattingRule } from '@/features/personalize/formatting-rules/types';
 import { useFormattingRulesFile } from '../hooks/use-formatting-rules-file';
-import { useShowBuiltInRules } from '../hooks/use-show-built-in-rules';
 import { ListHeader } from '../list-header/list-header';
 
-interface FormattingTabProps {
-    /** Id of the block to scroll to once loaded. */
-    anchor: string | null;
-}
-
-/** "Formatting rules" tab: the user's rules (seeded with InterHop's) and the pre-installed options. */
-export const FormattingTab = ({ anchor }: FormattingTabProps) => {
+/** "Formatting rules" tab: the user's rules, seeded with InterHop's. */
+export const FormattingTab = () => {
     const { t } = useTranslation();
     const formatting = useFormattingRules();
     const { settings, saveSettings, loadSettings } = formatting;
-    const [showBuiltIn, setShowBuiltIn] = useShowBuiltInRules();
     const { exportRules, importRules } = useFormattingRulesFile(loadSettings);
 
     const resetRules = async () => {
@@ -46,12 +39,7 @@ export const FormattingTab = ({ anchor }: FormattingTabProps) => {
                 onImport={importRules}
                 testId="formatting-rules-list"
             />
-            <FormattingRules
-                formatting={formatting}
-                showBuiltIn={showBuiltIn}
-                onShowBuiltInChange={setShowBuiltIn}
-                anchor={anchor}
-            />
+            <FormattingRules formatting={formatting} />
         </div>
     );
 };

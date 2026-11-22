@@ -6,9 +6,15 @@ import { Typography } from '@/components/typography';
 import { useTranslation } from '@/i18n';
 import { CustomDictionary } from '@/features/personalize/custom-dictionary/custom-dictionary';
 import { CorrectionsExplanation } from './corrections-explanation/corrections-explanation';
-import { CORRECTIONS_PATH, CorrectionsTab, CorrectionsTarget, tabFromHash } from './corrections.helpers';
+import { CleanUpTab } from './clean-up-tab/clean-up-tab';
+import {
+    CORRECTIONS_PATH,
+    CorrectionsTab,
+    CorrectionsTarget,
+    numberedTabLabel,
+    tabFromHash,
+} from './corrections.helpers';
 import { FormattingTab } from './formatting-tab/formatting-tab';
-import { useShowBuiltInRules } from './hooks/use-show-built-in-rules';
 import { MedicalVocabulary } from './medical-vocabulary/medical-vocabulary';
 import { ModelCorrections } from './model-corrections/model-corrections';
 import { SoundAlikeWords } from './sound-alike-words/sound-alike-words';
@@ -21,7 +27,6 @@ export const Corrections = () => {
     const { hash } = useLocation();
     const navigate = useNavigate();
     const activeTab = tabFromHash(hash);
-    const [, setShowBuiltIn] = useShowBuiltInRules();
     const [anchor, setAnchor] = useState<string | null>(null);
 
     const goToTab = (tab: CorrectionsTab) => void navigate({ to: CORRECTIONS_PATH, hash: tab, replace: true });
@@ -32,9 +37,6 @@ export const Corrections = () => {
     };
 
     const open = (target: CorrectionsTarget) => {
-        if (target.builtIn === true) {
-            setShowBuiltIn(true);
-        }
         setAnchor(target.anchor ?? null);
         goToTab(target.tab);
     };
@@ -50,19 +52,24 @@ export const Corrections = () => {
                 onValueChange={selectTab}
                 tabs={[
                     { value: 'explanation', label: t('Explanation') },
-                    { value: 'vocabulary', label: t('Medical vocabulary') },
-                    { value: 'sound-alikes', label: t('Sound-alike words') },
-                    { value: 'dictionary', label: t('Personal dictionary') },
-                    { value: 'model-corrections', label: t('Model corrections') },
-                    { value: 'formatting', label: t('Formatting rules') },
+                    { value: 'vocabulary', label: numberedTabLabel('vocabulary', t('Medical vocabulary')) },
+                    { value: 'sound-alikes', label: numberedTabLabel('sound-alikes', t('Sound-alike words')) },
+                    { value: 'dictionary', label: numberedTabLabel('dictionary', t('Personal dictionary')) },
+                    { value: 'clean-up', label: numberedTabLabel('clean-up', t('Clean-up and standardization')) },
+                    {
+                        value: 'model-corrections',
+                        label: numberedTabLabel('model-corrections', t('Model corrections')),
+                    },
+                    { value: 'formatting', label: numberedTabLabel('formatting', t('Formatting rules')) },
                 ]}
             >
                 {activeTab === 'explanation' && <CorrectionsExplanation onOpen={open} />}
                 {activeTab === 'vocabulary' && <MedicalVocabulary />}
                 {activeTab === 'sound-alikes' && <SoundAlikeWords />}
                 {activeTab === 'dictionary' && <CustomDictionary />}
+                {activeTab === 'clean-up' && <CleanUpTab anchor={anchor} />}
                 {activeTab === 'model-corrections' && <ModelCorrections />}
-                {activeTab === 'formatting' && <FormattingTab anchor={anchor} />}
+                {activeTab === 'formatting' && <FormattingTab />}
             </Tabs>
         </main>
     );

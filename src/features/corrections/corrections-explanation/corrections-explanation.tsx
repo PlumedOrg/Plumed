@@ -10,7 +10,14 @@ import { medicalDataVersionLabel } from '@/features/medical-data/medical-data.he
 import { useFormattingRules } from '@/features/personalize/formatting-rules/hooks/use-formatting-rules';
 import { useRemoveHesitations } from '@/features/personalize/formatting-rules/hooks/use-remove-hesitations';
 import { useMedicalRules } from '@/features/personalize/medical-rules/hooks/use-medical-rules';
-import { CorrectionsTab, CorrectionsTarget, RULES_ANCHORS } from '../corrections.helpers';
+import {
+    CorrectionsTab,
+    CorrectionsTarget,
+    PIPELINE_STEPS,
+    PipelineStepId,
+    RULES_ANCHORS,
+    pipelineStepTitle,
+} from '../corrections.helpers';
 import { PipelineStep, Step, StepAction, StepStatus } from './pipeline-step/pipeline-step';
 
 interface CorrectionsExplanationProps {
@@ -49,15 +56,14 @@ export const CorrectionsExplanation = ({ onOpen }: CorrectionsExplanationProps) 
     });
     const openOption = (anchor: string, testId: string): StepAction => ({
         label: t('Open the option'),
-        onClick: () => onOpen({ tab: 'formatting', anchor, builtIn: true }),
+        onClick: () => onOpen({ tab: 'clean-up', anchor }),
         testId,
     });
     const enabledRules = settings.rules.filter((rule) => rule.enabled).length;
     const onText = t('On the text');
 
-    const steps: Step[] = [
-        {
-            title: t('Boost medical vocabulary'),
+    const content: Record<PipelineStepId, Omit<Step, 'title'>> = {
+        vocabulary: {
             stage: t('During recognition'),
             description: t(
                 'While it recognizes your voice, the model is nudged towards the words and phrases of a medical list of about 77,000 entries: once "microangiopathie" is recognized, "thrombotique" becomes more likely.'
@@ -66,8 +72,7 @@ export const CorrectionsExplanation = ({ onOpen }: CorrectionsExplanationProps) 
             statuses: [onOff(options.phrase_boosting)],
             actions: [openTab('vocabulary', t('Open the medical vocabulary'), 'corrections-open-vocabulary')],
         },
-        {
-            title: t('Tell apart words that sound alike'),
+        sound_alikes: {
             stage: t('Second listening of the audio'),
             description: t(
                 'When the model writes a word that can stand for several medical terms, Plumed listens to that passage again, with the end of the previous word, and keeps the term the audio supports best. Final transcriptions only.'
@@ -82,8 +87,7 @@ export const CorrectionsExplanation = ({ onOpen }: CorrectionsExplanationProps) 
             statuses: [onOff(options.confusion_rescoring)],
             actions: [openTab('sound-alikes', t('Open the sound-alike words'), 'corrections-open-sound-alikes')],
         },
-        {
-            title: t('Restore the spelling of the personal dictionary'),
+        dictionary: {
             stage: onText,
             description: t(
                 'A recognized word very close to a word of your personal dictionary takes its spelling (accents, capitals). These words are also favored during recognition, then their spelling is restored here.'
@@ -97,8 +101,7 @@ export const CorrectionsExplanation = ({ onOpen }: CorrectionsExplanationProps) 
             ],
             actions: [openTab('dictionary', t('Open the personal dictionary'), 'corrections-open-dictionary')],
         },
-        {
-            title: t('Clean up hesitations'),
+        clean_up: {
             stage: onText,
             description: t(
                 'Words repeated by mistake are removed, and hesitation sounds like "euh" too when the option is on.'
@@ -107,11 +110,11 @@ export const CorrectionsExplanation = ({ onOpen }: CorrectionsExplanationProps) 
                 { before: 'le le patient', after: 'le patient' },
                 { before: "J'ai instauré euh du paracétamol", after: "J'ai instauré du paracétamol" },
             ],
+            note: t('The options of this step and of steps 6 and 8 share one tab.'),
             statuses: [onOff(removeHesitations)],
             actions: [openOption(RULES_ANCHORS.hesitations, 'corrections-open-hesitations')],
         },
-        {
-            title: t('Fix frequent model errors'),
+        model_corrections: {
             stage: onText,
             description: t(
                 "About 25,000 rules rewrite what the model often gets wrong on drug names and medical terms: UltiMed's rules, then Plumed's own, with your changes on top."
@@ -128,8 +131,7 @@ export const CorrectionsExplanation = ({ onOpen }: CorrectionsExplanationProps) 
                 openTab('model-corrections', t('Open the model corrections'), 'corrections-open-model-corrections'),
             ],
         },
-        {
-            title: t('Short text correction'),
+        short_text: {
             stage: onText,
             description:
                 options.short_text_correction > 0
@@ -141,8 +143,7 @@ export const CorrectionsExplanation = ({ onOpen }: CorrectionsExplanationProps) 
             statuses: [onOff(options.short_text_correction > 0)],
             actions: [openOption(RULES_ANCHORS.shortText, 'corrections-open-short-text')],
         },
-        {
-            title: t('Your formatting rules'),
+        formatting_rules: {
             stage: onText,
             description: t(
                 'Your own find and replace rules, applied from top to bottom. A fresh install starts with the medical dictation rules of InterHop.'
@@ -151,8 +152,7 @@ export const CorrectionsExplanation = ({ onOpen }: CorrectionsExplanationProps) 
             statuses: [{ label: t('{{count}} rule(s) on', { count: enabledRules }), active: enabledRules > 0 }],
             actions: [openTab('formatting', t('Open the formatting rules'), 'corrections-open-user-rules')],
         },
-        {
-            title: t('Pre-installed formatting'),
+        built_in_formatting: {
             stage: onText,
             description: t(
                 'Last, the pre-installed options: space before ? and !, numbers written as digits, and a space at the end of each transcription.'
@@ -163,7 +163,8 @@ export const CorrectionsExplanation = ({ onOpen }: CorrectionsExplanationProps) 
             ],
             actions: [openOption(RULES_ANCHORS.formattingOptions, 'corrections-open-formatting-options')],
         },
-    ];
+    };
+    const steps: Step[] = PIPELINE_STEPS.map(({ id }) => ({ title: pipelineStepTitle(id, t), ...content[id] }));
 
     return (
         <div className="space-y-6" data-testid="corrections-explanation">
