@@ -101,6 +101,8 @@ Everything is an asset of the GitHub release with the fixed tag `medical-data` o
 3. Each downloaded file's size and SHA-256, before anything is moved into place (download into a staging folder, then a rename).
 4. That the new set parses (at most 5% unusable rule lines, a non-empty phrase list and confusion groups when present). Otherwise it is deleted and the previous data stays.
 
+The same checks and install code apply when the user installs a set by hand ("Install a downloaded update"): the release assets downloaded with a browser (`manifest.json`, `manifest.json.minisig` and the data files, under their published names) are verified and copied into a staging folder, then installed like a download. The startup check itself only runs once the user agreed to it on the first launch question.
+
 Installed sets live in `medical-data/<version>/` in the app data folder (files + signed manifest), and `medical-data/active.json` names the one in use. At every start the signature and hashes are checked again; a missing, corrupt or unparsable set, or one not newer than the bundled data, falls back to the bundled data with a warning in the log. The user's changes (`medical_rules.json`, `medical_phrases.json`, `medical_confusion_groups.json`) are never touched; changes to entries that no longer exist are kept and listed in their tab.
 
 ### Publishing
