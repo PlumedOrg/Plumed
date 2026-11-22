@@ -45,23 +45,42 @@ pub fn ensure_recordings_dir(app: &tauri::AppHandle) -> Result<PathBuf> {
         // Plumed fork: own folder, never shared with an installed Murmure.
         .join("plumed_recordings");
 
-    if !recordings.exists() {
-        std::fs::create_dir_all(&recordings).context("Failed to create recordings dir")?;
-    }
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let mut perms = std::fs::metadata(&recordings)
-            .context("Failed to read recordings dir permissions")?
-            .permissions();
-        if perms.mode() & 0o777 != 0o700 {
-            perms.set_mode(0o700);
-            std::fs::set_permissions(&recordings, perms)
-                .context("Failed to set recordings dir permissions")?;
+    ensure_private_dir(&recordings)?;
+    Ok(recordings)
+}
+
+/// Creates `dir` readable by this user only. The temp dir is shared on Linux
+/// (`/tmp`): another user may have created `dir` first, as a symlink to one of
+/// our folders (whose files `cleanup_recordings` would then delete, and where
+/// the dictation audio would land) or as a folder of their own. Both are
+/// refused rather than used.
+#[cfg(unix)]
+fn ensure_private_dir(dir: &Path) -> Result<()> {
+    use std::os::unix::fs::{DirBuilderExt, MetadataExt, PermissionsExt};
+    if let Err(e) = std::fs::DirBuilder::new().mode(0o700).create(dir) {
+        if e.kind() != std::io::ErrorKind::AlreadyExists {
+            return Err(e).context("Failed to create recordings dir");
         }
     }
+    let meta = std::fs::symlink_metadata(dir).context("Failed to read recordings dir")?;
+    // SAFETY: geteuid has no preconditions and cannot fail.
+    let euid = unsafe { libc::geteuid() };
+    if !meta.file_type().is_dir() || meta.uid() != euid {
+        anyhow::bail!(
+            "{} is not a folder owned by this user, refusing to use it",
+            dir.display()
+        );
+    }
+    if meta.permissions().mode() & 0o777 != 0o700 {
+        std::fs::set_permissions(dir, std::fs::Permissions::from_mode(0o700))
+            .context("Failed to set recordings dir permissions")?;
+    }
+    Ok(())
+}
 
-    Ok(recordings)
+#[cfg(not(unix))]
+fn ensure_private_dir(dir: &Path) -> Result<()> {
+    std::fs::create_dir_all(dir).context("Failed to create recordings dir")
 }
 
 pub fn create_owner_only_file(path: &Path) -> Result<File> {
@@ -282,6 +301,44 @@ mod tests {
                 a + (b - a) * frac
             })
             .collect()
+    }
+
+    #[cfg(unix)]
+    fn scratch_dir() -> PathBuf {
+        let dir = std::env::temp_dir().join(format!("plumed-test-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir(&dir).unwrap();
+        dir
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn private_dir_is_created_owner_only() {
+        use std::os::unix::fs::PermissionsExt;
+        let scratch = scratch_dir();
+        let dir = scratch.join("recordings");
+        ensure_private_dir(&dir).unwrap();
+        ensure_private_dir(&dir).unwrap();
+        let mode = std::fs::metadata(&dir).unwrap().permissions().mode();
+        assert_eq!(mode & 0o777, 0o700);
+        std::fs::remove_dir_all(scratch).unwrap();
+    }
+
+    /// Another user of a shared `/tmp` planted the folder as a symlink to one
+    /// of ours: `cleanup_recordings` would delete its files.
+    #[cfg(unix)]
+    #[test]
+    fn private_dir_refuses_a_planted_symlink() {
+        use std::os::unix::fs::PermissionsExt;
+        let scratch = scratch_dir();
+        let victim = scratch.join("documents");
+        std::fs::create_dir(&victim).unwrap();
+        std::fs::set_permissions(&victim, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let planted = scratch.join("recordings");
+        std::os::unix::fs::symlink(&victim, &planted).unwrap();
+        assert!(ensure_private_dir(&planted).is_err());
+        let mode = std::fs::metadata(&victim).unwrap().permissions().mode();
+        assert_eq!(mode & 0o777, 0o755);
+        std::fs::remove_dir_all(scratch).unwrap();
     }
 
     #[test]

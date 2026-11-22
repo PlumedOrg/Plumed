@@ -119,6 +119,10 @@ windows-sys = { version = "0.61", features = [
     "Win32_System_Console",
 ] }
 
+# Plumed fork: `geteuid`, to check that the temp recordings folder is ours.
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
 # panic = "abort" deliberately omitted, changes thread-panic behaviour.
 [profile.release]
 lto = "fat"

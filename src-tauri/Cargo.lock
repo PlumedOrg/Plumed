@@ -3244,6 +3244,7 @@ dependencies = [
  "gtk",
  "hound",
  "input-linux",
+ "libc",
  "libloading 0.8.9",
  "log",
  "minisign-verify",
