@@ -4,6 +4,8 @@ pub mod highlighter;
 mod store;
 pub mod types;
 
+#[cfg(test)]
 pub use formatter::apply_formatting;
+pub use formatter::apply_formatting_traced;
 pub use store::{load, save};
 pub use types::{BuiltInOptions, FormattingSettings};

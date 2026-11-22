@@ -2,6 +2,7 @@
 
 use crate::audio::helpers::resample;
 use crate::audio::pipeline::{record_dictation, DictationAudio};
+use crate::history::StepTrace;
 
 const CHUNK_SAMPLES: usize = 960_000;
 const MAX_SAMPLES: usize = 19_200_000;
@@ -69,14 +70,18 @@ pub fn transcribe_pcm(
     let chunks = split_into_chunks(buffer, sample_rate);
     crate::audio::preload_engine(app).map_err(TranscribeError::ModelUnavailable)?;
     let mut parts: Vec<String> = Vec::with_capacity(chunks.len());
+    let mut part_steps = Vec::with_capacity(chunks.len());
     for samples in chunks {
-        let text = crate::audio::pipeline::process_recording_from_samples(app, samples)
+        let mut trace = StepTrace::on();
+        let text = crate::audio::pipeline::process_recording_from_samples(app, samples, &mut trace)
             .map_err(TranscribeError::Failed)?;
         if !text.is_empty() {
             parts.push(text);
+            part_steps.push(trace.into_steps());
         }
     }
     let text = parts.join(" ");
-    record_dictation(app, &text, audio, started.elapsed());
+    let steps = crate::history::steps::join_parts(part_steps);
+    record_dictation(app, &text, steps, audio, started.elapsed());
     Ok(text)
 }

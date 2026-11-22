@@ -84,9 +84,17 @@ pub enum ChunkJob {
 // not emit into the new session's preview.
 static PIPELINE_EPOCH: AtomicU64 = AtomicU64::new(0);
 
+/// The text of a finished chunked transcription (Plumed: `recognized` is the
+/// text before the dictionary correction, kept for the history step details).
+pub struct ChunkText {
+    pub recognized: String,
+    pub corrected: String,
+}
+
 pub struct ChunkPipeline {
     tx: Sender<ChunkJob>,
     accumulated: Arc<Mutex<String>>,
+    recognized: Arc<Mutex<String>>,
     worker: Option<JoinHandle<()>>,
     cancelled: Arc<AtomicBool>,
 }
@@ -105,10 +113,12 @@ impl ChunkPipeline {
         let cancelled = Arc::new(AtomicBool::new(false));
         let (tx, rx) = mpsc::channel::<ChunkJob>();
         let accumulated = Arc::new(Mutex::new(String::new()));
+        let recognized = Arc::new(Mutex::new(String::new()));
         let worker = spawn_worker(
             app.clone(),
             rx,
             accumulated.clone(),
+            recognized.clone(),
             preview,
             cancelled.clone(),
             epoch,
@@ -116,6 +126,7 @@ impl ChunkPipeline {
         Self {
             tx,
             accumulated,
+            recognized,
             worker: Some(worker),
             cancelled,
         }
@@ -135,17 +146,19 @@ impl ChunkPipeline {
         }
     }
 
-    pub fn finalize(mut self) -> String {
+    pub fn finalize(mut self) -> ChunkText {
         self.submit(ChunkJob::Finalize);
         if let Some(handle) = self.worker.take() {
             if handle.join().is_err() {
                 error!("Chunk pipeline: worker thread panicked, returning text accumulated so far");
             }
         }
-        self.accumulated
-            .lock()
-            .map(|guard| guard.clone())
-            .unwrap_or_default()
+        let read =
+            |text: &Arc<Mutex<String>>| text.lock().map(|guard| guard.clone()).unwrap_or_default();
+        ChunkText {
+            recognized: read(&self.recognized),
+            corrected: read(&self.accumulated),
+        }
     }
 }
 
@@ -153,6 +166,7 @@ fn spawn_worker(
     app: AppHandle,
     rx: Receiver<ChunkJob>,
     accumulated: Arc<Mutex<String>>,
+    recognized: Arc<Mutex<String>>,
     preview: Option<PreviewLink>,
     cancelled: Arc<AtomicBool>,
     epoch: Option<u64>,
@@ -211,6 +225,9 @@ fn spawn_worker(
 
                     let delta =
                         merge_chunk(&accumulated, &cleaned_text, &corrected_text, overlap_prefix);
+                    if let Ok(mut text) = recognized.lock() {
+                        append_words(&mut text, &delta.cleaned);
+                    }
                     let trimmed_corrected = delta.corrected.trim();
                     if !trimmed_corrected.is_empty() && owns_ui() {
                         if let Some(settings) = freeze_settings.as_ref() {
@@ -336,6 +353,18 @@ fn remove_overlap_duplication(cumulated: &str, new_chunk: &str) -> (String, usiz
     }
 
     (new_words[matched..].join(" "), matched)
+}
+
+/// Appends `words` to `text`, with a space between them (Plumed).
+fn append_words(text: &mut String, words: &str) {
+    let words = words.trim();
+    if words.is_empty() {
+        return;
+    }
+    if !text.is_empty() {
+        text.push(' ');
+    }
+    text.push_str(words);
 }
 
 fn drop_head_words(text: &str, count: usize) -> String {
@@ -698,6 +727,15 @@ mod tests {
         );
         assert_eq!(delta.corrected, " acheter du pain");
         assert_eq!(delta.cleaned, "acheter du pain");
+    }
+
+    #[test]
+    fn append_words_adds_a_space_between_chunks() {
+        let mut text = String::new();
+        append_words(&mut text, " le patient ");
+        append_words(&mut text, "");
+        append_words(&mut text, "va bien");
+        assert_eq!(text, "le patient va bien");
     }
 
     #[test]

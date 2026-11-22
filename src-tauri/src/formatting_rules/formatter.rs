@@ -1,4 +1,5 @@
 use super::types::{FormattingSettings, MatchMode};
+use crate::history::{PipelineStep, StepTrace};
 use regex::Regex;
 use std::collections::HashMap;
 use std::sync::{LazyLock, Mutex};
@@ -43,12 +44,22 @@ fn apply_short_text_correction(text: String) -> String {
 
 /// Apply all formatting rules to a transcription text
 pub fn apply_formatting(text: String, settings: &FormattingSettings) -> String {
+    apply_formatting_traced(text, settings, &mut StepTrace::off())
+}
+
+/// `apply_formatting`, recording the text after each step in `trace` (Plumed).
+pub fn apply_formatting_traced(
+    text: String,
+    settings: &FormattingSettings,
+    trace: &mut StepTrace,
+) -> String {
     let mut result = text;
 
     // Plumed: fix drug names and medical terms first, on the raw model output
     if settings.built_in.medical_fixes {
         result = crate::medical::apply_medical_fixes(result);
     }
+    trace.record(PipelineStep::ModelCorrections, &result);
 
     // 1. Short text correction (configurable threshold, 0 = disabled)
     let threshold = settings.built_in.short_text_correction;
@@ -59,6 +70,7 @@ pub fn apply_formatting(text: String, settings: &FormattingSettings) -> String {
     } else {
         false
     };
+    trace.record(PipelineStep::ShortText, &result);
 
     // 2. Apply custom rules (find/replace with punctuation handling)
     for rule in &settings.rules {
@@ -66,6 +78,7 @@ pub fn apply_formatting(text: String, settings: &FormattingSettings) -> String {
             result = apply_custom_rule(&result, &rule.trigger, &rule.replacement, &rule.match_mode);
         }
     }
+    trace.record(PipelineStep::FormattingRules, &result);
 
     // 3. Apply built-in option: space before ? and !
     if settings.built_in.space_before_punctuation {
@@ -89,6 +102,7 @@ pub fn apply_formatting(text: String, settings: &FormattingSettings) -> String {
     {
         result.push(' ');
     }
+    trace.record(PipelineStep::BuiltInFormatting, &result);
 
     result
 }
@@ -296,6 +310,26 @@ mod tests {
             },
             rules: vec![],
         }
+    }
+
+    #[test]
+    fn traced_formatting_records_each_step_in_order() {
+        let mut trace = StepTrace::on();
+        let result = apply_formatting_traced("Bonjour.".into(), &make_settings(1), &mut trace);
+        let steps = trace.into_steps();
+        let ids: Vec<PipelineStep> = steps.iter().map(|step| step.step_id).collect();
+        assert_eq!(
+            ids,
+            vec![
+                PipelineStep::ModelCorrections,
+                PipelineStep::ShortText,
+                PipelineStep::FormattingRules,
+                PipelineStep::BuiltInFormatting,
+            ]
+        );
+        assert_eq!(steps[0].text_after, "Bonjour.");
+        assert_eq!(steps[1].text_after, "bonjour");
+        assert_eq!(steps[3].text_after, result);
     }
 
     #[test]

@@ -1,4 +1,4 @@
-use crate::audio::chunking::{ChunkPipeline, Chunker};
+use crate::audio::chunking::{ChunkPipeline, ChunkText, Chunker};
 use crate::audio::clean_recording::clean_transcription;
 use crate::audio::helpers::{read_wav_mono_native, resample, rms};
 use crate::audio::short_context;
@@ -7,7 +7,7 @@ use crate::dictionary::{correct_transcription, sync_boost_words, Dictionary};
 use crate::engine::transcription_engine::{TranscriptionEngine, TranscriptionResult};
 use crate::engine::ParakeetEngine;
 use crate::formatting_rules;
-use crate::history;
+use crate::history::{self, PipelineStep, StepText, StepTrace};
 use crate::stats;
 use anyhow::Result;
 use log::{debug, error, warn};
@@ -142,16 +142,21 @@ fn with_short_context(
     }
 }
 
-/// Post-processes the concatenated chunks at the end of transcription
-pub fn post_process_chunks(app: &AppHandle, accumulated: String) -> String {
+/// Post-processes the concatenated chunks at the end of transcription,
+/// recording the text after each step in `trace` (Plumed).
+pub fn post_process_chunks(app: &AppHandle, chunks: ChunkText, trace: &mut StepTrace) -> String {
+    let accumulated = chunks.corrected;
     if accumulated.trim().is_empty() {
         return accumulated;
     }
+    trace.record(PipelineStep::Recognition, &chunks.recognized);
+    trace.record(PipelineStep::Dictionary, &accumulated);
 
     // 5. Clean transcription (dedup repeats, optional hesitation removal)
     let text = clean_accumulated(app, &accumulated);
+    trace.record(PipelineStep::CleanUp, &text);
     // 6. Apply formatting rules
-    apply_formatting_rules(app, text)
+    apply_formatting_rules(app, text, trace)
 }
 
 pub fn transcribe_file_chunked(app: &AppHandle, file_path: &Path) -> Result<String> {
@@ -168,9 +173,11 @@ pub fn transcribe_file_chunked(app: &AppHandle, file_path: &Path) -> Result<Stri
         chunker.on_throttle_tick(rms(win));
     }
     chunker.flush_remaining();
-    let accumulated = pipeline.finalize();
+    let chunks = pipeline.finalize();
 
-    Ok(post_process_chunks(app, accumulated).trim().to_string())
+    Ok(post_process_chunks(app, chunks, &mut StepTrace::off())
+        .trim()
+        .to_string())
 }
 
 fn clean_accumulated(app: &AppHandle, accumulated: &str) -> String {
@@ -189,9 +196,9 @@ fn apply_dictionary_correction(
     Ok(correct_transcription(&text, &dictionary, word_confidences))
 }
 
-fn apply_formatting_rules(app: &AppHandle, text: String) -> String {
+fn apply_formatting_rules(app: &AppHandle, text: String, trace: &mut StepTrace) -> String {
     match formatting_rules::load(app) {
-        Ok(settings) => formatting_rules::apply_formatting(text, &settings),
+        Ok(settings) => formatting_rules::apply_formatting_traced(text, &settings, trace),
         Err(e) => {
             warn!("Failed to load formatting rules: {}. Skipping.", e);
             text
@@ -243,12 +250,19 @@ impl DictationAudio {
 
 /// Single entry point for a finished dictation, whatever its source (keyboard
 /// shortcut or PhoneMic): adds it to the history, the stats and the usage
-/// statistics. Empty texts are not recorded.
-pub fn record_dictation(app: &AppHandle, text: &str, audio: DictationAudio, processing: Duration) {
+/// statistics. Empty texts are not recorded. `steps` is the text after each
+/// processing step, kept with the history entry.
+pub fn record_dictation(
+    app: &AppHandle,
+    text: &str,
+    steps: Vec<StepText>,
+    audio: DictationAudio,
+    processing: Duration,
+) {
     if text.trim().is_empty() {
         return;
     }
-    if let Err(e) = history::add_transcription(app, text.to_string()) {
+    if let Err(e) = history::add_transcription(app, text.to_string(), steps) {
         error!("Failed to save to history: {}", e);
     }
     let word_count = text.split_whitespace().count() as u64;
@@ -260,7 +274,12 @@ pub fn record_dictation(app: &AppHandle, text: &str, audio: DictationAudio, proc
 
 /// Process a recording from raw samples (no WAV file), used by the remote mic.
 /// Bypasses file I/O and enters the pipeline directly from PCM samples.
-pub fn process_recording_from_samples(app: &AppHandle, samples: Vec<f32>) -> Result<String> {
+/// Records the text after each step in `trace` (Plumed).
+pub fn process_recording_from_samples(
+    app: &AppHandle,
+    samples: Vec<f32>,
+    trace: &mut StepTrace,
+) -> Result<String> {
     // 1. Transcribe directly from samples
     let result = transcribe_samples_direct(app, samples)?;
     let raw_text = result.text;
@@ -268,19 +287,22 @@ pub fn process_recording_from_samples(app: &AppHandle, samples: Vec<f32>) -> Res
     if raw_text.trim().is_empty() {
         return Ok(raw_text);
     }
+    trace.record(PipelineStep::Recognition, &raw_text);
 
     // 2. Deduplicate repeated words
     let text = clean_transcription(
         &raw_text,
         crate::settings::load_settings(app).remove_hesitations,
     );
+    trace.record(PipelineStep::CleanUp, &text);
 
     // 3. Dictionary correction
     let text = apply_dictionary_correction(app, text, &result.word_confidences)?;
+    trace.record(PipelineStep::Dictionary, &text);
 
     // 4. Formatting rules
     // The caller records the whole recording once (see record_dictation).
-    Ok(apply_formatting_rules(app, text))
+    Ok(apply_formatting_rules(app, text, trace))
 }
 
 fn transcribe_samples_direct(app: &AppHandle, samples: Vec<f32>) -> Result<TranscriptionResult> {

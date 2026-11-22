@@ -195,13 +195,15 @@ fn finalize_chunked_session(
 ) {
     let _ = app.emit("transcription-processing-start", ());
     let processing_started = std::time::Instant::now();
-    let accumulated = pipeline.finalize();
+    let chunks = pipeline.finalize();
     let _ = app.emit("transcription-processing-end", ());
 
-    let text = crate::audio::pipeline::post_process_chunks(app, accumulated);
+    let mut trace = crate::history::StepTrace::on();
+    let text = crate::audio::pipeline::post_process_chunks(app, chunks, &mut trace);
     crate::audio::pipeline::record_dictation(
         app,
         &text,
+        trace.into_steps(),
         DictationAudio::from_wav(path),
         processing_started.elapsed(),
     );

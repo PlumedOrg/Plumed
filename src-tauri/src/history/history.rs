@@ -7,6 +7,7 @@ use tauri::{AppHandle, Emitter, Manager};
 
 const MAX_HISTORY_ENTRIES: usize = 5;
 
+use super::steps::StepText;
 use super::types::{HistoryData, HistoryEntry};
 
 fn get_history_file_path(app: &AppHandle) -> Result<PathBuf> {
@@ -57,7 +58,7 @@ pub fn purge_history_file(app: &AppHandle) -> Result<()> {
     Ok(())
 }
 
-pub fn add_transcription(app: &AppHandle, text: String) -> Result<()> {
+pub fn add_transcription(app: &AppHandle, text: String, steps: Vec<StepText>) -> Result<()> {
     let mut data = if is_persist_enabled(app) {
         read_history(app)?
     } else {
@@ -75,6 +76,7 @@ pub fn add_transcription(app: &AppHandle, text: String) -> Result<()> {
         id: data.next_id,
         timestamp,
         text,
+        steps,
     };
 
     data.entries.insert(0, entry);
