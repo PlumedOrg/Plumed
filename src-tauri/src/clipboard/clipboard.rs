@@ -7,29 +7,44 @@ use log::warn;
 use log::{debug, info};
 #[cfg(target_os = "linux")]
 use std::process::{Command, Stdio};
+use std::sync::Mutex;
 #[cfg(target_os = "linux")]
 use std::sync::OnceLock;
 use tauri::Manager;
 use tauri_plugin_clipboard_manager::ClipboardExt;
 
+/// Held by every clipboard write and paste. Two pastes at once (a phone
+/// recording finishing during a local dictation, "paste last" during a
+/// paste) would each write and later restore the clipboard around the
+/// other's Ctrl+V: one text pasted twice and the other never, or the
+/// clipboard's previous content (an earlier dictation) pasted instead.
+static PASTE_LOCK: Mutex<()> = Mutex::new(());
+
+fn one_at_a_time<T>(clipboard_use: impl FnOnce() -> T) -> T {
+    let _guard = PASTE_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    clipboard_use()
+}
+
 pub fn paste(text: &str, app_handle: &tauri::AppHandle) -> Result<(), String> {
     let app_settings = settings::load_settings(app_handle);
-    if !app_settings.auto_insert {
-        if app_settings.copy_to_clipboard {
-            write_clipboard(text, app_handle)?;
+    one_at_a_time(|| {
+        if !app_settings.auto_insert {
+            if app_settings.copy_to_clipboard {
+                write_clipboard(text, app_handle)?;
+            }
+            return Ok(());
         }
-        return Ok(());
-    }
-    paste_with_delay(text, app_handle, &app_settings, 100)
+        paste_with_delay(text, app_handle, &app_settings, 100)
+    })
 }
 
 pub fn paste_last_transcript(text: &str, app_handle: &tauri::AppHandle) -> Result<(), String> {
     let app_settings = settings::load_settings(app_handle);
-    paste_with_delay(text, app_handle, &app_settings, 400)
+    one_at_a_time(|| paste_with_delay(text, app_handle, &app_settings, 400))
 }
 
 pub fn copy_to_clipboard(text: &str, app_handle: &tauri::AppHandle) -> Result<(), String> {
-    write_clipboard(text, app_handle)
+    one_at_a_time(|| write_clipboard(text, app_handle))
 }
 
 #[allow(unused_variables)]
@@ -350,7 +365,31 @@ fn send_paste(paste_method: &PasteMethod, app_handle: &tauri::AppHandle) -> Resu
 
 #[cfg(test)]
 mod tests {
-    use super::typable_text;
+    use super::{one_at_a_time, typable_text};
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::time::Duration;
+
+    #[test]
+    fn clipboard_uses_never_overlap() {
+        static ACTIVE: AtomicUsize = AtomicUsize::new(0);
+        static MOST: AtomicUsize = AtomicUsize::new(0);
+        let threads: Vec<_> = (0..4)
+            .map(|_| {
+                std::thread::spawn(|| {
+                    one_at_a_time(|| {
+                        let now = ACTIVE.fetch_add(1, Ordering::SeqCst) + 1;
+                        MOST.fetch_max(now, Ordering::SeqCst);
+                        std::thread::sleep(Duration::from_millis(20));
+                        ACTIVE.fetch_sub(1, Ordering::SeqCst);
+                    })
+                })
+            })
+            .collect();
+        for thread in threads {
+            thread.join().unwrap();
+        }
+        assert_eq!(MOST.load(Ordering::SeqCst), 1);
+    }
 
     #[test]
     fn typed_text_keeps_no_control_key_but_newlines_and_tabs() {

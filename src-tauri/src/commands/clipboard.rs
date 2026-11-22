@@ -45,9 +45,10 @@ pub fn set_paste_method(app: AppHandle, method: String) -> Result<(), String> {
 }
 
 // Independent of the `copy_to_clipboard` setting and of ClipboardSnapshot:
-// the user asked for this text, nothing is restored afterwards.
+// the user asked for this text, nothing is restored afterwards. Async, so a
+// paste in progress (which holds the clipboard) never blocks the main thread.
 #[command]
-pub fn copy_result_text(app: AppHandle, text: String) -> Result<(), String> {
+pub async fn copy_result_text(app: AppHandle, text: String) -> Result<(), String> {
     crate::clipboard::copy_to_clipboard(&text, &app)
 }
 
