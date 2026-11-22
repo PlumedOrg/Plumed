@@ -10,7 +10,7 @@ Plumed is a privacy-first, open-source speech-to-text desktop application. It is
 - Your audio and transcriptions are processed **locally** on your device.
 - Plumed stores only what it needs to operate (settings, custom words/rules). No transcription is written to disk by default.
 - On startup, Plumed checks for updates by contacting the configured updater endpoint (currently hosted on GitHub). Downloading updates is opt-in.
-- On startup, if the setting is on (it is by default, in Settings > Corrections > Rules, with "Show the built-in rules" on), Plumed also asks GitHub whether newer medical rules exist: a plain download of a small signed file, with no identifier. The new rules are downloaded only when you click "Download".
+- On first launch, Plumed asks whether it may check for medical rules updates at each start. Only if you agree (you can change it at the bottom of Settings > Corrections > Explanation) does it ask GitHub, on startup, whether newer medical rules exist: a plain download of a small signed file, with no identifier. Nothing is contacted before you answer. The new rules are downloaded only when you click "Download". You can also download them yourself with your browser and install them with "Install a downloaded update", which makes no network request.
 
 ## What Plumed does not do
 
@@ -90,7 +90,7 @@ Plumed may access the network only for:
 - **Downloading and installing updates** (only when you choose to install an update)
 - **PhoneMic, the remote microphone** (only after you enable it and click "Connect a phone"; see above)
 - **Anonymous usage statistics** (only if you opted in; see above)
-- **Checking for medical data updates** (on launch, from GitHub, only while "check for medical data updates at startup" is on; no identifier, cookie or usage data is sent) and **downloading them** (only when you click "Download")
+- **Checking for medical data updates** (on launch, from GitHub, only after you agreed to it on first launch or with "check for medical data updates at startup"; no identifier, cookie or usage data is sent) and **downloading them** (only when you click "Download")
 
 The update checks do not include your audio or transcriptions.
 
