@@ -185,8 +185,21 @@ fn get_pulse_default_source() -> Option<String> {
     Some(String::from_utf8_lossy(&output.stdout).trim().to_string())
 }
 
+/// pactl does not accept `--`, so a source name starting with `-` (from an
+/// imported settings file) would be read as an option such as
+/// `--server=tcp:host`. Real PulseAudio/PipeWire source names never start
+/// with `-`.
+#[cfg(target_os = "linux")]
+fn is_safe_source_name(source_name: &str) -> bool {
+    !source_name.is_empty() && !source_name.starts_with('-')
+}
+
 #[cfg(target_os = "linux")]
 fn set_pulse_default_source(source_name: &str) {
+    if !is_safe_source_name(source_name) {
+        warn!("Refusing microphone source name starting with '-'");
+        return;
+    }
     match std::process::Command::new("pactl")
         .args(["set-default-source", source_name])
         .output()
@@ -523,6 +536,16 @@ pub fn migrate_mic_id_if_needed(app: &tauri::AppHandle, mic_id: Option<String>) 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn source_names_that_look_like_pactl_options_are_refused() {
+        assert!(is_safe_source_name(
+            "alsa_input.usb-Blue_Yeti-00.analog-stereo"
+        ));
+        assert!(!is_safe_source_name("--server=tcp:attacker.example"));
+        assert!(!is_safe_source_name(""));
+    }
 
     #[test]
     fn is_generic_mic_name_matches_known_names() {
