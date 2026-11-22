@@ -523,3 +523,60 @@ fn edits_of_rules_that_no_longer_exist_are_counted() {
     let orphaned = rules.orphaned(&edits);
     assert_eq!(orphaned, [&edits[1]]);
 }
+
+/// A bundled rule whose core is replaced by the common word `core`, so it
+/// rewrites that word everywhere (same prefix and suffix as real rules).
+fn broad_rule(core: &str) -> String {
+    let line = BUNDLED_RULES[4].lines().next().unwrap();
+    let rule: serde_json::Value = serde_json::from_str(line).unwrap();
+    let pattern = rule["pattern"].as_str().unwrap();
+    let marker = "qu['’]))";
+    let prefix_end = pattern.find(marker).unwrap() + marker.len();
+    let suffix_start = pattern.rfind("(?![").unwrap();
+    let pattern = format!(
+        "{}{core}{}",
+        &pattern[..prefix_end],
+        &pattern[suffix_start..]
+    );
+    serde_json::json!({"pattern": pattern, "replacement": "XXX", "variant": core}).to_string()
+}
+
+fn files_map(files: Vec<(String, String)>) -> HashMap<String, String> {
+    files.into_iter().collect()
+}
+
+#[test]
+fn a_signed_set_that_mangles_correct_sentences_is_refused() {
+    let ok = files_map(rule_files());
+    assert!(ActiveData::from_files("2099.01.01", ok).is_ok());
+    let mut bad = files_map(rule_files());
+    bad.insert("plumed_fix_rules.jsonl".to_string(), broad_rule("de"));
+    let err = ActiveData::from_files("2099.01.01", bad).err().unwrap();
+    assert!(err.contains("reference sentences"), "{err}");
+}
+
+#[test]
+fn truncated_phrase_lists_and_confusion_files_are_refused() {
+    let mut files = files_map(rule_files());
+    files.insert(
+        PHRASE_FILE.to_string(),
+        "amlodipine\nvenlafaxine\n".to_string(),
+    );
+    let err = ActiveData::from_files("2099.01.01", files).err().unwrap();
+    assert!(err.contains("Phrase list"), "{err}");
+    let mut files = files_map(rule_files());
+    let few: String = BUNDLED_CONFUSION_GROUPS
+        .lines()
+        .take(3)
+        .collect::<Vec<_>>()
+        .join("\n");
+    files.insert(CONFUSION_FILE.to_string(), few);
+    let err = ActiveData::from_files("2099.01.01", files).err().unwrap();
+    assert!(err.contains("Confusion groups"), "{err}");
+}
+
+#[test]
+fn the_bundled_rules_pass_their_own_canary() {
+    let bundled = Arc::new(Bundled::from_jsonl(&BUNDLED_RULES));
+    assert!(check_canary(&bundled).is_ok());
+}

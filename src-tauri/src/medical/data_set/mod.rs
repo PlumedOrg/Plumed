@@ -14,7 +14,7 @@ mod tests;
 pub use disk::{StagedFile, MANIFEST_FILE, SIGNATURE_FILE};
 pub use error::SetError;
 
-use super::drug_rules::Bundled;
+use super::drug_rules::{Bundled, DrugRules};
 use crate::engine::confusion::ConfusionGroups;
 use crate::engine::phrase_boost::list::parse_boost_list;
 use log::{info, warn};
@@ -73,6 +73,46 @@ const PUBLIC_KEY: Option<&str> = option_env!("PLUMED_RULES_PUBKEY");
 /// Highest share of unusable lines a downloaded rule set may have.
 const MAX_UNUSABLE_SHARE: f64 = 0.05;
 
+/// Correct French medical sentences (the labels of the 400 held-out UltiMed
+/// v2 clips of the benchmark). A downloaded rule set that changes clearly
+/// more of them than the bundled rules is a bad publication: refused.
+const CANARY: &str = include_str!("../../../medical-data/canary/correct_sentences.txt");
+/// Sentences a downloaded set may change beyond what the bundled rules change.
+const CANARY_SLACK: usize = 8;
+/// A downloaded phrase list or confusion file smaller than this share of the
+/// bundled one is refused (a truncated publication).
+const MIN_SIZE_SHARE: f64 = 0.5;
+
+/// How many canary sentences `rules` rewrite.
+fn canary_changes(rules: &Arc<Bundled>) -> usize {
+    let rules = DrugRules::new(rules.clone(), &[]);
+    CANARY
+        .lines()
+        .filter(|line| !line.trim().is_empty() && rules.apply(line) != *line)
+        .count()
+}
+
+/// Refuses rules that rewrite clearly more correct sentences than the bundled ones.
+fn check_canary(rules: &Arc<Bundled>) -> Result<(), String> {
+    static BUNDLED_CHANGES: OnceLock<usize> = OnceLock::new();
+    let baseline = *BUNDLED_CHANGES
+        .get_or_init(|| canary_changes(&Arc::new(Bundled::from_jsonl(&BUNDLED_RULES))));
+    match canary_changes(rules) {
+        changed if changed > baseline + CANARY_SLACK => Err(format!(
+            "the rules rewrite {changed} of the reference sentences (bundled rules: {baseline})"
+        )),
+        _ => Ok(()),
+    }
+}
+
+/// Refuses a list that lost more than half of the bundled one's entries.
+fn check_size(what: &str, count: usize, bundled: usize) -> Result<(), String> {
+    match (count as f64) < bundled as f64 * MIN_SIZE_SHARE {
+        true => Err(format!("{what}: {count} entries, bundled {bundled}")),
+        false => Ok(()),
+    }
+}
+
 pub fn public_key() -> Option<&'static str> {
     PUBLIC_KEY.filter(|key| !key.trim().is_empty())
 }
@@ -119,23 +159,33 @@ impl ActiveData {
                 rules.len()
             ));
         }
+        let rules = Arc::new(rules);
+        check_canary(&rules)?;
         let phrase_list = match files.remove(PHRASE_FILE) {
-            Some(text) if parse_boost_list(&text).phrases.is_empty() => {
-                return Err("Empty phrase list".to_string())
+            Some(text) => {
+                check_size(
+                    "Phrase list",
+                    parse_boost_list(&text).phrases.len(),
+                    parse_boost_list(BUNDLED_PHRASE_LIST).phrases.len(),
+                )?;
+                Cow::Owned(text)
             }
-            Some(text) => Cow::Owned(text),
             None => Cow::Borrowed(BUNDLED_PHRASE_LIST),
         };
         let confusion_groups = match files.remove(CONFUSION_FILE) {
-            Some(text) if ConfusionGroups::parse(&text).is_empty() => {
-                return Err("No confusion group".to_string())
+            Some(text) => {
+                check_size(
+                    "Confusion groups",
+                    ConfusionGroups::parse(&text).len(),
+                    ConfusionGroups::parse(BUNDLED_CONFUSION_GROUPS).len(),
+                )?;
+                Cow::Owned(text)
             }
-            Some(text) => Cow::Owned(text),
             None => Cow::Borrowed(BUNDLED_CONFUSION_GROUPS),
         };
         Ok(Self {
             downloaded: Some(version.to_string()),
-            rules: Arc::new(rules),
+            rules,
             phrase_list,
             confusion_groups,
         })
