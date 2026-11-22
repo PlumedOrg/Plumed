@@ -177,6 +177,26 @@ mod tests {
     }
 
     #[test]
+    fn bundled_list_has_no_field_swallowed_into_a_phrase() {
+        // A line with one field too many ("inoep:-1:::fph") parses as the
+        // phrase "inoep:-1" with the default weight: its penalty is lost.
+        let list = parse_boost_list(data_set::BUNDLED_PHRASE_LIST);
+        let broken: Vec<&str> = list
+            .phrases
+            .iter()
+            .map(|p| p.phrase.as_str())
+            .filter(|p| p.contains(':'))
+            .collect();
+        assert!(broken.is_empty(), "{broken:?}");
+        let penalized = |name: &str| {
+            list.phrases
+                .iter()
+                .any(|p| p.phrase == name && p.weight < 0.0)
+        };
+        assert!(penalized("inoep") && penalized("myrtazapine"));
+    }
+
+    #[test]
     fn bundled_confusion_groups_keep_the_ambiguous_ones() {
         let groups = ConfusionGroups::parse(data_set::BUNDLED_CONFUSION_GROUPS);
         assert!(
