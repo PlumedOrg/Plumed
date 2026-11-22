@@ -41,7 +41,8 @@ pub fn ensure_recordings_dir(app: &tauri::AppHandle) -> Result<PathBuf> {
         .path()
         .temp_dir()
         .context("Failed to resolve temp dir")?
-        .join("murmure_recordings");
+        // Plumed fork: own folder, never shared with an installed Murmure.
+        .join("plumed_recordings");
 
     if !recordings.exists() {
         std::fs::create_dir_all(&recordings).context("Failed to create recordings dir")?;
@@ -83,7 +84,7 @@ pub fn generate_unique_wav_name() -> String {
         .map(|d| d.as_millis())
         .unwrap_or(0);
     let seq = COUNTER.fetch_add(1, Ordering::Relaxed);
-    format!("murmure-{}-{}.wav", ts, seq)
+    format!("plumed-{}-{}.wav", ts, seq)
 }
 
 /// Recordings kept on disk when `keep_recordings` is enabled, rolling like
@@ -339,6 +340,6 @@ mod tests {
         assert_eq!(unique.len(), names.len());
         assert!(names
             .iter()
-            .all(|n| n.starts_with("murmure-") && n.ends_with(".wav")));
+            .all(|n| n.starts_with("plumed-") && n.ends_with(".wav")));
     }
 }

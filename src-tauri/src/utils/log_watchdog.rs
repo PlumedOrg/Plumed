@@ -48,7 +48,7 @@ mod tests {
     #[test]
     fn reset_keeps_append_writes_at_offset_zero() {
         let path = std::env::temp_dir().join(format!(
-            "murmure-log-watchdog-{}-{:?}.log",
+            "plumed-log-watchdog-{}-{:?}.log",
             std::process::id(),
             std::thread::current().id()
         ));

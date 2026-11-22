@@ -11,7 +11,7 @@ const unsubscribeAll = (promises: Promise<UnlistenFn>[]) => {
 };
 
 /** Keep in sync with `packaging/linux/60-murmure-uinput.rules`. */
-const UINPUT_FIX_COMMAND = `sudo tee /etc/udev/rules.d/60-murmure-uinput.rules > /dev/null <<'EOF'
+const UINPUT_FIX_COMMAND = `sudo tee /etc/udev/rules.d/60-plumed-uinput.rules > /dev/null <<'EOF'
 KERNEL=="uinput", SUBSYSTEM=="misc", OPTIONS+="static_node=uinput", GROUP="input", MODE="0660", TAG+="uaccess"
 EOF
 sudo udevadm control --reload-rules

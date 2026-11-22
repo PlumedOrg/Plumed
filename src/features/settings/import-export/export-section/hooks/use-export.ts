@@ -113,7 +113,7 @@ export const useExport = () => {
                         extensions: ['murmure'],
                     },
                 ],
-                defaultPath: `murmure-config-${today}.murmure`,
+                defaultPath: `plumed-config-${today}.murmure`,
             });
 
             if (filePath == null) {
