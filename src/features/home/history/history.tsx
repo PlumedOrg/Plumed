@@ -15,14 +15,17 @@ import {
 import { toast } from 'react-toastify';
 import { formatTime } from './history.helpers';
 import { useHistoryState } from './hooks/use-history-state';
-import { InfoIcon, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { ChevronDown, ChevronRight, InfoIcon, Trash2 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/tooltip';
 import { useTranslation } from '@/i18n';
 import { HistoryEmptyState } from './history-empty-state/history-empty-state';
+import { HistorySteps } from './history-steps/history-steps';
 
 export const History = () => {
     const { history } = useHistoryState();
     const { t, i18n } = useTranslation();
+    const [expandedId, setExpandedId] = useState<number | null>(null);
 
     const handleClearHistory = async () => {
         try {
@@ -89,36 +92,63 @@ export const History = () => {
                 <HistoryEmptyState />
             ) : (
                 <div className="space-y-2">
-                    {history.map((entry) => (
-                        <button
-                            key={entry.id}
-                            className="w-full text-left rounded-md border border-surface-border bg-surface p-3 hover:bg-card cursor-pointer"
-                            onClick={async () => {
-                                if (!entry.text) return;
-                                try {
-                                    await navigator.clipboard.writeText(entry.text);
-                                    toast.info(t('Copied to clipboard'), {
-                                        autoClose: 1500,
-                                    });
-                                } catch {
-                                    toast.error(t('Failed to copy'));
-                                }
-                            }}
-                        >
-                            <div className="flex items-start justify-between gap-3">
-                                <Typography.Paragraph className="text-zinc-200">
-                                    {entry.text === '' ? (
-                                        <span className="italic text-xs text-zinc-400">{t('(Empty transcription)')}</span>
-                                    ) : (
-                                        entry.text
+                    {history.map((entry) => {
+                        const steps = entry.steps ?? [];
+                        const isExpanded = expandedId === entry.id;
+                        return (
+                            <div key={entry.id} className="rounded-md border border-surface-border bg-surface">
+                                <div className="flex items-start">
+                                    <button
+                                        className="flex-1 min-w-0 text-left rounded-md p-3 hover:bg-card cursor-pointer"
+                                        onClick={async () => {
+                                            if (!entry.text) return;
+                                            try {
+                                                await navigator.clipboard.writeText(entry.text);
+                                                toast.info(t('Copied to clipboard'), {
+                                                    autoClose: 1500,
+                                                });
+                                            } catch {
+                                                toast.error(t('Failed to copy'));
+                                            }
+                                        }}
+                                    >
+                                        <div className="flex items-start justify-between gap-3">
+                                            <Typography.Paragraph className="text-zinc-200">
+                                                {entry.text === '' ? (
+                                                    <span className="italic text-xs text-zinc-400">
+                                                        {t('(Empty transcription)')}
+                                                    </span>
+                                                ) : (
+                                                    entry.text
+                                                )}
+                                            </Typography.Paragraph>
+                                            <Typography.Paragraph className="text-xs text-right whitespace-nowrap shrink-0 text-zinc-300">
+                                                {formatTime(entry.timestamp, i18n.language, t('Just now'))}
+                                            </Typography.Paragraph>
+                                        </div>
+                                    </button>
+                                    {steps.length > 0 && (
+                                        <Button
+                                            variant="subtle"
+                                            size="icon-sm"
+                                            aria-label={t('Show the processing steps')}
+                                            aria-expanded={isExpanded}
+                                            className="m-2 size-7 shrink-0 text-muted-foreground"
+                                            onClick={() => setExpandedId(isExpanded ? null : entry.id)}
+                                            data-testid="history-steps-toggle"
+                                        >
+                                            {isExpanded ? <ChevronDown /> : <ChevronRight />}
+                                        </Button>
                                     )}
-                                </Typography.Paragraph>
-                                <Typography.Paragraph className="text-xs text-right whitespace-nowrap shrink-0 text-zinc-300">
-                                    {formatTime(entry.timestamp, i18n.language, t('Just now'))}
-                                </Typography.Paragraph>
+                                </div>
+                                {isExpanded && (
+                                    <div className="px-3 pb-3">
+                                        <HistorySteps steps={steps} />
+                                    </div>
+                                )}
                             </div>
-                        </button>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
         </div>

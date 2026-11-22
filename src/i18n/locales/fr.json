@@ -566,5 +566,9 @@
     "Find a pre-installed rule": "Trouver une règle préinstallée",
     "Clean-up and standardization": "Nettoyage et uniformisation",
     "The options of this step and of steps 6 and 8 share one tab.": "Les options de cette étape et celles des étapes 6 et 8 sont réunies dans un même onglet.",
-    "The pre-installed options that clean up and standardize the text. They run at steps 4, 6 and 8 of the Explanation tab.": "Les options préinstallées qui nettoient et uniformisent le texte. Elles interviennent aux étapes 4, 6 et 8 de l'onglet Explication."
+    "The pre-installed options that clean up and standardize the text. They run at steps 4, 6 and 8 of the Explanation tab.": "Les options préinstallées qui nettoient et uniformisent le texte. Elles interviennent aux étapes 4, 6 et 8 de l'onglet Explication.",
+    "Recognition": "Reconnaissance",
+    "Unchanged": "Inchangé",
+    "Spaces adjusted": "Espaces ajustés",
+    "Show the processing steps": "Afficher les étapes de traitement"
 }

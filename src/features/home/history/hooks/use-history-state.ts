@@ -1,11 +1,14 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { useState, useEffect } from 'react';
+import { HistoryStep } from '../history-steps/history-steps.helpers';
 
 interface HistoryEntry {
     id: number;
     timestamp: number;
     text: string;
+    /** Text after each processing step, absent for entries from older versions. */
+    steps?: HistoryStep[];
 }
 
 export const useHistoryState = () => {
