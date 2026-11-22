@@ -1,32 +1,27 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { Button } from '@/components/button';
 import { SettingsUI } from '@/components/settings-ui';
 import { Typography } from '@/components/typography';
 import { useTranslation } from '@/i18n';
+import { PreviewArrow } from '@/features/extensions/extension-demo/preview-arrow/preview-arrow';
+import { MedicalDataSettings } from '@/features/medical-data/medical-data-settings/medical-data-settings';
 import { useMedicalDataStatus } from '@/features/medical-data/hooks/use-medical-data-status';
 import { medicalDataVersionLabel } from '@/features/medical-data/medical-data.helpers';
 import { useFormattingRules } from '@/features/personalize/formatting-rules/hooks/use-formatting-rules';
 import { useRemoveHesitations } from '@/features/personalize/formatting-rules/hooks/use-remove-hesitations';
 import { useMedicalRules } from '@/features/personalize/medical-rules/hooks/use-medical-rules';
-import { CorrectionsTarget, RULES_ANCHORS } from '../corrections.helpers';
-import { PipelineStep, StepAction, StepStatus } from './pipeline-step/pipeline-step';
+import { CorrectionsTab, CorrectionsTarget, RULES_ANCHORS } from '../corrections.helpers';
+import { PipelineStep, Step, StepAction, StepStatus } from './pipeline-step/pipeline-step';
 
 interface CorrectionsExplanationProps {
     onOpen: (target: CorrectionsTarget) => void;
 }
 
-interface Step {
-    title: string;
-    stage: string;
-    description: string;
-    example?: string;
-    note?: string;
-    statuses: StepStatus[];
-    actions: StepAction[];
-}
-
-/** Explanation tab: every list that changes the text, in the order the code applies them. */
+/**
+ * Explanation tab: the steps that change the text, as cards linked by
+ * arrows, in the order the code runs them (`audio/pipeline.rs`, then
+ * `formatting_rules/formatter.rs`). Examples use French medical words.
+ */
 export const CorrectionsExplanation = ({ onOpen }: CorrectionsExplanationProps) => {
     const { t } = useTranslation();
     const { settings, isLoading } = useFormattingRules();
@@ -38,7 +33,7 @@ export const CorrectionsExplanation = ({ onOpen }: CorrectionsExplanationProps) 
     useEffect(() => {
         invoke<string[]>('get_dictionary')
             .then((words) => setDictionaryCount(words.length))
-            .catch((e) => console.error('Failed to load the dictionary:', e));
+            .catch((error: unknown) => console.error('Failed to load the personal dictionary:', error));
     }, []);
 
     if (isLoading) {
@@ -46,129 +41,125 @@ export const CorrectionsExplanation = ({ onOpen }: CorrectionsExplanationProps) 
     }
 
     const options = settings.built_in;
-    const onOff = (active: boolean): StepStatus => ({ label: active ? t('On') : t('Off'), active });
-    const dictionaryStatus: StepStatus = {
-        label: t('{{count}} dictionary word(s)', { count: dictionaryCount }),
-        active: dictionaryCount > 0,
-    };
-    const enabledRules = settings.rules.filter((rule) => rule.enabled).length;
+    const onOff = (on: boolean): StepStatus => ({ label: on ? t('On') : t('Off'), active: on });
+    const openTab = (tab: CorrectionsTab, label: string, testId: string): StepAction => ({
+        label,
+        onClick: () => onOpen({ tab }),
+        testId,
+    });
     const openOption = (anchor: string, testId: string): StepAction => ({
         label: t('Open the option'),
-        onClick: () => onOpen({ tab: 'rules', anchor, builtIn: true }),
+        onClick: () => onOpen({ tab: 'formatting', anchor, builtIn: true }),
         testId,
     });
-    const openDictionary = (testId: string): StepAction => ({
-        label: t('Open the dictionary'),
-        onClick: () => onOpen({ tab: 'dictionary' }),
-        testId,
-    });
+    const enabledRules = settings.rules.filter((rule) => rule.enabled).length;
+    const onText = t('On the text');
 
     const steps: Step[] = [
         {
             title: t('Boost medical vocabulary'),
             stage: t('During recognition'),
             description: t(
-                'The recognition favors about 77,000 French medical words and phrases from the bundled list, plus the words of your personal dictionary.'
+                'While it recognizes your voice, the model is nudged towards the words and phrases of a medical list of about 77,000 entries: once "microangiopathie" is recognized, "thrombotique" becomes more likely.'
             ),
-            statuses: [onOff(options.phrase_boosting), dictionaryStatus],
-            actions: [
-                openOption(RULES_ANCHORS.phraseBoosting, 'corrections-open-phrase-boosting'),
-                openDictionary('corrections-open-dictionary-boost'),
+            examples: [{ before: 'microangiopathie trombotique', after: 'microangiopathie thrombotique' }],
+            statuses: [onOff(options.phrase_boosting)],
+            actions: [openTab('vocabulary', t('Open the medical vocabulary'), 'corrections-open-vocabulary')],
+        },
+        {
+            title: t('Tell apart words that sound alike'),
+            stage: t('Second listening of the audio'),
+            description: t(
+                'When the model writes a word that can stand for several medical terms, Plumed listens to that passage again, with the end of the previous word, and keeps the term the audio supports best. Final transcriptions only.'
+            ),
+            examples: [
+                { before: 'instaure ituximab', after: 'instaure rituximab' },
+                { before: 'on passe ituximab', after: 'on passe cetuximab' },
             ],
-        },
-        {
-            title: t('Resolve sound-alike medical words'),
-            stage: t('Second pass on the audio'),
-            description: t(
-                'About 140 groups of medical words that sound alike, from UltiMed. When the recognized text contains one of them, Plumed listens to that passage again and keeps the word the audio supports. Final transcriptions only.'
+            note: t(
+                'Here the [r] of "instaure" or the [s] of "passe" decides. The provided groups use the forms the model really writes; this example is an illustration.'
             ),
-            example: t('Example: "singulaire" → "Singulair" or "cingulaire"'),
             statuses: [onOff(options.confusion_rescoring)],
-            actions: [openOption(RULES_ANCHORS.confusionRescoring, 'corrections-open-confusion-rescoring')],
+            actions: [openTab('sound-alikes', t('Open the sound-alike words'), 'corrections-open-sound-alikes')],
         },
         {
-            title: t('Personal dictionary spelling'),
-            stage: t('On the text'),
+            title: t('Restore the spelling of the personal dictionary'),
+            stage: onText,
             description: t(
-                'A recognized word very close to one of your dictionary words is written as in your dictionary (spelling, accents, capitals).'
+                'A recognized word very close to a word of your personal dictionary takes its spelling (accents, capitals). These words are also favored during recognition, then their spelling is restored here.'
             ),
-            statuses: [dictionaryStatus],
-            actions: [openDictionary('corrections-open-dictionary-spelling')],
+            examples: [{ before: 'maladie de dupuytrin', after: 'maladie de Dupuytren' }],
+            statuses: [
+                {
+                    label: t('{{count}} word(s) of the personal dictionary', { count: dictionaryCount }),
+                    active: dictionaryCount > 0,
+                },
+            ],
+            actions: [openTab('dictionary', t('Open the personal dictionary'), 'corrections-open-dictionary')],
         },
         {
-            title: t('Clean-up'),
-            stage: t('On the text'),
-            description: t('Words repeated by mistake are removed, and hesitation sounds too when that option is on.'),
-            example: t('Example: "I um think so" → "I think so"'),
+            title: t('Clean up hesitations'),
+            stage: onText,
+            description: t(
+                'Words repeated by mistake are removed, and hesitation sounds like "euh" too when the option is on.'
+            ),
+            examples: [
+                { before: 'le le patient', after: 'le patient' },
+                { before: 'veine euh lafaxine', after: 'veine lafaxine' },
+            ],
             statuses: [onOff(removeHesitations)],
             actions: [openOption(RULES_ANCHORS.hesitations, 'corrections-open-hesitations')],
         },
         {
-            title: t('Fix drug names and medical terms'),
-            stage: t('On the text'),
+            title: t('Fix frequent model errors'),
+            stage: onText,
             description: t(
-                "About 25,000 UltiMed rules in six files, applied in this order: drugs, dictionary, PARHAF, PARROT, acronyms, then the hand-written file. Then Plumed's own rules file. Your changes come on top: an added rule runs before the bundled ones, a changed or disabled rule replaces its bundled version."
+                "About 25,000 rules rewrite what the model often gets wrong on drug names and medical terms: UltiMed's rules, then Plumed's own, with your changes on top."
             ),
-            example: t('Example: "tacadol" → "Takadol"'),
+            examples: [{ before: 'veine lafaxine', after: 'venlafaxine' }],
             note: t(
-                'UltiMed also publishes the same rules as lookup tables, an equivalent form for apps whose regex engine lacks lookbehind. Plumed uses the regex form, so the lookup tables are not an extra list.'
+                'This step comes after the clean-up: "veine euh lafaxine" first becomes "veine lafaxine", which the rule knows how to fix.'
             ),
             statuses: [
                 onOff(options.medical_fixes),
-                { label: t('{{count}} change(s)', { count: edits.length }), active: edits.length > 0 },
+                { label: t('{{count}} change(s) of yours', { count: edits.length }), active: edits.length > 0 },
             ],
             actions: [
-                ...(options.medical_fixes
-                    ? [
-                          {
-                              label: t('Open your changes'),
-                              onClick: () => onOpen({ tab: 'rules', anchor: RULES_ANCHORS.medicalRules }),
-                              testId: 'corrections-open-medical-rules',
-                          },
-                      ]
-                    : []),
-                openOption(RULES_ANCHORS.medicalFixes, 'corrections-open-medical-fixes'),
+                openTab('model-corrections', t('Open the model corrections'), 'corrections-open-model-corrections'),
             ],
         },
         {
             title: t('Short text correction'),
-            stage: t('On the text'),
+            stage: onText,
             description:
                 options.short_text_correction > 0
                     ? t('Removes capitalization and punctuation for transcriptions of {{count}} word(s) or fewer.', {
                           count: options.short_text_correction,
                       })
-                    : t('Removes capitalization and punctuation from very short transcriptions.'),
-            example: t('Example: "Hello." → "hello"'),
+                    : t('Removes capitalization and punctuation for short transcriptions.'),
+            examples: [{ before: 'Oui.', after: 'oui' }],
             statuses: [onOff(options.short_text_correction > 0)],
             actions: [openOption(RULES_ANCHORS.shortText, 'corrections-open-short-text')],
         },
         {
             title: t('Your formatting rules'),
-            stage: t('On the text'),
+            stage: onText,
             description: t(
-                "Your own find and replace rules, applied from top to bottom. A fresh install starts with InterHop's medical dictation rules, which you can edit, turn off or delete."
+                'Your own find and replace rules, applied from top to bottom. A fresh install starts with the medical dictation rules of InterHop.'
             ),
-            example: t('Example: "semicolon" → ";"'),
+            examples: [{ before: 'tension 120 80', after: 'TA : 120/80' }],
             statuses: [{ label: t('{{count}} rule(s) on', { count: enabledRules }), active: enabledRules > 0 }],
-            actions: [
-                {
-                    label: t('Open your rules'),
-                    onClick: () => onOpen({ tab: 'rules', anchor: RULES_ANCHORS.userRules }),
-                    testId: 'corrections-open-user-rules',
-                },
-            ],
+            actions: [openTab('formatting', t('Open the formatting rules'), 'corrections-open-user-rules')],
         },
         {
-            title: t('Built-in formatting'),
-            stage: t('On the text'),
+            title: t('Pre-installed formatting'),
+            stage: onText,
             description: t(
-                'Last, the built-in options: space before ? and !, numbers written as digits, and a space at the end of each transcription.'
+                'Last, the pre-installed options: space before ? and !, numbers written as digits, and a space at the end of each transcription.'
             ),
+            examples: [{ before: 'Des douleurs?', after: 'Des douleurs ?' }],
             statuses: [
-                { label: t('Add space before ? and !'), active: options.space_before_punctuation },
-                { label: t('Convert text numbers to digits'), active: options.convert_text_numbers },
-                { label: t('Add space at end of transcription'), active: options.trailing_space },
+                onOff(options.space_before_punctuation || options.convert_text_numbers || options.trailing_space),
             ],
             actions: [openOption(RULES_ANCHORS.formattingOptions, 'corrections-open-formatting-options')],
         },
@@ -178,64 +169,38 @@ export const CorrectionsExplanation = ({ onOpen }: CorrectionsExplanationProps) 
         <div className="space-y-6" data-testid="corrections-explanation">
             <Typography.Paragraph>
                 {t(
-                    'Plumed corrects the transcribed text in several steps, always in this order. The badges show what is on, and the buttons open the settings of each step.'
+                    'Plumed corrects the transcribed text in several steps, always in this order. Each card shows an example, whether the step is on, and a button to open its list or option.'
                 )}
             </Typography.Paragraph>
 
-            <ol>
+            <div className="flex flex-col gap-2">
                 {steps.map((step, index) => (
-                    <PipelineStep
-                        key={step.title}
-                        index={index + 1}
-                        title={step.title}
-                        stage={step.stage}
-                        statuses={step.statuses}
-                        actions={step.actions}
-                        isLast={index === steps.length - 1}
-                    >
-                        <Typography.Paragraph>
-                            {step.description}
-                            {step.example != null && <span className="block text-xs italic mt-1">{step.example}</span>}
-                        </Typography.Paragraph>
-                        {step.note != null && (
-                            <p className="rounded-md border border-surface-border px-3 py-2 text-xs text-muted-foreground">
-                                {step.note}
-                            </p>
-                        )}
-                    </PipelineStep>
+                    <React.Fragment key={step.title}>
+                        {index > 0 && <PreviewArrow horizontalFrom="never" />}
+                        <PipelineStep index={index + 1} step={step} />
+                    </React.Fragment>
                 ))}
-            </ol>
+            </div>
 
             {dataStatus != null && (
                 <SettingsUI.Container className="space-y-2 p-4" data-testid="corrections-medical-data">
                     <Typography.Title>{t('Medical data')}</Typography.Title>
                     <Typography.Paragraph>
                         {t(
-                            'The phrase list (step 1), the sound-alike groups (step 2) and the drug and medical term rules (step 5) form the medical data.'
+                            'The medical vocabulary (step 1), the sound-alike words (step 2) and the model corrections (step 5) form the medical data.'
                         )}{' '}
                         {medicalDataVersionLabel(dataStatus, t)}
                     </Typography.Paragraph>
                     {dataStatus.available && (
-                        <>
-                            <Typography.Paragraph>
-                                {t(
-                                    'When a signed update is offered online, Plumed asks before downloading it. Your own changes are kept.'
-                                )}
-                            </Typography.Paragraph>
-                            <Button
-                                variant="secondary"
-                                size="sm"
-                                onClick={() =>
-                                    onOpen({ tab: 'rules', anchor: RULES_ANCHORS.medicalData, builtIn: true })
-                                }
-                                data-testid="corrections-open-medical-data"
-                            >
-                                {t('Open the medical data updates')}
-                            </Button>
-                        </>
+                        <Typography.Paragraph>
+                            {t(
+                                'When a signed update is offered online, Plumed asks before downloading it. Your own changes are kept.'
+                            )}
+                        </Typography.Paragraph>
                     )}
                 </SettingsUI.Container>
             )}
+            <MedicalDataSettings />
         </div>
     );
 };

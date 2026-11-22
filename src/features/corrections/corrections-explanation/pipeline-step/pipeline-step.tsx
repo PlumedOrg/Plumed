@@ -1,7 +1,9 @@
 import clsx from 'clsx';
-import React from 'react';
 import { Button } from '@/components/button';
 import { Typography } from '@/components/typography';
+import { useTranslation } from '@/i18n';
+import { PreviewArrow } from '@/features/extensions/extension-demo/preview-arrow/preview-arrow';
+import { PreviewCell } from '@/features/extensions/extension-demo/preview-cell/preview-cell';
 
 export interface StepStatus {
     label: string;
@@ -14,60 +16,83 @@ export interface StepAction {
     testId: string;
 }
 
-interface PipelineStepProps {
-    index: number;
+/** A concrete text before and after the step. */
+export interface StepExample {
+    before: string;
+    after: string;
+}
+
+export interface Step {
     title: string;
     /** When the step runs: while decoding, on the audio again, or on the text. */
     stage: string;
+    description: string;
+    examples: StepExample[];
+    note?: string;
     statuses: StepStatus[];
     actions: StepAction[];
-    isLast: boolean;
-    children: React.ReactNode;
 }
 
-/** One numbered step of the vertical flow of the Explanation tab. */
-export const PipelineStep = ({ index, title, stage, statuses, actions, isLast, children }: PipelineStepProps) => {
+interface PipelineStepProps {
+    index: number;
+    step: Step;
+}
+
+/** One card of the Explanation tab flow: what the step does, a before and after example, its state and buttons. */
+export const PipelineStep = ({ index, step }: PipelineStepProps) => {
+    const { t } = useTranslation();
+
     return (
-        <li className="flex gap-4" data-testid={`corrections-step-${index}`}>
-            <div className="flex flex-col items-center">
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-sky-500/15 text-sm font-semibold text-sky-300">
+        <section
+            className="space-y-3 rounded-md border border-surface-border bg-surface-header p-4"
+            data-testid={`corrections-step-${index}`}
+        >
+            <div className="flex flex-wrap items-center gap-2">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sky-500/15 text-xs font-semibold text-sky-300">
                     {index}
                 </span>
-                {!isLast && <span className="mt-1 w-px flex-1 bg-surface-border" />}
+                <Typography.Title>{step.title}</Typography.Title>
+                <span className="text-xs text-muted-foreground">{step.stage}</span>
+                {step.statuses.map((status) => (
+                    <span
+                        key={status.label}
+                        className={clsx(
+                            'rounded-full px-2 py-0.5 text-xs',
+                            status.active ? 'bg-sky-500/15 text-sky-300' : 'bg-muted text-muted-foreground'
+                        )}
+                    >
+                        {status.label}
+                    </span>
+                ))}
             </div>
-            <div className="flex-1 space-y-2 pb-6">
-                <div className="flex flex-wrap items-center gap-2">
-                    <Typography.Title>{title}</Typography.Title>
-                    <span className="text-xs text-muted-foreground">{stage}</span>
-                    {statuses.map((status) => (
-                        <span
-                            key={status.label}
-                            className={clsx(
-                                'rounded-full px-2 py-0.5 text-xs',
-                                status.active ? 'bg-sky-500/15 text-sky-300' : 'bg-muted text-muted-foreground'
-                            )}
+            <Typography.Paragraph>{step.description}</Typography.Paragraph>
+            {step.examples.map((example) => (
+                <div key={example.before} className="grid grid-cols-1 gap-2 text-left md:grid-cols-[1fr_auto_1fr]">
+                    <PreviewCell label={t('Before')} centered>
+                        <span className="text-sm italic text-foreground">{example.before}</span>
+                    </PreviewCell>
+                    <PreviewArrow horizontalFrom="md" />
+                    <PreviewCell label={t('After')} centered>
+                        <span className="text-sm text-foreground">{example.after}</span>
+                    </PreviewCell>
+                </div>
+            ))}
+            {step.note != null && <p className="text-xs italic text-muted-foreground">{step.note}</p>}
+            {step.actions.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                    {step.actions.map((action) => (
+                        <Button
+                            key={action.testId}
+                            variant="secondary"
+                            size="sm"
+                            onClick={action.onClick}
+                            data-testid={action.testId}
                         >
-                            {status.label}
-                        </span>
+                            {action.label}
+                        </Button>
                     ))}
                 </div>
-                {children}
-                {actions.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                        {actions.map((action) => (
-                            <Button
-                                key={action.testId}
-                                variant="secondary"
-                                size="sm"
-                                onClick={action.onClick}
-                                data-testid={action.testId}
-                            >
-                                {action.label}
-                            </Button>
-                        ))}
-                    </div>
-                )}
-            </div>
-        </li>
+            )}
+        </section>
     );
 };
