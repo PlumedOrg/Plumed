@@ -29,7 +29,7 @@
 use std::collections::HashMap;
 
 use ndarray::ArrayViewD;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use tokenizers::Tokenizer;
 
 use super::beam::log_sum_exp;
@@ -48,6 +48,8 @@ const MAX_WINDOW_FRAMES: usize = 150;
 #[derive(Deserialize)]
 struct RawCandidate {
     text: String,
+    /// How often UltiMed saw it; absent in the user's own groups.
+    #[serde(default)]
     count: u32,
 }
 
@@ -55,17 +57,73 @@ struct RawCandidate {
 struct RawGroup {
     heard: String,
     candidates: Vec<RawCandidate>,
-    heard_correct_count: u32,
+    /// `None` for the user's own groups, which have no statistics.
+    heard_correct_count: Option<u32>,
 }
 
 impl RawGroup {
     /// The realistic working set (about 140 of the 905 v2 groups): a second
     /// candidate seen at least twice, and a heard form wrong at least as often
     /// as right. The others are single-target (the regexes handle them) or
-    /// a heard form that is almost always right.
+    /// a heard form that is almost always right. A group without statistics
+    /// (written by the user) is always kept.
     fn is_ambiguous(&self) -> bool {
         let total: u32 = self.candidates.iter().map(|c| c.count).sum();
-        self.candidates.get(1).is_some_and(|c| c.count >= 2) && self.heard_correct_count <= total
+        match self.heard_correct_count {
+            None => true,
+            Some(right) => self.candidates.get(1).is_some_and(|c| c.count >= 2) && right <= total,
+        }
+    }
+}
+
+/// One group the second pass uses: a heard form and the words it may stand for.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ConfusionGroup {
+    pub heard: String,
+    pub candidates: Vec<String>,
+}
+
+impl ConfusionGroup {
+    /// The group of one `confusion_groups.jsonl` line: `Ok(None)` for a blank
+    /// line or a group the second pass leaves out (see `is_ambiguous`), an
+    /// error for an unreadable line.
+    pub fn from_line(line: &str) -> Result<Option<Self>, String> {
+        if line.trim().is_empty() {
+            return Ok(None);
+        }
+        let group: RawGroup = serde_json::from_str(line).map_err(|e| e.to_string())?;
+        if !group.is_ambiguous() {
+            return Ok(None);
+        }
+        let mut candidates: Vec<String> = Vec::new();
+        for candidate in group.candidates {
+            if !candidates.contains(&candidate.text) {
+                candidates.push(candidate.text);
+            }
+        }
+        Ok(Some(Self {
+            heard: group.heard,
+            candidates,
+        }))
+    }
+
+    /// The line of a user group, without statistics (always kept on parse).
+    pub fn to_line(&self) -> String {
+        let candidates: Vec<serde_json::Value> = self
+            .candidates
+            .iter()
+            .map(|text| serde_json::json!({ "text": text }))
+            .collect();
+        serde_json::json!({ "heard": self.heard, "candidates": candidates }).to_string()
+    }
+
+    /// The normalized heard form, under which the groups are indexed.
+    pub fn key(&self) -> String {
+        self.heard
+            .split_whitespace()
+            .map(normalize)
+            .collect::<Vec<_>>()
+            .join(" ")
     }
 }
 
@@ -82,29 +140,18 @@ impl ConfusionGroups {
     pub fn parse(raw: &str) -> Self {
         let mut by_heard: HashMap<String, Vec<String>> = HashMap::new();
         for (index, line) in raw.lines().enumerate() {
-            if line.trim().is_empty() {
-                continue;
-            }
-            let group: RawGroup = match serde_json::from_str(line) {
-                Ok(group) => group,
+            let group = match ConfusionGroup::from_line(line) {
+                Ok(Some(group)) => group,
+                Ok(None) => continue,
                 Err(e) => {
                     log::warn!("confusion groups: line {} skipped: {}", index + 1, e);
                     continue;
                 }
             };
-            if !group.is_ambiguous() {
-                continue;
-            }
-            let key = group
-                .heard
-                .split_whitespace()
-                .map(normalize)
-                .collect::<Vec<_>>()
-                .join(" ");
-            let candidates = by_heard.entry(key).or_default();
+            let candidates = by_heard.entry(group.key()).or_default();
             for candidate in group.candidates {
-                if !candidates.contains(&candidate.text) {
-                    candidates.push(candidate.text);
+                if !candidates.contains(&candidate) {
+                    candidates.push(candidate);
                 }
             }
         }
@@ -536,6 +583,20 @@ impl ParakeetEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_user_group_without_statistics_is_kept_and_round_trips() {
+        let group = ConfusionGroup {
+            heard: "ituximab".to_string(),
+            candidates: vec!["rituximab".to_string(), "cetuximab".to_string()],
+        };
+        assert_eq!(
+            ConfusionGroup::from_line(&group.to_line()),
+            Ok(Some(group.clone()))
+        );
+        let groups = ConfusionGroups::parse(&group.to_line());
+        assert_eq!(groups.by_heard["ituximab"], group.candidates);
+    }
 
     #[test]
     fn parse_keeps_only_ambiguous_groups() {

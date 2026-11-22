@@ -1,82 +1,140 @@
 //! French medical data armed on the engine once, when the model loads, from
-//! the active data set (bundled or downloaded, see `data_set`): the phrase
-//! boosting list and the confusion groups of the decoder's second pass.
-//! Building them takes a moment, unlike the per-transcription dictionary
-//! sync. Each one has a built-in option that turns it off. Written with
-//! Claude Code.
+//! the active data set (bundled or downloaded, see `data_set`) with the
+//! user's changes on top (see `list_overlay`): the phrase boosting list and
+//! the confusion groups of the decoder's second pass. Building them takes a
+//! moment, unlike the per-transcription dictionary sync. Each one has a
+//! built-in option that turns it off. Written with Claude Code.
 
 use super::data_set::{self, ActiveData};
+use super::store::{self, StoreFile};
 use crate::audio::types::AudioState;
 use crate::engine::ParakeetEngine;
 use crate::formatting_rules::BuiltInOptions;
+use serde::Deserialize;
 use tauri::{AppHandle, Manager};
 
-/// One list of the data set, the option that enables it and how to arm it.
+/// A list of the data set the engine uses.
+#[derive(Debug, Clone, Copy, PartialEq, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MedicalList {
+    Phrases,
+    ConfusionGroups,
+}
+
+impl MedicalList {
+    /// The list as the data set has it, before the user's changes.
+    pub fn bundled(self, data: &ActiveData) -> &str {
+        match self {
+            MedicalList::Phrases => &data.phrase_list,
+            MedicalList::ConfusionGroups => &data.confusion_groups,
+        }
+    }
+
+    /// Where the user's changes to it are saved.
+    pub(super) fn store_file(self) -> &'static StoreFile {
+        match self {
+            MedicalList::Phrases => &store::PHRASE_OVERLAY,
+            MedicalList::ConfusionGroups => &store::CONFUSION_OVERLAY,
+        }
+    }
+}
+
+/// One list, the option that enables it and how to arm it.
 struct EngineList {
-    data: fn(&ActiveData) -> &str,
+    list: MedicalList,
     enabled: fn(&BuiltInOptions) -> bool,
     arm: fn(&mut ParakeetEngine, &str),
 }
 
 const LISTS: [EngineList; 2] = [
     EngineList {
-        data: |data| &data.phrase_list,
+        list: MedicalList::Phrases,
         enabled: |options| options.phrase_boosting,
         arm: ParakeetEngine::set_boost_list,
     },
     EngineList {
-        data: |data| &data.confusion_groups,
+        list: MedicalList::ConfusionGroups,
         enabled: |options| options.confusion_rescoring,
         arm: ParakeetEngine::set_confusion_groups,
     },
 ];
 
 impl EngineList {
-    /// The content to arm: the list, or nothing to turn it off.
-    fn content<'a>(&self, data: &'a ActiveData, options: &BuiltInOptions) -> &'a str {
+    /// What to arm: the list, or nothing to turn it off.
+    fn content<'a>(&self, list: &'a str, options: &BuiltInOptions) -> &'a str {
         match (self.enabled)(options) {
-            true => (self.data)(data),
+            true => list,
             false => "",
         }
     }
+
+    fn arm_on(
+        &self,
+        app: &AppHandle,
+        engine: &mut ParakeetEngine,
+        data: &ActiveData,
+        options: &BuiltInOptions,
+    ) {
+        let list = match (self.enabled)(options) {
+            true => super::overlaid_list(app, self.list, data),
+            false => String::new(),
+        };
+        (self.arm)(engine, self.content(&list, options));
+    }
+}
+
+fn options(app: &AppHandle) -> BuiltInOptions {
+    crate::formatting_rules::load(app)
+        .map(|settings| settings.built_in)
+        .unwrap_or_default()
 }
 
 /// Arms every enabled list on a freshly loaded `engine` (defaults when the
 /// settings are unreadable).
 pub fn arm(app: &AppHandle, engine: &mut ParakeetEngine) {
-    let options = crate::formatting_rules::load(app)
-        .map(|settings| settings.built_in)
-        .unwrap_or_default();
+    let options = options(app);
     let data = data_set::current();
     for list in &LISTS {
-        (list.arm)(engine, list.content(&data, &options));
+        list.arm_on(app, engine, &data, &options);
     }
 }
 
-/// Re-arms every list on the already loaded engine, if any, after the data
-/// set changed (a not yet loaded engine gets them in [`arm`]).
-pub fn rearm(app: &AppHandle) {
+/// Runs `f` on the already loaded engine, if any (a not yet loaded engine
+/// gets everything in [`arm`]).
+fn with_loaded_engine(app: &AppHandle, f: impl FnOnce(&mut ParakeetEngine)) {
     let state = app.state::<AudioState>();
     let mut engine = state.engine.lock();
     if let Some(engine) = engine.as_mut() {
-        arm(app, engine);
+        f(engine);
     }
 }
 
-/// Re-arms, on the already loaded engine if any, the lists whose option
-/// changed (a not yet loaded engine reads the options in [`arm`]).
-pub fn apply_settings(app: &AppHandle, before: Option<&BuiltInOptions>, after: &BuiltInOptions) {
-    let state = app.state::<AudioState>();
-    let mut engine = state.engine.lock();
-    let Some(engine) = engine.as_mut() else {
-        return;
-    };
+/// Re-arms every list after the data set changed.
+pub fn rearm(app: &AppHandle) {
+    with_loaded_engine(app, |engine| arm(app, engine));
+}
+
+/// Re-arms one list after the user changed it.
+pub fn rearm_list(app: &AppHandle, list: MedicalList) {
+    let options = options(app);
     let data = data_set::current();
-    for list in &LISTS {
-        if before.map(list.enabled) != Some((list.enabled)(after)) {
-            (list.arm)(engine, list.content(&data, after));
+    with_loaded_engine(app, |engine| {
+        for engine_list in LISTS.iter().filter(|l| l.list == list) {
+            engine_list.arm_on(app, engine, &data, &options);
         }
-    }
+    });
+}
+
+/// Re-arms the lists whose option changed.
+pub fn apply_settings(app: &AppHandle, before: Option<&BuiltInOptions>, after: &BuiltInOptions) {
+    let data = data_set::current();
+    with_loaded_engine(app, |engine| {
+        for list in &LISTS {
+            if before.map(list.enabled) != Some((list.enabled)(after)) {
+                list.arm_on(app, engine, &data, after);
+            }
+        }
+    });
 }
 
 #[cfg(test)]
@@ -94,11 +152,9 @@ mod tests {
         };
         let data = data_set::current();
         for list in &LISTS {
-            assert_eq!(
-                list.content(&data, &BuiltInOptions::default()),
-                (list.data)(&data)
-            );
-            assert_eq!(list.content(&data, &off), "");
+            let bundled = list.list.bundled(&data);
+            assert_eq!(list.content(bundled, &BuiltInOptions::default()), bundled);
+            assert_eq!(list.content(bundled, &off), "");
         }
     }
 

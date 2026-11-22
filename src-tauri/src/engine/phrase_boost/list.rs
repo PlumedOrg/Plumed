@@ -223,6 +223,16 @@ fn apply_directive(body: &str, list: &mut BoostList) {
     }
 }
 
+/// The phrase of one list line, without its fields; `None` for a blank,
+/// directive (`#!`) or defaults (`*:`) line.
+pub fn line_phrase(line: &str) -> Option<String> {
+    let trimmed = line.trim();
+    if trimmed.is_empty() || trimmed.starts_with(DIRECTIVE_PREFIX) || is_defaults_line(trimmed) {
+        return None;
+    }
+    Some(parse_fields(trimmed).phrase)
+}
+
 /// Parse a whole list (ParakeetWeb's `parseBoostPhrases` + `parseBoostDirectives`).
 pub fn parse_boost_list(raw: &str) -> BoostList {
     let mut list = BoostList {
