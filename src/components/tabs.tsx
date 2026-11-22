@@ -10,6 +10,8 @@ export interface TabItem<T extends string> {
     label: string;
     count?: number;
     icon?: LucideIcon;
+    /** Plumed fork: shown before the label, e.g. a step number badge. */
+    prefix?: React.ReactNode;
 }
 
 interface TabsProps<T extends string> {
@@ -66,6 +68,7 @@ export const Tabs = <T extends string>({
                             className={clsx('cursor-pointer', isActive && activeColor == null && 'text-sky-400')}
                             style={isActive ? { color: activeColor } : undefined}
                         >
+                            {tab.prefix}
                             {tab.icon != null && <tab.icon className="w-4 h-4" />}
                             {tab.label}
                             {tab.count != null && (
