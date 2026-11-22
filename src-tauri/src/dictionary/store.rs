@@ -69,7 +69,11 @@ fn validate_dictionary_format(words: &[String]) -> Result<(), DictionaryError> {
 
 pub fn import_dictionary(app: &AppHandle, file_path: String) -> Result<(), String> {
     let raw = fs::read_to_string(&file_path).map_err(|e| e.to_string())?;
-    log::debug!("New dictionary: {} bytes from file: {}", raw.len(), file_path);
+    log::debug!(
+        "New dictionary: {} bytes from file: {}",
+        raw.len(),
+        file_path
+    );
 
     let is_legacy_csv = std::path::Path::new(&file_path)
         .extension()
