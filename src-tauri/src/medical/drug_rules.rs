@@ -35,6 +35,7 @@
 //!
 //! Written with Claude Code.
 
+use crate::utils::user_text::has_unsafe_chars;
 use log::warn;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -180,14 +181,6 @@ fn anchors_of(rule: &SourceRule) -> Option<HashSet<String>> {
     Some(anchors)
 }
 
-/// Control and bidi-override chars: the output can land in the clipboard, so
-/// a tampered rule file must not be able to inject them.
-fn is_unsafe_replacement(replacement: &str) -> bool {
-    replacement.chars().any(|c| {
-        matches!(c, '\u{0}'..='\u{1f}' | '\u{7f}'..='\u{9f}' | '\u{202a}'..='\u{202e}' | '\u{2066}'..='\u{2069}')
-    })
-}
-
 fn has_lookaround(core: &str) -> bool {
     ["(?<", "(?=", "(?!"].iter().any(|l| core.contains(l))
 }
@@ -322,7 +315,7 @@ impl Rule {
         before_vowel: bool,
         replacement: &str,
     ) -> Option<Self> {
-        if replacement.is_empty() || is_unsafe_replacement(replacement) {
+        if replacement.is_empty() || has_unsafe_chars(replacement) {
             return None;
         }
         Some(Self {
@@ -398,7 +391,7 @@ pub fn validate_edit(edit: &RuleEdit) -> Result<(), String> {
     if edit.core.trim().is_empty() {
         return Err("The pattern is empty".to_string());
     }
-    if edit.replacement.is_empty() || is_unsafe_replacement(&edit.replacement) {
+    if edit.replacement.is_empty() || has_unsafe_chars(&edit.replacement) {
         return Err("The replacement is empty or contains control characters".to_string());
     }
     if has_lookaround(&edit.core) {

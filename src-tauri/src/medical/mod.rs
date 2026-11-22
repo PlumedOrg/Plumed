@@ -89,6 +89,8 @@ pub fn get_edits(app: &AppHandle) -> Result<Vec<RuleEdit>, String> {
 
 /// Checks every edit, the first invalid one is the error.
 fn validate_edits(edits: &[RuleEdit]) -> Result<(), String> {
+    let new_rules = edits.iter().filter(|e| e.original.is_none()).count();
+    crate::utils::user_text::check_entry_count(new_rules, "rules of your own")?;
     edits
         .iter()
         .try_for_each(|edit| validate_edit(edit).map_err(|e| format!("{}: {e}", edit.replacement)))

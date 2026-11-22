@@ -7,6 +7,7 @@
 use super::engine_lists::MedicalList;
 use crate::engine::confusion::ConfusionGroup;
 use crate::engine::phrase_boost::list::line_phrase;
+use crate::utils::user_text::{check_entry_count, has_unsafe_chars};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
@@ -69,6 +70,10 @@ impl OverlayEntry for Phrase {
     }
 }
 
+/// Most candidates of a group of the user: each is aligned on the audio of
+/// the heard word, so a huge group would slow every dictation down.
+const MAX_CANDIDATES: usize = 20;
+
 impl OverlayEntry for ConfusionGroup {
     const LIST: MedicalList = MedicalList::ConfusionGroups;
 
@@ -85,6 +90,19 @@ impl OverlayEntry for ConfusionGroup {
     }
 
     fn validate(&self) -> Result<(), String> {
+        let words = std::iter::once(&self.heard).chain(&self.candidates);
+        if words.clone().any(|w| has_unsafe_chars(w)) {
+            return Err(format!(
+                "\"{}\": a group cannot contain control characters",
+                self.heard.escape_debug()
+            ));
+        }
+        if self.candidates.len() > MAX_CANDIDATES {
+            return Err(format!(
+                "\"{}\": a group has at most {MAX_CANDIDATES} candidates",
+                self.heard
+            ));
+        }
         let distinct: HashSet<&str> = self
             .candidates
             .iter()
@@ -288,6 +306,7 @@ impl<T: OverlayEntry> ListOverlay<T> {
 
     /// Checks the user's entries before saving.
     pub fn validate(&self) -> Result<(), String> {
+        check_entry_count(self.added.len(), "added entries")?;
         self.added.iter().try_for_each(T::validate)
     }
 }
@@ -447,6 +466,32 @@ mod tests {
         assert!(group(" ", &["a", "b"]).validate().is_err());
         assert!(Phrase("ratio 3:1".to_string()).validate().is_err());
         assert!(Phrase("veine lafaxine".to_string()).validate().is_ok());
+    }
+
+    #[test]
+    fn user_groups_have_at_most_20_candidates_and_no_control_character() {
+        let names: Vec<String> = (0..21).map(|i| format!("candidat{i}")).collect();
+        let names: Vec<&str> = names.iter().map(String::as_str).collect();
+        assert!(group("heard", &names[..20]).validate().is_ok());
+        assert!(group("heard", &names).validate().is_err());
+        assert!(group("ituximab", &["rituximab\u{8}\u{8}", "cetuximab"])
+            .validate()
+            .is_err());
+        assert!(group("itux\u{1b}", &["rituximab", "cetuximab"])
+            .validate()
+            .is_err());
+    }
+
+    #[test]
+    fn an_overlay_with_too_many_added_entries_is_refused() {
+        let max = crate::utils::user_text::MAX_USER_ENTRIES;
+        let mut overlay = ListOverlay {
+            disabled: Vec::new(),
+            added: vec![Phrase("rituximab".to_string()); max],
+        };
+        assert!(overlay.validate().is_ok());
+        overlay.added.push(Phrase("cetuximab".to_string()));
+        assert!(overlay.validate().is_err());
     }
 
     #[test]

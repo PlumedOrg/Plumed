@@ -3,6 +3,7 @@ pub mod http;
 pub mod log_watchdog;
 pub mod platform;
 pub mod resources;
+pub mod user_text;
 #[cfg(target_os = "linux")]
 pub mod wayland_inject;
 #[cfg(target_os = "linux")]

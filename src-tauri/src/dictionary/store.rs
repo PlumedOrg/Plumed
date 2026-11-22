@@ -16,7 +16,22 @@ pub fn load(app: &AppHandle) -> Result<Vec<String>, String> {
     Ok(store.entries().into_iter().map(|(word, _)| word).collect())
 }
 
+/// Plumed fork: words are typed into other applications, so no control
+/// character, and a bounded count.
+fn validate_words(words: &[String]) -> Result<(), String> {
+    use crate::utils::user_text::{check_entry_count, has_unsafe_chars};
+    check_entry_count(words.len(), "dictionary words")?;
+    match words.iter().find(|word| has_unsafe_chars(word)) {
+        Some(word) => Err(format!(
+            "Dictionary word \"{}\" contains control characters",
+            word.escape_debug()
+        )),
+        None => Ok(()),
+    }
+}
+
 pub fn save(app: &AppHandle, words: &[String]) -> Result<(), String> {
+    validate_words(words)?;
     let store = app.store("dictionary.json").map_err(|e| e.to_string())?;
     store.reset();
     for word in words {
@@ -94,6 +109,15 @@ pub fn import_dictionary(app: &AppHandle, file_path: String) -> Result<(), Strin
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn words_with_control_characters_are_refused() {
+        assert!(validate_words(&["Kardégic".to_string(), "Förster".to_string()]).is_ok());
+        assert!(validate_words(&["Kardégic\u{1b}".to_string()]).is_err());
+        assert!(validate_words(&["a\u{202e}b".to_string()]).is_err());
+        let too_many = vec!["mot".to_string(); crate::utils::user_text::MAX_USER_ENTRIES + 1];
+        assert!(validate_words(&too_many).is_err());
+    }
 
     #[test]
     fn test_validate_dictionary_format_valid_multiple_words() {
