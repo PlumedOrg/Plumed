@@ -167,6 +167,16 @@ export const CorrectionsExplanation = ({ onOpen }: CorrectionsExplanationProps) 
             statuses: [{ label: t('{{count}} rule(s) on', { count: enabledRules }), active: enabledRules > 0 }],
             actions: [openTab('formatting', t('Open the formatting rules'), 'corrections-open-user-rules')],
         },
+        grammar: {
+            stage: onText,
+            description: t(
+                'Last, the Grammalecte grammar checker reads the final text. Plumed applies a fix only when the rule is on and there is a single possible fix; ages, doses, acronyms and names are hidden from the checker so it does not take them for errors.'
+            ),
+            examples: [{ before: 'La patiente de 63 ans est fatigué.', after: 'La patiente de 63 ans est fatiguée.' }],
+            note: t('Without the hiding, "ans" would be taken as the subject and "fatigué" left as it is.'),
+            statuses: [onOff(options.grammar)],
+            actions: [openTab('grammar', t('Open the grammar rules'), 'corrections-open-grammar')],
+        },
     };
     const steps: Step[] = PIPELINE_STEPS.map(({ id }) => ({ title: pipelineStepTitle(id, t), ...content[id] }));
 

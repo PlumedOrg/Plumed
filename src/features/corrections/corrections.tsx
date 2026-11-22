@@ -18,6 +18,7 @@ import {
 } from './corrections.helpers';
 import { StepBadge } from './step-badge/step-badge';
 import { FormattingTab } from './formatting-tab/formatting-tab';
+import { GrammarTab } from './grammar-tab/grammar-tab';
 import { MedicalVocabulary } from './medical-vocabulary/medical-vocabulary';
 import { ModelCorrections } from './model-corrections/model-corrections';
 import { SoundAlikeWords } from './sound-alike-words/sound-alike-words';
@@ -69,6 +70,7 @@ export const Corrections = () => {
                 {activeTab === 'clean-up' && <CleanUpTab anchor={anchor} />}
                 {activeTab === 'model-corrections' && <ModelCorrections />}
                 {activeTab === 'formatting' && <FormattingTab />}
+                {activeTab === 'grammar' && <GrammarTab />}
             </Tabs>
         </main>
     );

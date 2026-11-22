@@ -1,5 +1,5 @@
 /** A list exported and imported in its native format (Rust `medical::ListFile`). */
-export type ListFile = 'rules' | 'phrases' | 'confusion_groups';
+export type ListFile = 'rules' | 'phrases' | 'confusion_groups' | 'grammar';
 
 /** A heard form and the words it may stand for (Rust `ConfusionGroup`). */
 export interface ConfusionGroup {

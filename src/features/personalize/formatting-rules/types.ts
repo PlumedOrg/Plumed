@@ -19,6 +19,7 @@ export interface BuiltInOptions {
     medical_fixes: boolean;
     phrase_boosting: boolean;
     confusion_rescoring: boolean;
+    grammar: boolean;
 }
 
 export interface FormattingSettings {
@@ -37,6 +38,7 @@ export const defaultFormattingSettings: FormattingSettings = {
         medical_fixes: true,
         phrase_boosting: true,
         confusion_rescoring: true,
+        grammar: true,
     },
     rules: [],
 };

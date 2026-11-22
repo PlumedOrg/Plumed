@@ -10,7 +10,8 @@ export type CorrectionsTab =
     | 'dictionary'
     | 'clean-up'
     | 'model-corrections'
-    | 'formatting';
+    | 'formatting'
+    | 'grammar';
 
 /** Where a button of the Explanation tab leads. */
 export interface CorrectionsTarget {
@@ -28,8 +29,8 @@ export const RULES_ANCHORS = {
 
 /**
  * The steps of the Explanation flow, in the order the code runs them
- * (`audio/pipeline.rs`, then `formatting_rules/formatter.rs`), one per list
- * tab. Ids after recognition match the Rust `history::PipelineStep` the
+ * (`audio/pipeline.rs`, then `formatting_rules/formatter.rs`, then
+ * `grammar/`), one per list tab. Ids after recognition match the Rust `history::PipelineStep` the
  * history keeps.
  */
 export type PipelineStepId =
@@ -38,7 +39,8 @@ export type PipelineStepId =
     | 'dictionary'
     | 'clean_up'
     | 'model_corrections'
-    | 'formatting_rules';
+    | 'formatting_rules'
+    | 'grammar';
 
 /**
  * Options of the Clean-up tab that the code runs later than step 4. They are
@@ -58,6 +60,7 @@ export const PIPELINE_STEPS: { id: PipelineStepId; tab: CorrectionsTab }[] = [
     { id: 'clean_up', tab: 'clean-up' },
     { id: 'model_corrections', tab: 'model-corrections' },
     { id: 'formatting_rules', tab: 'formatting' },
+    { id: 'grammar', tab: 'grammar' },
 ];
 
 /**
@@ -103,6 +106,7 @@ export const CORRECTIONS_TAB_LABELS: Record<CorrectionsTab, string> = {
     'clean-up': 'Clean-up and standardization',
     'model-corrections': 'Residual errors',
     formatting: 'Formatting',
+    grammar: 'Grammar',
 };
 
 type Translate = (key: string, options?: Record<string, string | number>) => string;
@@ -126,6 +130,8 @@ export const pipelineStepTitle = (id: TextStepId, t: Translate): string => {
             return t('Your formatting rules');
         case 'built_in_formatting':
             return t('Pre-installed formatting');
+        case 'grammar':
+            return t('Fix the grammar');
     }
 };
 
@@ -144,6 +150,7 @@ export const CORRECTIONS_TABS: CorrectionsTab[] = [
     'clean-up',
     'model-corrections',
     'formatting',
+    'grammar',
 ];
 
 /**

@@ -1,19 +1,24 @@
 import { invoke } from '@tauri-apps/api/core';
-import { AudioLines, ListChecks, Stethoscope } from 'lucide-react';
+import { AudioLines, ListChecks, SpellCheck, Stethoscope } from 'lucide-react';
 import { CORRECTIONS_TAB_LABELS } from '@/features/corrections/corrections.helpers';
 import { ConfusionGroup, ListOverlay } from '@/features/corrections/corrections.types';
 import { MedicalRuleEdit } from '@/features/personalize/medical-rules/types';
 import type { CategoryDefinition, CategorySelection, ImportStrategy } from '../import-export.types';
 
-// Plumed fork (written with Claude Code): the user's changes to the three
-// medical lists of the Corrections page travel in the `.murmure` export as
+// Plumed fork (written with Claude Code): the user's changes to the lists of
+// the Corrections page (the three medical lists and the grammar rules) travel in the `.murmure` export as
 // one category each. Only the changes are exported (disabled bundled entries
 // and added ones, or the rule edits), never the bundled lists. The backend
 // (`medical/changes.rs`) validates and saves them like the tabs do, for this
 // import and for `plumed import` alike. Files from before these categories
 // simply lack them.
 
-export const MEDICAL_CATEGORY_KEYS = ['medical_phrases', 'medical_confusion_groups', 'medical_rules'] as const;
+export const MEDICAL_CATEGORY_KEYS = [
+    'medical_phrases',
+    'medical_confusion_groups',
+    'medical_rules',
+    'grammar_rules',
+] as const;
 
 export type MedicalCategoryKey = (typeof MEDICAL_CATEGORY_KEYS)[number];
 
@@ -22,6 +27,8 @@ export interface MedicalChanges {
     medical_phrases?: ListOverlay<string>;
     medical_confusion_groups?: ListOverlay<ConfusionGroup>;
     medical_rules?: MedicalRuleEdit[];
+    /** Ids of the default grammar rules turned off and of the other rules turned on. */
+    grammar_rules?: ListOverlay<string>;
 }
 
 export const isMedicalCategory = (key: string): key is MedicalCategoryKey =>
@@ -50,6 +57,13 @@ export const MEDICAL_CATEGORY_DEFINITIONS: CategoryDefinition[] = [
         supportsMerge: true,
         subItems: [],
     },
+    {
+        key: 'grammar_rules',
+        label: CORRECTIONS_TAB_LABELS.grammar,
+        icon: SpellCheck,
+        supportsMerge: true,
+        subItems: [],
+    },
 ];
 
 /** Progress line of the import modal (English keys of `fr.json`). */
@@ -57,6 +71,7 @@ export const MEDICAL_IMPORT_STEP_LABELS: Record<MedicalCategoryKey, string> = {
     medical_phrases: 'Importing medical vocabulary changes...',
     medical_confusion_groups: 'Importing sound-alike word changes...',
     medical_rules: 'Importing residual error changes...',
+    grammar_rules: 'Importing grammar rule changes...',
 };
 
 /** Every medical category selected, the export default. */
@@ -79,6 +94,9 @@ export const pickMedicalChanges = (changes: MedicalChanges, keys: readonly strin
     if (keys.includes('medical_rules') && changes.medical_rules != null) {
         picked.medical_rules = changes.medical_rules;
     }
+    if (keys.includes('grammar_rules') && changes.grammar_rules != null) {
+        picked.grammar_rules = changes.grammar_rules;
+    }
     return picked;
 };
 
@@ -95,6 +113,9 @@ export const medicalCounters = (changes: MedicalChanges): Partial<Record<Medical
     }
     if (changes.medical_rules != null) {
         counters.medical_rules = changes.medical_rules.length;
+    }
+    if (changes.grammar_rules != null) {
+        counters.grammar_rules = overlaySize(changes.grammar_rules);
     }
     return counters;
 };
