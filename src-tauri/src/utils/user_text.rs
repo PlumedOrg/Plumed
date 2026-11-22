@@ -19,11 +19,32 @@ pub fn check_entry_count(count: usize, what: &str) -> Result<(), String> {
     }
 }
 
-/// Control and bidi-override characters. The text can be typed as keys or
-/// land in the clipboard, so a tampered rule or list must not be able to
-/// inject them.
+/// Control characters, bidi overrides and invisible format characters. The
+/// text can be typed as keys or land in the clipboard, so a tampered rule or
+/// list must not be able to inject them: a control character acts as a key,
+/// a bidi override flips what the record shows, and an invisible character
+/// (soft hyphen, zero-width space, Unicode tags) hides inside a word, so a
+/// drug name no longer matches a search of the patient record, or carries
+/// text nobody sees. The narrow no-break space (U+202F) of French typography
+/// stays allowed.
 fn is_unsafe_char(c: char) -> bool {
-    matches!(c, '\u{0}'..='\u{1f}' | '\u{7f}'..='\u{9f}' | '\u{202a}'..='\u{202e}' | '\u{2066}'..='\u{2069}')
+    matches!(c,
+        '\u{0}'..='\u{1f}'
+        | '\u{7f}'..='\u{9f}'
+        | '\u{ad}'
+        | '\u{61c}'
+        | '\u{180e}'
+        | '\u{200b}'..='\u{200f}'
+        | '\u{2028}'..='\u{202e}'
+        | '\u{2060}'..='\u{206f}'
+        | '\u{feff}'
+        | '\u{fff9}'..='\u{fffb}'
+        | '\u{e0000}'..='\u{e007f}')
+}
+
+/// [`is_unsafe_char`], line breaks (`\n`) and tabs aside.
+pub fn is_unsafe_char_besides_lines(c: char) -> bool {
+    !matches!(c, '\n' | '\t') && is_unsafe_char(c)
 }
 
 /// Whether `text` has a control or bidi-override character.
@@ -34,8 +55,7 @@ pub fn has_unsafe_chars(text: &str) -> bool {
 /// Same as [`has_unsafe_chars`], but line breaks (`\n`) and tabs are allowed:
 /// a formatting rule may insert several lines ("à la ligne", templates).
 pub fn has_unsafe_chars_besides_lines(text: &str) -> bool {
-    text.chars()
-        .any(|c| !matches!(c, '\n' | '\t') && is_unsafe_char(c))
+    text.chars().any(is_unsafe_char_besides_lines)
 }
 
 #[cfg(test)]
@@ -45,6 +65,7 @@ mod tests {
     #[test]
     fn control_and_bidi_characters_are_unsafe() {
         assert!(!has_unsafe_chars("Kardégic 75 mg, à jeun"));
+        assert!(!has_unsafe_chars("Traitement\u{202f}: 1\u{a0}cp"));
         for text in [
             "a\u{8}",
             "\u{1b}",
@@ -55,6 +76,13 @@ mod tests {
             "\u{85}",
             "\u{202e}x",
             "\u{2066}",
+            "Kard\u{ad}égic",
+            "Kard\u{200b}égic",
+            "\u{200f}",
+            "\u{2028}",
+            "\u{2060}",
+            "\u{feff}",
+            "\u{e0041}",
         ] {
             assert!(has_unsafe_chars(text), "{text:?}");
         }

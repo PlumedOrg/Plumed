@@ -234,11 +234,12 @@ pub(crate) fn wl_paste_bytes(mime: &str) -> Result<Vec<u8>, String> {
 
 // Typing a control character presses a key: enigo sends U+0008 as a
 // Backspace, U+001B as Escape, U+0016 as the Ctrl+V a Windows edit control
-// pastes on, U+000D as Enter. A text rule or an imported list could carry
-// one, so only newlines and tabs, typed as line breaks and indents, remain.
+// pastes on, U+000D as Enter. A text rule or a list saved before its checks
+// could carry one, or an invisible character, so only newlines and tabs,
+// typed as line breaks and indents, remain of them.
 fn typable_text(text: &str) -> String {
     text.chars()
-        .filter(|&c| matches!(c, '\n' | '\t') || !c.is_control())
+        .filter(|&c| !crate::utils::user_text::is_unsafe_char_besides_lines(c))
         .collect()
 }
 
@@ -354,8 +355,8 @@ mod tests {
     #[test]
     fn typed_text_keeps_no_control_key_but_newlines_and_tabs() {
         assert_eq!(
-            typable_text("a\u{8}\u{8}b\u{1b}\u{16}\r\nc\td\u{7f}\u{85}é"),
-            "ab\nc\tdé"
+            typable_text("a\u{8}\u{8}b\u{1b}\u{16}\r\nc\td\u{7f}\u{85}é\u{200b}\u{202e}\u{202f}:"),
+            "ab\nc\tdé\u{202f}:"
         );
     }
 }
