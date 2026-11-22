@@ -86,6 +86,10 @@ export const pipelineStepTitle = (id: PipelineStepId, t: Translate): string => {
     }
 };
 
+/** "(4) Clean-up and standardization": a step title with its number. */
+export const numberedStepTitle = (id: PipelineStepId, t: Translate): string =>
+    `(${stepNumber(id)}) ${pipelineStepTitle(id, t)}`;
+
 const TABS: CorrectionsTab[] = [
     'explanation',
     'vocabulary',

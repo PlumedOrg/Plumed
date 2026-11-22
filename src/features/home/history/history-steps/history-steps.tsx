@@ -1,6 +1,6 @@
 import clsx from 'clsx';
 import { useTranslation } from '@/i18n';
-import { pipelineStepTitle, stepNumber } from '@/features/corrections/corrections.helpers';
+import { numberedStepTitle, stepNumber } from '@/features/corrections/corrections.helpers';
 import { DiffPart, HistoryStep, HistoryStepId, StepChange, stepChanges, wordDiff } from './history-steps.helpers';
 
 interface HistoryStepsProps {
@@ -31,7 +31,7 @@ export const HistorySteps = ({ steps }: HistoryStepsProps) => {
     const stepLabel = (id: HistoryStepId) =>
         id === 'recognition'
             ? `(${stepNumber('vocabulary')}, ${stepNumber('sound_alikes')}) ${t('Recognition')}`
-            : `(${stepNumber(id)}) ${pipelineStepTitle(id, t)}`;
+            : numberedStepTitle(id, t);
 
     const outcome = ({ step, before }: StepChange) => {
         if (before == null) {

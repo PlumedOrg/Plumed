@@ -8,7 +8,7 @@ import { Typography } from '@/components/typography';
 import { useTranslation } from '@/i18n';
 import { useFormattingRules } from '@/features/personalize/formatting-rules/hooks/use-formatting-rules';
 import { useRemoveHesitations } from '@/features/personalize/formatting-rules/hooks/use-remove-hesitations';
-import { PipelineStepId, RULES_ANCHORS, pipelineStepTitle, stepNumber } from '../corrections.helpers';
+import { PipelineStepId, RULES_ANCHORS, numberedStepTitle } from '../corrections.helpers';
 
 interface CleanUpTabProps {
     /** Id of the block to scroll to once loaded (see `RULES_ANCHORS`). */
@@ -33,7 +33,7 @@ export const CleanUpTab = ({ anchor }: CleanUpTabProps) => {
         return <div className="text-muted-foreground">{t('Loading...')}</div>;
     }
 
-    const stepHeading = (id: PipelineStepId) => `(${stepNumber(id)}) ${pipelineStepTitle(id, t)}`;
+    const stepHeading = (id: PipelineStepId) => numberedStepTitle(id, t);
 
     return (
         <div className="space-y-6" data-testid="built-in-options">
