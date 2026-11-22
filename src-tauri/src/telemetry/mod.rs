@@ -90,6 +90,7 @@ fn feature_flags(app: &AppHandle, settings: &AppSettings) -> FeatureFlags {
         remote_mic: settings.remote_mic_enabled,
         confusion_rescoring: built_in.confusion_rescoring,
         phrase_boosting: built_in.phrase_boosting,
+        grammar: built_in.grammar,
     }
 }
 

@@ -28,6 +28,7 @@ pub struct FeatureFlags {
     pub remote_mic: bool,
     pub confusion_rescoring: bool,
     pub phrase_boosting: bool,
+    pub grammar: bool,
 }
 
 /// Coarse bucket of a count, `bounds` being the inclusive upper bounds:
@@ -103,6 +104,7 @@ pub fn event_data(
         "remote_mic": flags.remote_mic,
         "confusion_rescoring": flags.confusion_rescoring,
         "phrase_boosting": flags.phrase_boosting,
+        "grammar": flags.grammar,
     });
     let mut map = match data {
         Value::Object(map) => map,
@@ -185,6 +187,7 @@ mod tests {
             remote_mic: true,
             confusion_rescoring: true,
             phrase_boosting: true,
+            grammar: true,
         }
     }
 
@@ -243,6 +246,7 @@ mod tests {
             "remote_mic",
             "confusion_rescoring",
             "phrase_boosting",
+            "grammar",
         ];
         expected.sort_unstable();
         assert_eq!(keys, expected);
