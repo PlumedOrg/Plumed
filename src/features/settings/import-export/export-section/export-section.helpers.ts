@@ -1,5 +1,6 @@
 import { buildSubItems } from '../import-export.helpers';
 import { SUB_ITEM_KEY } from '../import-export.constants';
+import { medicalInitialSelection } from '../medical-changes/medical-changes';
 import { CategoryDefinition, CategorySelection } from '../import-export.types';
 import { FormattingSettings } from '@/features/personalize/formatting-rules/types';
 
@@ -24,4 +25,5 @@ export const buildInitialSelection = (
         selected: true,
         subItems: buildSubItems(dictionary.map((w) => SUB_ITEM_KEY.word(w))),
     },
+    ...medicalInitialSelection(),
 });

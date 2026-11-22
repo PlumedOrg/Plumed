@@ -11,6 +11,7 @@ import {
     AppSettings,
 } from './import-export.types';
 import { CATEGORY_DEFINITIONS, SUB_ITEM_KEY } from './import-export.constants';
+import { medicalCounters, pickMedicalChanges } from './medical-changes/medical-changes';
 
 export const buildSubItems = (keys: string[], staticKeys: string[] = []): Record<string, boolean> =>
     Object.fromEntries([...staticKeys, ...keys].map((k) => [k, true]));
@@ -147,7 +148,8 @@ export const buildFilteredCategories = (
         filtered.dictionary = categories.dictionary.filter((word) => subItems[SUB_ITEM_KEY.word(word)] === true);
     }
 
-    return filtered;
+    const selectedKeys = Object.keys(selection).filter((key) => selection[key].selected);
+    return { ...filtered, ...pickMedicalChanges(categories, selectedKeys) };
 };
 
 export const getCounters = (categories: ExportedCategories): Partial<Record<CategoryKey, number>> => {
@@ -160,5 +162,5 @@ export const getCounters = (categories: ExportedCategories): Partial<Record<Cate
         counters.dictionary = categories.dictionary.length;
     }
 
-    return counters;
+    return { ...counters, ...medicalCounters(categories) };
 };

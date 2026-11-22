@@ -1,5 +1,6 @@
 import type { ComponentType, ReactNode } from 'react';
 import { BuiltInOptions, FormattingRule } from '@/features/personalize/formatting-rules/types';
+import type { MedicalCategoryKey, MedicalChanges } from './medical-changes/medical-changes';
 
 export type { SystemSettings, ShortcutSettings, AppSettings } from '../settings.types';
 import type { SystemSettings, ShortcutSettings } from '../settings.types';
@@ -29,7 +30,8 @@ export interface MurmureExportData {
     categories: ExportedCategories;
 }
 
-export interface ExportedCategories {
+// Plumed fork: also carries the user's changes to the Corrections lists.
+export interface ExportedCategories extends MedicalChanges {
     settings?: ExportedSystemSettings;
     shortcuts?: ShortcutSettings;
     formatting_rules?: ExportedFormattingSettings;
@@ -41,7 +43,7 @@ export interface ExportedFormattingSettings {
     rules: FormattingRule[];
 }
 
-export type CategoryKey = 'settings' | 'shortcuts' | 'formatting_rules' | 'dictionary';
+export type CategoryKey = 'settings' | 'shortcuts' | 'formatting_rules' | 'dictionary' | MedicalCategoryKey;
 
 export type ImportStrategy = 'replace' | 'merge';
 

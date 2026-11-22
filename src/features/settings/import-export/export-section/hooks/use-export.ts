@@ -14,6 +14,7 @@ import {
 } from '../../import-export.types';
 import { extractSystemSettings, extractShortcuts } from '../../import-export.helpers';
 import { FormattingSettings } from '@/features/personalize/formatting-rules/types';
+import { fetchMedicalChanges, isMedicalCategory, pickMedicalChanges } from '../../medical-changes/medical-changes';
 
 interface PreloadedData {
     allSettings: AppSettings | null;
@@ -85,6 +86,15 @@ export const useExport = () => {
                         } else {
                             categories.dictionary = words.filter((word) => subItems[SUB_ITEM_KEY.word(word)] !== false);
                         }
+                    })
+                );
+            }
+
+            // Plumed fork: the user's changes to the selected Corrections lists.
+            if (selectedCategories.some(isMedicalCategory)) {
+                fetchPromises.push(
+                    fetchMedicalChanges().then((changes) => {
+                        Object.assign(categories, pickMedicalChanges(changes, selectedCategories));
                     })
                 );
             }

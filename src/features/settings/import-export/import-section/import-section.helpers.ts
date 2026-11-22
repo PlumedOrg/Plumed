@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { CategoryKey, ExportedCategories, ImportStrategy } from '../import-export.types';
 import { FormattingRule, FormattingSettings } from '@/features/personalize/formatting-rules/types';
+import { applyMedicalCategory } from '../medical-changes/medical-changes';
 
 const applySettings = async (categories: ExportedCategories): Promise<void> => {
     const settings = categories.settings;
@@ -157,6 +158,12 @@ export const applySingleCategory = async (
             break;
         case 'dictionary':
             await applyDictionary(categories, strategies.dictionary ?? 'replace');
+            break;
+        // Plumed fork: the Corrections lists, validated and saved by the backend.
+        case 'medical_phrases':
+        case 'medical_confusion_groups':
+        case 'medical_rules':
+            await applyMedicalCategory(categoryKey, categories, strategies[categoryKey] ?? 'replace');
             break;
     }
 };

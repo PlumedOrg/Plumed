@@ -10,15 +10,18 @@ import { getSelectedCategoryKeys } from './export-section.helpers';
 import { buildCategoriesWithDynamic } from '../import-export.helpers';
 import { buildRenderers } from '../import-export.renderers';
 import { CATEGORY_DEFINITIONS } from '../import-export.constants';
+import { medicalCounters } from '../medical-changes/medical-changes';
 
 export const ExportSection = () => {
-    const { rules, dictionaryWords, allSettings, exportSelection, setExportSelection } = useExportData();
+    const { rules, dictionaryWords, allSettings, medicalChanges, exportSelection, setExportSelection } =
+        useExportData();
     const { isExporting, handleExport } = useExport();
     const { t } = useTranslation();
 
     const counters = {
         formatting_rules: rules.length,
         dictionary: dictionaryWords.length,
+        ...medicalCounters(medicalChanges),
     };
 
     const categories = buildCategoriesWithDynamic(CATEGORY_DEFINITIONS, buildRenderers(rules, dictionaryWords));
@@ -33,6 +36,14 @@ export const ExportSection = () => {
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Info className="h-3.5 w-3.5 shrink-0" />
                 <span>{t('Microphone selection is never exported.')}</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Info className="h-3.5 w-3.5 shrink-0" />
+                <span>
+                    {t(
+                        'For the medical vocabulary, the sound-alike words and the residual errors, only your changes are exported, not the provided lists. Online settings (PhoneMic, usage statistics, medical data updates) are never exported.'
+                    )}
+                </span>
             </div>
             <SettingsUI.Container>
                 <CategoryTree

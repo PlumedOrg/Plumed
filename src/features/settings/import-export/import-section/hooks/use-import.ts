@@ -12,12 +12,14 @@ import {
 } from '../../import-export.types';
 import { applySingleCategory, normalizeDictionary } from '../import-section.helpers';
 import type { ImportProgressStep } from '../import-progress-modal/import-progress-modal';
+import { MEDICAL_IMPORT_STEP_LABELS } from '../../medical-changes/medical-changes';
 
 const CATEGORY_LABEL_KEYS: Record<CategoryKey, string> = {
     formatting_rules: 'Importing formatting rules...',
     dictionary: 'Importing dictionary...',
     shortcuts: 'Importing shortcuts...',
     settings: 'Importing system settings...',
+    ...MEDICAL_IMPORT_STEP_LABELS,
 };
 
 const isValidConfigFile = (data: unknown): data is MurmureExportData => {

@@ -4,6 +4,7 @@ import { CATEGORY_DEFINITIONS } from '../../import-export.constants';
 import { AppSettings, CategorySelection } from '../../import-export.types';
 import { FormattingSettings, FormattingRule } from '@/features/personalize/formatting-rules/types';
 import { buildInitialSelection } from '../export-section.helpers';
+import { MedicalChanges, fetchMedicalChanges } from '../../medical-changes/medical-changes';
 
 export const useExportData = () => {
     const [exportSelection, setExportSelection] = useState<CategorySelection>(() =>
@@ -12,19 +13,22 @@ export const useExportData = () => {
     const [rules, setRules] = useState<FormattingRule[]>([]);
     const [dictionaryWords, setDictionaryWords] = useState<string[]>([]);
     const [allSettings, setAllSettings] = useState<AppSettings | null>(null);
+    const [medicalChanges, setMedicalChanges] = useState<MedicalChanges>({});
 
     useEffect(() => {
         const loadData = async () => {
             try {
-                const [formattingRules, dictionary, settings] = await Promise.all([
+                const [formattingRules, dictionary, settings, medical] = await Promise.all([
                     invoke<FormattingSettings>('get_formatting_settings'),
                     invoke<string[]>('get_dictionary'),
                     invoke<AppSettings>('get_all_settings'),
+                    fetchMedicalChanges(),
                 ]);
 
                 setRules(formattingRules.rules);
                 setDictionaryWords(dictionary);
                 setAllSettings(settings);
+                setMedicalChanges(medical);
                 setExportSelection(buildInitialSelection(formattingRules, dictionary));
             } catch {
                 // Data loading is best-effort, fail silently
@@ -38,6 +42,7 @@ export const useExportData = () => {
         rules,
         dictionaryWords,
         allSettings,
+        medicalChanges,
         exportSelection,
         setExportSelection,
     };
