@@ -67,6 +67,11 @@ jobs:
               shell: bash
               run: bash scripts/fetch-ultimed-model.sh
 
+            - name: Download Grammalecte (grammar step)
+              if: ${{ inputs.dry == false }}
+              shell: bash
+              run: bash scripts/fetch-grammalecte.sh
+
             # ── Official Apple code signing ──────────────────────────────
             - name: Import Apple Developer ID certificate
               if: ${{ inputs.dry == false && env.HAS_APPLE_CERT == 'true' }}

@@ -81,6 +81,11 @@ jobs:
               shell: bash
               run: bash scripts/fetch-ultimed-model.sh
 
+            - name: Download Grammalecte (grammar step)
+              if: ${{ inputs.dry == false }}
+              shell: bash
+              run: bash scripts/fetch-grammalecte.sh
+
             - name: Install frontend deps
               run: pnpm install --ignore-scripts
 
