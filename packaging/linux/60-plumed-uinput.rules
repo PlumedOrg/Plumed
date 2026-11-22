@@ -1,0 +1,21 @@
+# Grant /dev/uinput access to the active local session user so that
+# Plumed can open it directly to create a virtual keyboard for
+# Wayland typing and paste injection (Ctrl+V, Ctrl+C, Enter).
+#
+# systemd-logind applies an ACL to devices tagged `uaccess` for the user of
+# the currently active local seat, so only that user gets access: not SSH
+# sessions, background services, other logged-in users, nor members of a
+# group. The node stays owned by root:root; MODE 0660 keeps the group bits
+# (the ACL mask) open so the logind ACL entry grants read and write, while
+# the root group itself only holds root.
+#
+# Not shipped in the packages: it is installed only when the user runs the
+# command shown by the app when direct typing on Wayland is unavailable
+# (the "Copy command" button of the `wayland-inject-unavailable` toast,
+# `src/features/layout/listeners/wayland-listener.tsx`, which builds the
+# command from this file's rule lines, so this file is the one copy).
+#
+# Security scope: this grants *write* access to uinput (input injection),
+# NOT read access to /dev/input/event* (keylogging). A malicious program of
+# the active user could synthesise keystrokes but cannot observe them.
+KERNEL=="uinput", SUBSYSTEM=="misc", OPTIONS+="static_node=uinput", MODE="0660", TAG+="uaccess"

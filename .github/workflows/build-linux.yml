@@ -190,7 +190,7 @@ jobs:
               run: |
                   STAGING="${{ runner.temp }}/archpkg"
                   mkdir -p "$STAGING"
-                  cp packaging/aur/PKGBUILD packaging/aur/murmure.install "$STAGING/"
+                  cp packaging/aur/PKGBUILD "$STAGING/"
                   cp "$(find src-tauri/target/release/bundle -name 'Plumed_amd64.deb')" "$STAGING/"
                   VERSION=$(node -p "require('./package.json').version")
                   sed -i "s/@VERSION@/$VERSION/" "$STAGING/PKGBUILD"

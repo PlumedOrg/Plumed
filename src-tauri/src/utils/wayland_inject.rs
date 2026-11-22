@@ -1,6 +1,7 @@
 //! Bypass Wayland's cross-client injection ban via a long-lived
 //! /dev/uinput virtual keyboard. Needs the uinput kernel module and
-//! write access via packaging/linux/60-murmure-uinput.rules.
+//! write access via packaging/linux/60-plumed-uinput.rules (installed by
+//! the command the app shows when this device cannot be opened).
 
 use crate::utils::wayland_xkb::types::{CharStrokes, KeyMapping};
 use input_linux::sys::{input_event, timeval, EV_MSC, MSC_SCAN};
@@ -124,8 +125,8 @@ pub fn init() -> Result<(), String> {
 
     let handle = build_device().map_err(|e| {
         format!(
-            "failed to open /dev/uinput: {}, ensure the user is in the `input` group \
-             or the `TAG+=\"uaccess\"` udev rule is installed",
+            "failed to open /dev/uinput: {}, the `TAG+=\"uaccess\"` udev rule \
+             (packaging/linux/60-plumed-uinput.rules) is probably not installed",
             e
         )
     })?;
@@ -311,6 +312,19 @@ pub fn shutdown() {
 
 #[cfg(test)]
 mod tests {
+    /// Only the active local session user may inject keys: no group grant.
+    #[test]
+    fn uinput_rule_grants_the_active_session_user_only() {
+        let rules: Vec<&str> = include_str!("../../../packaging/linux/60-plumed-uinput.rules")
+            .lines()
+            .filter(|line| !line.trim().is_empty() && !line.starts_with('#'))
+            .collect();
+        assert_eq!(rules.len(), 1);
+        assert!(rules[0].contains("TAG+=\"uaccess\""));
+        assert!(rules[0].contains("MODE=\"0660\""));
+        assert!(!rules[0].contains("GROUP="));
+    }
+
     use super::*;
 
     #[test]

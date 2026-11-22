@@ -3,6 +3,7 @@ import { listen, UnlistenFn } from '@tauri-apps/api/event';
 import { toast } from 'react-toastify';
 import { useTranslation } from '@/i18n';
 import { Button } from '@/components/button';
+import uinputRulesFile from '../../../../packaging/linux/60-plumed-uinput.rules?raw';
 
 const unsubscribeAll = (promises: Promise<UnlistenFn>[]) => {
     promises.forEach((p) => {
@@ -10,9 +11,14 @@ const unsubscribeAll = (promises: Promise<UnlistenFn>[]) => {
     });
 };
 
-/** Keep in sync with `packaging/linux/60-murmure-uinput.rules`. */
+/** The rule lines of the packaging file, without its comments. */
+const UINPUT_RULE = uinputRulesFile
+    .split('\n')
+    .filter((line) => line.trim() !== '' && !line.startsWith('#'))
+    .join('\n');
+
 const UINPUT_FIX_COMMAND = `sudo tee /etc/udev/rules.d/60-plumed-uinput.rules > /dev/null <<'EOF'
-KERNEL=="uinput", SUBSYSTEM=="misc", OPTIONS+="static_node=uinput", GROUP="input", MODE="0660", TAG+="uaccess"
+${UINPUT_RULE}
 EOF
 sudo udevadm control --reload-rules
 sudo udevadm trigger --property-match=DEVNAME=/dev/uinput`;

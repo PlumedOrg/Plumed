@@ -70,12 +70,8 @@
                     "wl-clipboard",
                     "libgtk-layer-shell0"
                 ],
-                "files": {
-                    "/usr/lib/udev/rules.d/60-plumed-uinput.rules": "../packaging/linux/60-murmure-uinput.rules"
-                },
                 "postInstallScript": "../packaging/linux/postinst",
-                "preRemoveScript": "../packaging/linux/prerm",
-                "postRemoveScript": "../packaging/linux/postrm"
+                "preRemoveScript": "../packaging/linux/prerm"
             },
             "rpm": {
                 "depends": [
@@ -90,11 +86,7 @@
                     "gtk-layer-shell",
                     "wl-clipboard"
                 ],
-                "files": {
-                    "/usr/lib/udev/rules.d/60-plumed-uinput.rules": "../packaging/linux/60-murmure-uinput.rules"
-                },
                 "postInstallScript": "../packaging/linux/postinst",
-                "postRemoveScript": "../packaging/linux/postrm",
                 "compression": {
                     "type": "none"
                 }

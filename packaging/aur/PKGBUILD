@@ -10,7 +10,6 @@ optdepends=('wl-clipboard: Wayland clipboard support'
             'gtk-layer-shell: Wayland overlay support')
 conflicts=('plumed-bin')
 options=('!strip')
-install=murmure.install
 source=("Plumed_amd64.deb")
 sha256sums=('SKIP')
 
