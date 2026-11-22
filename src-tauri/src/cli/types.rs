@@ -43,6 +43,11 @@ pub struct ExportedCategories {
     pub shortcuts: Option<ShortcutSettings>,
     pub formatting_rules: Option<FormattingSettings>,
     pub dictionary: Option<DictionaryExport>,
+    /// Plumed fork: the user's changes to the Corrections lists, one
+    /// category each (`medical_phrases`, `medical_confusion_groups`,
+    /// `medical_rules`), absent from older files.
+    #[serde(flatten)]
+    pub medical: crate::medical::MedicalChanges,
 }
 
 /// Current backups store the dictionary as a word list; older ones as a

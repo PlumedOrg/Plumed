@@ -5,7 +5,9 @@
 //! own formatting rules: those run after, and an import or a reset of either
 //! side leaves the other alone. The phrase list and the confusion groups get
 //! the same treatment (`list_overlay`), applied when `engine_lists` arms them.
+//! `changes` carries the user's changes of all three in the settings export.
 
+pub mod changes;
 pub mod data_set;
 pub mod data_update;
 mod drug_rules;
@@ -14,6 +16,7 @@ mod interhop;
 pub mod list_overlay;
 mod store;
 
+pub use changes::MedicalChanges;
 use drug_rules::DrugRules;
 pub use drug_rules::{validate_edit, RuleEdit, RuleView};
 pub use engine_lists::MedicalList;
@@ -84,11 +87,16 @@ pub fn get_edits(app: &AppHandle) -> Result<Vec<RuleEdit>, String> {
     store::load(app, &store::RULE_EDITS)
 }
 
+/// Checks every edit, the first invalid one is the error.
+fn validate_edits(edits: &[RuleEdit]) -> Result<(), String> {
+    edits
+        .iter()
+        .try_for_each(|edit| validate_edit(edit).map_err(|e| format!("{}: {e}", edit.replacement)))
+}
+
 /// Validates, saves and activates the edits. Nothing is saved if one is invalid.
 pub fn set_edits(app: &AppHandle, edits: Vec<RuleEdit>) -> Result<(), String> {
-    for edit in &edits {
-        validate_edit(edit).map_err(|e| format!("{}: {e}", edit.replacement))?;
-    }
+    validate_edits(&edits)?;
     store::save(app, &store::RULE_EDITS, &edits)?;
     activate(&edits);
     Ok(())

@@ -1,7 +1,7 @@
 use crate::engine::confusion::ConfusionGroup;
 use crate::formatting_rules::types::FormattingRule;
 use crate::medical::list_overlay::{ListOverlay, ListPage, Phrase};
-use crate::medical::{self, ListFile, RuleEdit, RuleView};
+use crate::medical::{self, ListFile, MedicalChanges, RuleEdit, RuleView};
 use tauri::{command, AppHandle};
 
 /// Most search results the settings UI shows at once.
@@ -114,4 +114,22 @@ pub async fn import_medical_list(
 ) -> Result<(), String> {
     let content = std::fs::read_to_string(&file_path).map_err(|e| e.to_string())?;
     medical::import_list(&app, list, &content)
+}
+
+/// The user's changes to the three medical lists, for the settings export.
+#[command]
+pub fn get_medical_changes(app: AppHandle) -> Result<MedicalChanges, String> {
+    medical::changes::current(&app)
+}
+
+/// Applies the lists of a settings import, replacing or merged into the
+/// user's changes, all validated before any is saved (async: re-arming the
+/// phrase list takes a moment).
+#[command]
+pub async fn import_medical_changes(
+    app: AppHandle,
+    changes: MedicalChanges,
+    merge: bool,
+) -> Result<(), String> {
+    medical::changes::import(&app, changes, merge)
 }

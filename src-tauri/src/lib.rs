@@ -452,6 +452,8 @@ pub fn run() {
             search_confusion_groups,
             export_medical_list,
             import_medical_list,
+            get_medical_changes,
+            import_medical_changes,
             get_medical_data_status,
             get_medical_data_offer,
             dismiss_medical_data_offer,

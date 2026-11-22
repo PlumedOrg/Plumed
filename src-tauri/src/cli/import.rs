@@ -33,6 +33,9 @@ fn category_display_name(key: &str) -> &str {
         "shortcuts" => "Shortcuts",
         "formatting_rules" => "Formatting Rules",
         "dictionary" => "Dictionary",
+        "medical_phrases" => "Medical vocabulary (your changes)",
+        "medical_confusion_groups" => "Sound-alike words (your changes)",
+        "medical_rules" => "Residual errors (your changes)",
         _ => key,
     }
 }
@@ -114,6 +117,18 @@ pub fn execute_import(
     if let Some(ref imported) = data.categories.dictionary {
         apply_dictionary(app, &imported.words(), strategy)?;
         imported_categories.push("dictionary");
+    }
+
+    // Plumed fork: the Corrections lists, through the same validation and
+    // saving as the settings import of the app.
+    let medical_categories = data.categories.medical.categories();
+    if !medical_categories.is_empty() {
+        // The cold CLI path runs before `medical::init`: locate the medical
+        // data in use first (idempotent), so the edits activate on it.
+        crate::medical::data_set::init(app);
+        let merge = matches!(strategy, ImportStrategy::Merge);
+        crate::medical::changes::import(app, data.categories.medical, merge)?;
+        imported_categories.extend(medical_categories);
     }
 
     // Wayland onboarding flags are environment-specific (not part of the config payload),
@@ -369,6 +384,101 @@ mod tests {
             data.categories.shortcuts.unwrap().cancel_shortcut,
             "ctrl+alt+c"
         );
+    }
+
+    #[test]
+    fn test_parse_export_round_trips_the_corrections_lists() {
+        use crate::engine::confusion::ConfusionGroup;
+        use crate::medical::list_overlay::{ListOverlay, Phrase};
+        use crate::medical::{MedicalChanges, RuleEdit};
+
+        // What the app exports: `get_medical_changes` serialized into the
+        // categories, next to the other ones.
+        let changes = MedicalChanges {
+            medical_phrases: Some(ListOverlay {
+                disabled: vec!["rituximab".to_string()],
+                added: vec![Phrase("venlafaxine".to_string())],
+            }),
+            medical_confusion_groups: Some(ListOverlay {
+                disabled: Vec::new(),
+                added: vec![ConfusionGroup {
+                    heard: "ituximab".to_string(),
+                    candidates: vec!["rituximab".to_string(), "cetuximab".to_string()],
+                }],
+            }),
+            medical_rules: Some(vec![RuleEdit {
+                original: None,
+                core: "dolipran".to_string(),
+                replacement: "Doliprane".to_string(),
+                enabled: true,
+            }]),
+        };
+        let mut categories = serde_json::to_value(&changes).unwrap();
+        categories["dictionary"] = serde_json::json!(["Cornélis"]);
+        let content = serde_json::json!({
+            "version": 1,
+            "app_version": "0.1.3",
+            "exported_at": "2026-11-22T00:00:00Z",
+            "categories": categories,
+        })
+        .to_string();
+
+        let data = parse_export(&content).unwrap();
+
+        assert_eq!(data.categories.medical, changes);
+        assert_eq!(
+            data.categories.dictionary.unwrap().words(),
+            vec!["Cornélis".to_string()]
+        );
+    }
+
+    #[test]
+    fn test_parse_export_old_file_has_no_corrections_lists() {
+        let content = r#"{
+            "version": 1,
+            "app_version": "1.0.0",
+            "exported_at": "2026-01-01T00:00:00Z",
+            "categories": { "dictionary": { "Docker": ["en"] }, "shortcuts": { "cancel_shortcut": "ctrl+alt+c" } }
+        }"#;
+
+        let data = parse_export(content).unwrap();
+
+        assert!(data.categories.medical.categories().is_empty());
+        assert_eq!(
+            data.categories.dictionary.unwrap().words(),
+            vec!["Docker".to_string()]
+        );
+        assert!(data.categories.shortcuts.is_some());
+    }
+
+    #[test]
+    fn test_parse_export_only_imports_allowed_settings() {
+        // A file asking to turn on network features or change the relay:
+        // the settings category only knows the allowlisted fields of
+        // `SystemSettings`, so these keys are dropped, and the medical lists
+        // carry no setting at all.
+        let content = r#"{
+            "version": 1,
+            "app_version": "1.0.0",
+            "exported_at": "2026-01-01T00:00:00Z",
+            "categories": {
+                "settings": {
+                    "sound_volume": 42,
+                    "remote_mic_enabled": true,
+                    "remote_mic_url": "https://evil.example",
+                    "telemetry_enabled": true,
+                    "medical_data_update_check": true,
+                    "block_cli_import": false
+                },
+                "medical_phrases": { "disabled": [], "added": ["venlafaxine"], "remote_mic_url": "https://evil.example" }
+            }
+        }"#;
+
+        let data = parse_export(content).unwrap();
+        let settings = serde_json::to_value(&data.categories.medical).unwrap();
+
+        assert_eq!(data.categories.settings.unwrap().sound_volume, 42);
+        assert!(!settings.to_string().contains("evil"));
     }
 
     #[test]
