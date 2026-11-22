@@ -88,7 +88,7 @@ export const CorrectionsExplanation = ({ onOpen }: CorrectionsExplanationProps) 
             description: t(
                 'A recognized word very close to a word of your personal dictionary takes its spelling (accents, capitals). These words are also favored during recognition, then their spelling is restored here.'
             ),
-            examples: [{ before: 'maladie de dupuytrin', after: 'maladie de Dupuytren' }],
+            examples: [{ before: 'docteur Cornélysse', after: 'docteur Cornélis' }],
             statuses: [
                 {
                     label: t('{{count}} word(s) of the personal dictionary', { count: dictionaryCount }),
@@ -105,7 +105,7 @@ export const CorrectionsExplanation = ({ onOpen }: CorrectionsExplanationProps) 
             ),
             examples: [
                 { before: 'le le patient', after: 'le patient' },
-                { before: 'veine euh lafaxine', after: 'veine lafaxine' },
+                { before: "J'ai instauré euh du paracétamol", after: "J'ai instauré du paracétamol" },
             ],
             statuses: [onOff(removeHesitations)],
             actions: [openOption(RULES_ANCHORS.hesitations, 'corrections-open-hesitations')],
