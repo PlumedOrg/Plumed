@@ -1,0 +1,1929 @@
+{
+ "grammalecte_version": "2.3.0",
+ "skip_types": [
+  "apos",
+  "eepi",
+  "esp",
+  "liga",
+  "maj",
+  "nbsp",
+  "num",
+  "poncfin",
+  "tab",
+  "typo",
+  "unit",
+  "virg"
+ ],
+ "masks": [
+  {
+   "name": "age_de",
+   "action": "replace",
+   "case_sensitive": false,
+   "regex": "(?:\\s+âgée?s?)?\\s+de\\s+\\d+(?:[.,]\\d+)?\\s+(?:ans|an|mois|semaines?|jours?)(?:\\s+et\\s+(?:demi|\\d+(?:[.,]\\d+)?\\s+mois))?(?!\\w)"
+  },
+  {
+   "name": "caps_guard",
+   "action": "guard",
+   "case_sensitive": true,
+   "regex": "\\b[A-Z][A-Z0-9]{1,}(?:-[A-Z0-9]+)*\\b"
+  },
+  {
+   "name": "num_len",
+   "action": "replace",
+   "case_sensitive": false,
+   "regex": "(?:\\s+(?:de|d'|à|depuis|pendant|sur|pour|en|il y a|après|avant|dès|vers|jusqu'à|environ|plus de|moins de))?\\s+(?:\\d+(?:[.,]\\d+)?\\s*(?:à|-)\\s*)?\\d+(?:[.,]\\d+)?\\s*(?:(?:centimètres?|millimètres?|micromètres?|mètres?|cm|mm)(?:\\s+(?:cubes?|carrés?))?|french)(?!\\w)(?:\\s*(?:/|par)\\s*(?:milligrammes?|microgrammes?|nanogrammes?|grammes?|kilogrammes?|millilitres?|microlitres?|décilitres?|litres?|centimètres?|millimètres?|micromètres?|mètres?|millimoles?|micromoles?|moles?|unités?|UI|mmol|µmol|mg|µg|g|kg|ml|mL|dl|dL|l|L|cm|mm|degrés?|pour ?cents?|%|décibels?|hertz|dioptries?|french|mmHg|millimètres de mercure|battements?|cycles?|fois|comprimés?|gélules?|gouttes?|bouffées?|sachets?|ampoules?|dixièmes?|millisecondes?|kilos?|points?|ans|an|mois|semaines?|jours?|heures?|minutes?|secondes?|j|jour|semaine|kilo|kilogramme|mètre carré|m2|minute|heure|24 ?h)(?!\\w))*"
+  },
+  {
+   "name": "bilan_x",
+   "action": "guard",
+   "case_sensitive": false,
+   "regex": "\\s+(?:ionogramme|bilan)\\s+(?:sanguin|biologique|hépatique|rénal|lipidique|martial|thyroïdien)(?!\\w)"
+  },
+  {
+   "name": "sans_injection",
+   "action": "replace",
+   "case_sensitive": false,
+   "regex": "\\s+(?:sans|avec)\\s+injection(?:\\s+de\\s+produit\\s+de\\s+contraste)?(?:\\s+iodée?)?(?!\\w)"
+  },
+  {
+   "name": "unk_guard",
+   "action": "guard",
+   "case_sensitive": false,
+   "source": "spell_checker"
+  },
+  {
+   "name": "pour_motif",
+   "action": "replace",
+   "case_sensitive": false,
+   "regex": "\\s+pour\\s+(?:un|une|des|le|la|les)\\s+[\\wéèêàâîôûç-]+(?:\\s+[\\wéèêàâîôûç-]+)?(?=[,.;]|$)"
+  },
+  {
+   "name": "syndrome_de_X",
+   "action": "guard",
+   "case_sensitive": true,
+   "regex": "\\s+(?:syndrome|maladie|signe|test|score|classification)\\s+(?:de|d')\\s*[A-ZÀ-Ý][\\w-]+(?:[- ](?:et\\s+)?[A-ZÀ-Ý][\\w-]+)*"
+  },
+  {
+   "name": "num_nounit_guard",
+   "action": "guard",
+   "case_sensitive": false,
+   "regex": "(?<![\\w,.])\\d+(?:[.,]\\d+)?(?![\\w,.])"
+  },
+  {
+   "name": "num_misc_guard",
+   "action": "guard",
+   "case_sensitive": false,
+   "regex": "(?:\\s+(?:de|d'|à|depuis|pendant|sur|pour|en|il y a|après|avant|dès|vers|jusqu'à|environ|plus de|moins de))?\\s+(?:\\d+(?:[.,]\\d+)?\\s*(?:à|-)\\s*)?\\d+(?:[.,]\\d+)?\\s*(?:degrés?|pour ?cents?|%|décibels?|hertz|dioptries?|mmHg|millimètres de mercure|battements?|cycles?|dixièmes?|millisecondes?|points?|fois)(?!\\w)(?:\\s*(?:/|par)\\s*(?:milligrammes?|microgrammes?|nanogrammes?|grammes?|kilogrammes?|millilitres?|microlitres?|décilitres?|litres?|centimètres?|millimètres?|micromètres?|mètres?|millimoles?|micromoles?|moles?|unités?|UI|mmol|µmol|mg|µg|g|kg|ml|mL|dl|dL|l|L|cm|mm|degrés?|pour ?cents?|%|décibels?|hertz|dioptries?|french|mmHg|millimètres de mercure|battements?|cycles?|fois|comprimés?|gélules?|gouttes?|bouffées?|sachets?|ampoules?|dixièmes?|millisecondes?|kilos?|points?|ans|an|mois|semaines?|jours?|heures?|minutes?|secondes?|j|jour|semaine|kilo|kilogramme|mètre carré|m2|minute|heure|24 ?h)(?!\\w))*"
+  },
+  {
+   "name": "colon_header",
+   "action": "replace",
+   "case_sensitive": false,
+   "regex": "^[^.:]{1,40}:\\s*"
+  },
+  {
+   "name": "num_next2_guard",
+   "action": "guard",
+   "case_sensitive": false,
+   "regex": "\\b\\d+(?:[.,]\\d+)?\\s+[\\wéèêëàâîïôûüçÉÈÀ'-]+(?:\\s+[\\wéèêëàâîïôûüçÉÈÀ'-]+)?"
+  },
+  {
+   "name": "ionogramme_guard",
+   "action": "guard",
+   "case_sensitive": false,
+   "regex": "\\b(?:du|le|au|un)\\s+(?:ionogrammes?|iode|ionique)\\b"
+  },
+  {
+   "name": "title_name_guard",
+   "action": "guard",
+   "case_sensitive": true,
+   "regex": "\\b(?:[Mm]adame|[Mm]onsieur|[Mm]ademoiselle|[Dd]octeur|[Pp]rofesseur|Mme|Mr|Dr|Pr)\\s+[A-ZÀ-Ý][\\w'-]+(?:[- ][A-ZÀ-Ý][\\w'-]+)*"
+  },
+  {
+   "name": "caps_det_guard",
+   "action": "guard",
+   "case_sensitive": true,
+   "regex": "\\b(?:[Ll]a|[Ll]e|[Uu]ne?|[Dd]u|[Aa]u|[Ll]es|[Dd]es|[Cc]ette|[Cc]e)\\s+[A-Z][A-Z0-9]{1,}(?:-[A-Z0-9]+)*\\b"
+  },
+  {
+   "name": "numunit_next_guard",
+   "action": "guard",
+   "case_sensitive": false,
+   "regex": "\\b\\d+(?:[.,]\\d+)?\\s*(?:milligrammes?|microgrammes?|nanogrammes?|grammes?|kilogrammes?|kilos?|mg|µg|g|kg|unités?|UI|millimoles?|micromoles?|mmol|µmol|comprimés?|gélules?|gouttes?|bouffées?|sachets?|ampoules?|millilitres?|microlitres?|décilitres?|litres?|ml|mL|dl|dL|l|L|(?:centimètres?|millimètres?|micromètres?|mètres?|cm|mm)(?:\\s+(?:cubes?|carrés?))?|french|degrés?|pour ?cents?|%|décibels?|hertz|dioptries?|mmHg|millimètres de mercure|battements?|cycles?|dixièmes?|millisecondes?|points?|fois)(?!\\w)(?:\\s*(?:/|par)\\s*(?:milligrammes?|microgrammes?|nanogrammes?|grammes?|kilogrammes?|millilitres?|microlitres?|décilitres?|litres?|centimètres?|millimètres?|micromètres?|mètres?|millimoles?|micromoles?|moles?|unités?|UI|mmol|µmol|mg|µg|g|kg|ml|mL|dl|dL|l|L|cm|mm|degrés?|pour ?cents?|%|décibels?|hertz|dioptries?|french|mmHg|millimètres de mercure|battements?|cycles?|fois|comprimés?|gélules?|gouttes?|bouffées?|sachets?|ampoules?|dixièmes?|millisecondes?|kilos?|points?|ans|an|mois|semaines?|jours?|heures?|minutes?|secondes?|j|jour|semaine|kilo|kilogramme|mètre carré|m2|minute|heure|24 ?h)(?!\\w))*(?:\\s+[\\wéèêëàâîïôûüçÉÈÀ'-]+)?"
+  },
+  {
+   "name": "plan_par_plan_guard",
+   "action": "guard",
+   "case_sensitive": false,
+   "regex": "\\b(?:plan|points?)\\s+par\\s+(?:plan|points?)\\b|\\bfermeture\\s+plan\\b"
+  },
+  {
+   "name": "num_time_prep",
+   "action": "replace",
+   "case_sensitive": false,
+   "regex": "\\s+(?:depuis|pendant|durant|en|sur|après|dans|toutes les|tous les)\\s+(?:plus de\\s+|moins de\\s+|environ\\s+)?\\d+(?:[.,]\\d+)?\\s*(?:ans?|mois|semaines?|jours?|heures?|minutes?|secondes?|nuits?|années?)(?!\\w)"
+  }
+ ],
+ "rules": [
+  {
+   "id": "gv1__ppas_sujet_être_accord_singulier",
+   "level": "family",
+   "n": 53,
+   "better": 45,
+   "worse": 7,
+   "precision": 0.865,
+   "default": true
+  },
+  {
+   "id": "gv1__ppas_être_accord_sing",
+   "level": "family",
+   "n": 22,
+   "better": 17,
+   "worse": 2,
+   "precision": 0.895,
+   "default": true
+  },
+  {
+   "id": "g3__gn_couleurs_composées",
+   "level": "family",
+   "n": 17,
+   "better": 15,
+   "worse": 2,
+   "precision": 0.882,
+   "default": true
+  },
+  {
+   "id": "g2__locutions_invariables",
+   "level": "family",
+   "n": 10,
+   "better": 10,
+   "worse": 0,
+   "precision": 1.0,
+   "default": true
+  },
+  {
+   "id": "g3__gn_ces_aux_pluriel_1m__b1_a3_1",
+   "level": "rule",
+   "n": 112,
+   "better": 108,
+   "worse": 4,
+   "precision": 0.964,
+   "default": true
+  },
+  {
+   "id": "g3__gn_au_1m__b1_a4_1",
+   "level": "rule",
+   "n": 50,
+   "better": 44,
+   "worse": 3,
+   "precision": 0.936,
+   "default": true
+  },
+  {
+   "id": "gv1__ppas_sujet_être_accord_pluriel__b1_a3_1",
+   "level": "rule",
+   "n": 25,
+   "better": 22,
+   "worse": 3,
+   "precision": 0.88,
+   "default": true
+  },
+  {
+   "id": "gv1__ppas_nom_propre_être_accord",
+   "level": "family",
+   "n": 3,
+   "better": 3,
+   "worse": 0,
+   "precision": 1.0,
+   "default": true
+  },
+  {
+   "id": "g2__conf_voie_voix_vois_voit",
+   "level": "family",
+   "n": 7,
+   "better": 7,
+   "worse": 0,
+   "precision": 1.0,
+   "default": false
+  },
+  {
+   "id": "g2__conf_acétique_ascétique",
+   "level": "family",
+   "n": 4,
+   "better": 4,
+   "worse": 0,
+   "precision": 1.0,
+   "default": false
+  },
+  {
+   "id": "g2__conf_déterminant_plur_verbe",
+   "level": "family",
+   "n": 5,
+   "better": 3,
+   "worse": 0,
+   "precision": 1.0,
+   "default": false
+  },
+  {
+   "id": "g2__conf_de_du_d",
+   "level": "family",
+   "n": 2,
+   "better": 2,
+   "worse": 0,
+   "precision": 1.0,
+   "default": false
+  },
+  {
+   "id": "g2__conf_se_ceux_ce",
+   "level": "family",
+   "n": 2,
+   "better": 2,
+   "worse": 0,
+   "precision": 1.0,
+   "default": false
+  },
+  {
+   "id": "g2__gn_tout_nom",
+   "level": "family",
+   "n": 2,
+   "better": 2,
+   "worse": 0,
+   "precision": 1.0,
+   "default": false
+  },
+  {
+   "id": "g3__gn_aucun_1m",
+   "level": "family",
+   "n": 2,
+   "better": 2,
+   "worse": 0,
+   "precision": 1.0,
+   "default": false
+  },
+  {
+   "id": "g3__gn_cet_1m",
+   "level": "family",
+   "n": 3,
+   "better": 2,
+   "worse": 0,
+   "precision": 1.0,
+   "default": false
+  },
+  {
+   "id": "g3__gn_demi_demie",
+   "level": "family",
+   "n": 3,
+   "better": 2,
+   "worse": 0,
+   "precision": 1.0,
+   "default": false
+  },
+  {
+   "id": "gv1__ppas_3s_mas_se_être_verbe",
+   "level": "family",
+   "n": 2,
+   "better": 2,
+   "worse": 0,
+   "precision": 1.0,
+   "default": false
+  },
+  {
+   "id": "gv2__conj_vinfi_suj",
+   "level": "family",
+   "n": 2,
+   "better": 2,
+   "worse": 0,
+   "precision": 1.0,
+   "default": false
+  },
+  {
+   "id": "g2__conf_corps_cor",
+   "level": "family",
+   "n": 1,
+   "better": 1,
+   "worse": 0,
+   "precision": 1.0,
+   "default": false
+  },
+  {
+   "id": "g2__conf_différent_différend",
+   "level": "family",
+   "n": 1,
+   "better": 1,
+   "worse": 0,
+   "precision": 1.0,
+   "default": false
+  },
+  {
+   "id": "g2__conf_en_continu",
+   "level": "family",
+   "n": 1,
+   "better": 1,
+   "worse": 0,
+   "precision": 1.0,
+   "default": false
+  },
+  {
+   "id": "g2__conf_flanc_flan",
+   "level": "family",
+   "n": 1,
+   "better": 1,
+   "worse": 0,
+   "precision": 1.0,
+   "default": false
+  },
+  {
+   "id": "g2__conf_on_non_verbe",
+   "level": "family",
+   "n": 1,
+   "better": 1,
+   "worse": 0,
+   "precision": 1.0,
+   "default": false
+  },
+  {
+   "id": "g2__conf_où_ou",
+   "level": "family",
+   "n": 1,
+   "better": 1,
+   "worse": 0,
+   "precision": 1.0,
+   "default": false
+  },
+  {
+   "id": "g2__conf_substantif_à_substantif",
+   "level": "family",
+   "n": 1,
+   "better": 1,
+   "worse": 0,
+   "precision": 1.0,
+   "default": false
+  },
+  {
+   "id": "g2__conj_je",
+   "level": "family",
+   "n": 1,
+   "better": 1,
+   "worse": 0,
+   "precision": 1.0,
+   "default": false
+  },
+  {
+   "id": "g2__infi_ne_pas_jamais_etc",
+   "level": "family",
+   "n": 1,
+   "better": 1,
+   "worse": 0,
+   "precision": 1.0,
+   "default": false
+  },
+  {
+   "id": "g2__loc_quelque_temps",
+   "level": "family",
+   "n": 1,
+   "better": 1,
+   "worse": 0,
+   "precision": 1.0,
+   "default": false
+  },
+  {
+   "id": "g3__conf_fond_fonds_fonts",
+   "level": "family",
+   "n": 1,
+   "better": 1,
+   "worse": 0,
+   "precision": 1.0,
+   "default": false
+  },
+  {
+   "id": "g3__conf_mûr_mur",
+   "level": "family",
+   "n": 1,
+   "better": 1,
+   "worse": 0,
+   "precision": 1.0,
+   "default": false
+  },
+  {
+   "id": "g3__conf_prendre_parti_partie",
+   "level": "family",
+   "n": 1,
+   "better": 1,
+   "worse": 0,
+   "precision": 1.0,
+   "default": false
+  },
+  {
+   "id": "g3__gn_certains_1m",
+   "level": "family",
+   "n": 1,
+   "better": 1,
+   "worse": 0,
+   "precision": 1.0,
+   "default": false
+  },
+  {
+   "id": "g3__gn_det_mas_sing_3m_et",
+   "level": "family",
+   "n": 1,
+   "better": 1,
+   "worse": 0,
+   "precision": 1.0,
+   "default": false
+  },
+  {
+   "id": "g3__gn_det_nom_de_det_nom_adj_sing",
+   "level": "family",
+   "n": 1,
+   "better": 1,
+   "worse": 0,
+   "precision": 1.0,
+   "default": false
+  },
+  {
+   "id": "g3__gn_la_3m_et",
+   "level": "family",
+   "n": 1,
+   "better": 1,
+   "worse": 0,
+   "precision": 1.0,
+   "default": false
+  },
+  {
+   "id": "g3__gn_mon_ton_son_2m",
+   "level": "family",
+   "n": 1,
+   "better": 1,
+   "worse": 0,
+   "precision": 1.0,
+   "default": false
+  },
+  {
+   "id": "g3__gn_troupeau_de",
+   "level": "family",
+   "n": 1,
+   "better": 1,
+   "worse": 0,
+   "precision": 1.0,
+   "default": false
+  },
+  {
+   "id": "g3__infi_devoir",
+   "level": "family",
+   "n": 1,
+   "better": 1,
+   "worse": 0,
+   "precision": 1.0,
+   "default": false
+  },
+  {
+   "id": "g3__infi_divers",
+   "level": "family",
+   "n": 1,
+   "better": 1,
+   "worse": 0,
+   "precision": 1.0,
+   "default": false
+  },
+  {
+   "id": "gv1__ppas_adj_accord_il",
+   "level": "family",
+   "n": 1,
+   "better": 1,
+   "worse": 0,
+   "precision": 1.0,
+   "default": false
+  },
+  {
+   "id": "gv1__ppas_ayant",
+   "level": "family",
+   "n": 1,
+   "better": 1,
+   "worse": 0,
+   "precision": 1.0,
+   "default": false
+  },
+  {
+   "id": "gv2__conj_ce_celui_celle",
+   "level": "family",
+   "n": 1,
+   "better": 1,
+   "worse": 0,
+   "precision": 1.0,
+   "default": false
+  },
+  {
+   "id": "gv2__conj_des_nom",
+   "level": "family",
+   "n": 2,
+   "better": 1,
+   "worse": 0,
+   "precision": 1.0,
+   "default": false
+  },
+  {
+   "id": "gv1__ppas_être_accord_plur",
+   "level": "family",
+   "n": 13,
+   "better": 10,
+   "worse": 2,
+   "precision": 0.833,
+   "default": false
+  },
+  {
+   "id": "g3__gn_l_3m",
+   "level": "family",
+   "n": 5,
+   "better": 4,
+   "worse": 1,
+   "precision": 0.8,
+   "default": false
+  },
+  {
+   "id": "g3__gn_start_prn_1m",
+   "level": "family",
+   "n": 5,
+   "better": 4,
+   "worse": 1,
+   "precision": 0.8,
+   "default": false
+  },
+  {
+   "id": "gv1__ppas_3sg_mas_verbe_état",
+   "level": "family",
+   "n": 5,
+   "better": 4,
+   "worse": 1,
+   "precision": 0.8,
+   "default": false
+  },
+  {
+   "id": "gv1__ppas_sujet_être_accord_pluriel",
+   "level": "family",
+   "n": 64,
+   "better": 45,
+   "worse": 18,
+   "precision": 0.714,
+   "default": false
+  },
+  {
+   "id": "g3__gn_nombre_lettres_1m",
+   "level": "family",
+   "n": 27,
+   "better": 17,
+   "worse": 7,
+   "precision": 0.708,
+   "default": false
+  },
+  {
+   "id": "g3__gn_nombre_plur_2m",
+   "level": "family",
+   "n": 10,
+   "better": 7,
+   "worse": 3,
+   "precision": 0.7,
+   "default": false
+  },
+  {
+   "id": "g3__gn_cette_1m",
+   "level": "family",
+   "n": 9,
+   "better": 4,
+   "worse": 2,
+   "precision": 0.667,
+   "default": false
+  },
+  {
+   "id": "g3__gn_couleurs_invariables",
+   "level": "family",
+   "n": 3,
+   "better": 2,
+   "worse": 1,
+   "precision": 0.667,
+   "default": false
+  },
+  {
+   "id": "gv2__conj_det_sing_nom",
+   "level": "family",
+   "n": 3,
+   "better": 2,
+   "worse": 1,
+   "precision": 0.667,
+   "default": false
+  },
+  {
+   "id": "g3__gn_l_1m",
+   "level": "family",
+   "n": 12,
+   "better": 7,
+   "worse": 4,
+   "precision": 0.636,
+   "default": false
+  },
+  {
+   "id": "g3__gn_det_mas_sing_3m",
+   "level": "family",
+   "n": 9,
+   "better": 5,
+   "worse": 3,
+   "precision": 0.625,
+   "default": false
+  },
+  {
+   "id": "g2__eleu_élisions_manquantes",
+   "level": "family",
+   "n": 204,
+   "better": 123,
+   "worse": 79,
+   "precision": 0.609,
+   "default": false
+  },
+  {
+   "id": "g3__gn_un_2m",
+   "level": "family",
+   "n": 55,
+   "better": 31,
+   "worse": 20,
+   "precision": 0.608,
+   "default": false
+  },
+  {
+   "id": "g3__gn_det_fem_sing_2m",
+   "level": "family",
+   "n": 6,
+   "better": 3,
+   "worse": 2,
+   "precision": 0.6,
+   "default": false
+  },
+  {
+   "id": "g3__gn_start_3m",
+   "level": "family",
+   "n": 78,
+   "better": 42,
+   "worse": 30,
+   "precision": 0.583,
+   "default": false
+  },
+  {
+   "id": "g3__gn_det_nom_de_det_nom_adj_mas_sing",
+   "level": "family",
+   "n": 7,
+   "better": 4,
+   "worse": 3,
+   "precision": 0.571,
+   "default": false
+  },
+  {
+   "id": "g3__gn_des_2m",
+   "level": "family",
+   "n": 70,
+   "better": 36,
+   "worse": 28,
+   "precision": 0.562,
+   "default": false
+  },
+  {
+   "id": "gv1__ppas_det_nom_avoir",
+   "level": "family",
+   "n": 18,
+   "better": 10,
+   "worse": 8,
+   "precision": 0.556,
+   "default": false
+  },
+  {
+   "id": "doublon",
+   "level": "family",
+   "n": 42,
+   "better": 20,
+   "worse": 18,
+   "precision": 0.526,
+   "default": false
+  },
+  {
+   "id": "g3__gn_pfx_sur_avec_après_2m",
+   "level": "family",
+   "n": 33,
+   "better": 17,
+   "worse": 16,
+   "precision": 0.515,
+   "default": false
+  },
+  {
+   "id": "g3__gn_ces_aux_pluriel_1m",
+   "level": "family",
+   "n": 236,
+   "better": 121,
+   "worse": 115,
+   "precision": 0.513,
+   "default": false
+  },
+  {
+   "id": "g3__gn_au_1m",
+   "level": "family",
+   "n": 112,
+   "better": 48,
+   "worse": 47,
+   "precision": 0.505,
+   "default": false
+  },
+  {
+   "id": "g2__conf_ça_çà_sa",
+   "level": "family",
+   "n": 4,
+   "better": 2,
+   "worse": 2,
+   "precision": 0.5,
+   "default": false
+  },
+  {
+   "id": "g2__conj_il",
+   "level": "family",
+   "n": 2,
+   "better": 1,
+   "worse": 1,
+   "precision": 0.5,
+   "default": false
+  },
+  {
+   "id": "g2__conj_ils",
+   "level": "family",
+   "n": 2,
+   "better": 1,
+   "worse": 1,
+   "precision": 0.5,
+   "default": false
+  },
+  {
+   "id": "g2__gn_tous_det_nom",
+   "level": "family",
+   "n": 2,
+   "better": 1,
+   "worse": 1,
+   "precision": 0.5,
+   "default": false
+  },
+  {
+   "id": "g2__gn_toute_nom",
+   "level": "family",
+   "n": 2,
+   "better": 1,
+   "worse": 1,
+   "precision": 0.5,
+   "default": false
+  },
+  {
+   "id": "g3__conf_tâche_tache",
+   "level": "family",
+   "n": 2,
+   "better": 1,
+   "worse": 1,
+   "precision": 0.5,
+   "default": false
+  },
+  {
+   "id": "g3__gn_aucune_1m",
+   "level": "family",
+   "n": 2,
+   "better": 1,
+   "worse": 1,
+   "precision": 0.5,
+   "default": false
+  },
+  {
+   "id": "g3__gn_det_epi_plur_3m",
+   "level": "family",
+   "n": 2,
+   "better": 1,
+   "worse": 1,
+   "precision": 0.5,
+   "default": false
+  },
+  {
+   "id": "g3__gn_det_epi_sing_2m",
+   "level": "family",
+   "n": 2,
+   "better": 1,
+   "worse": 1,
+   "precision": 0.5,
+   "default": false
+  },
+  {
+   "id": "g3__gn_det_fem_sing_3m",
+   "level": "family",
+   "n": 2,
+   "better": 1,
+   "worse": 1,
+   "precision": 0.5,
+   "default": false
+  },
+  {
+   "id": "g3__gn_nom_adj_2m",
+   "level": "family",
+   "n": 2,
+   "better": 1,
+   "worse": 1,
+   "precision": 0.5,
+   "default": false
+  },
+  {
+   "id": "gv2__conj_ceux_là_celles_ci",
+   "level": "family",
+   "n": 2,
+   "better": 1,
+   "worse": 1,
+   "precision": 0.5,
+   "default": false
+  },
+  {
+   "id": "g3__gn_det_les_3m",
+   "level": "family",
+   "n": 15,
+   "better": 7,
+   "worse": 8,
+   "precision": 0.467,
+   "default": false
+  },
+  {
+   "id": "g3__gn_les_2m",
+   "level": "family",
+   "n": 77,
+   "better": 29,
+   "worse": 34,
+   "precision": 0.46,
+   "default": false
+  },
+  {
+   "id": "g3__gn_start_2m",
+   "level": "family",
+   "n": 322,
+   "better": 132,
+   "worse": 165,
+   "precision": 0.444,
+   "default": false
+  },
+  {
+   "id": "g3__gn_les_1m",
+   "level": "family",
+   "n": 26,
+   "better": 11,
+   "worse": 15,
+   "precision": 0.423,
+   "default": false
+  },
+  {
+   "id": "g3__gn_pfx_à_par_pour_sans_2m",
+   "level": "family",
+   "n": 1016,
+   "better": 376,
+   "worse": 549,
+   "precision": 0.406,
+   "default": false
+  },
+  {
+   "id": "g3__gn_2m_et_ou",
+   "level": "family",
+   "n": 10,
+   "better": 4,
+   "worse": 6,
+   "precision": 0.4,
+   "default": false
+  },
+  {
+   "id": "gv1__ppas_fin_loc_verb_état_adj_et_adj",
+   "level": "family",
+   "n": 13,
+   "better": 5,
+   "worse": 8,
+   "precision": 0.385,
+   "default": false
+  },
+  {
+   "id": "g2__conf_a_à_verbe",
+   "level": "family",
+   "n": 83,
+   "better": 23,
+   "worse": 38,
+   "precision": 0.377,
+   "default": false
+  },
+  {
+   "id": "g2__conf_déterminant_mas_sing_verbe",
+   "level": "family",
+   "n": 45,
+   "better": 7,
+   "worse": 12,
+   "precision": 0.368,
+   "default": false
+  },
+  {
+   "id": "g3__gn_le_3m",
+   "level": "family",
+   "n": 19,
+   "better": 5,
+   "worse": 9,
+   "precision": 0.357,
+   "default": false
+  },
+  {
+   "id": "g3__gn_det_epi_plur_1m",
+   "level": "family",
+   "n": 92,
+   "better": 30,
+   "worse": 56,
+   "precision": 0.349,
+   "default": false
+  },
+  {
+   "id": "g3__gn_pfx_de_2m",
+   "level": "family",
+   "n": 342,
+   "better": 110,
+   "worse": 212,
+   "precision": 0.342,
+   "default": false
+  },
+  {
+   "id": "g3__gn_une_2m",
+   "level": "family",
+   "n": 60,
+   "better": 19,
+   "worse": 38,
+   "precision": 0.333,
+   "default": false
+  },
+  {
+   "id": "gv2__conj_le_la_leur_nom",
+   "level": "family",
+   "n": 10,
+   "better": 2,
+   "worse": 4,
+   "precision": 0.333,
+   "default": false
+  },
+  {
+   "id": "g2__conf_il_non_verbe",
+   "level": "family",
+   "n": 3,
+   "better": 1,
+   "worse": 2,
+   "precision": 0.333,
+   "default": false
+  },
+  {
+   "id": "g3__gn_l_2m",
+   "level": "family",
+   "n": 153,
+   "better": 46,
+   "worse": 95,
+   "precision": 0.326,
+   "default": false
+  },
+  {
+   "id": "g3__gn_une_1m",
+   "level": "family",
+   "n": 239,
+   "better": 70,
+   "worse": 153,
+   "precision": 0.314,
+   "default": false
+  },
+  {
+   "id": "g3__gn_pfx_en_2m",
+   "level": "family",
+   "n": 433,
+   "better": 117,
+   "worse": 285,
+   "precision": 0.291,
+   "default": false
+  },
+  {
+   "id": "g3__gn_le_2m",
+   "level": "family",
+   "n": 79,
+   "better": 21,
+   "worse": 53,
+   "precision": 0.284,
+   "default": false
+  },
+  {
+   "id": "g3__gn_det_nom_de_det_nom_adj_fem_sing",
+   "level": "family",
+   "n": 11,
+   "better": 3,
+   "worse": 8,
+   "precision": 0.273,
+   "default": false
+  },
+  {
+   "id": "g3__gn_la_2m",
+   "level": "family",
+   "n": 105,
+   "better": 24,
+   "worse": 76,
+   "precision": 0.24,
+   "default": false
+  },
+  {
+   "id": "g3__gn_un_1m",
+   "level": "family",
+   "n": 228,
+   "better": 40,
+   "worse": 157,
+   "precision": 0.203,
+   "default": false
+  },
+  {
+   "id": "g3__gn_det_epi_plur_2m",
+   "level": "family",
+   "n": 72,
+   "better": 12,
+   "worse": 49,
+   "precision": 0.197,
+   "default": false
+  },
+  {
+   "id": "g3__gn_la_3m",
+   "level": "family",
+   "n": 209,
+   "better": 36,
+   "worse": 168,
+   "precision": 0.176,
+   "default": false
+  },
+  {
+   "id": "g2__conj_2s_sans_sujet_xxxas_xxxes",
+   "level": "family",
+   "n": 40,
+   "better": 4,
+   "worse": 19,
+   "precision": 0.174,
+   "default": false
+  },
+  {
+   "id": "g3__gn_det_mas_sing_2m",
+   "level": "family",
+   "n": 112,
+   "better": 15,
+   "worse": 90,
+   "precision": 0.143,
+   "default": false
+  },
+  {
+   "id": "g2__conf_préposition_det_verbe",
+   "level": "family",
+   "n": 35,
+   "better": 3,
+   "worse": 29,
+   "precision": 0.094,
+   "default": false
+  },
+  {
+   "id": "g3__gn_la_1m",
+   "level": "family",
+   "n": 178,
+   "better": 14,
+   "worse": 137,
+   "precision": 0.093,
+   "default": false
+  },
+  {
+   "id": "g3__gn_nombre_chiffres_1m",
+   "level": "family",
+   "n": 73,
+   "better": 5,
+   "worse": 58,
+   "precision": 0.079,
+   "default": false
+  },
+  {
+   "id": "g3__gn_le_1m",
+   "level": "family",
+   "n": 47,
+   "better": 3,
+   "worse": 38,
+   "precision": 0.073,
+   "default": false
+  },
+  {
+   "id": "g3__gn_du_1m",
+   "level": "family",
+   "n": 88,
+   "better": 4,
+   "worse": 62,
+   "precision": 0.061,
+   "default": false
+  },
+  {
+   "id": "g3__infi_de_verbe",
+   "level": "family",
+   "n": 119,
+   "better": 3,
+   "worse": 77,
+   "precision": 0.037,
+   "default": false
+  },
+  {
+   "id": "g2__conf_de_vconj",
+   "level": "family",
+   "n": 104,
+   "better": 1,
+   "worse": 87,
+   "precision": 0.011,
+   "default": false
+  },
+  {
+   "id": "g2__conf_a_à_incohérences",
+   "level": "family",
+   "n": 4,
+   "better": 0,
+   "worse": 4,
+   "precision": 0.0,
+   "default": false
+  },
+  {
+   "id": "g2__conf_dès_des_dés",
+   "level": "family",
+   "n": 351,
+   "better": 0,
+   "worse": 348,
+   "precision": 0.0,
+   "default": false
+  },
+  {
+   "id": "g2__conf_déterminant_fem_sing_verbe",
+   "level": "family",
+   "n": 1,
+   "better": 0,
+   "worse": 1,
+   "precision": 0.0,
+   "default": false
+  },
+  {
+   "id": "g2__conf_gène_gêne",
+   "level": "family",
+   "n": 1,
+   "better": 0,
+   "worse": 1,
+   "precision": 0.0,
+   "default": false
+  },
+  {
+   "id": "g2__conf_la_là",
+   "level": "family",
+   "n": 2,
+   "better": 0,
+   "worse": 1,
+   "precision": 0.0,
+   "default": false
+  },
+  {
+   "id": "g2__conf_pause_pose",
+   "level": "family",
+   "n": 2,
+   "better": 0,
+   "worse": 2,
+   "precision": 0.0,
+   "default": false
+  },
+  {
+   "id": "g2__conf_pomme_paume",
+   "level": "family",
+   "n": 1,
+   "better": 0,
+   "worse": 1,
+   "precision": 0.0,
+   "default": false
+  },
+  {
+   "id": "g2__conf_tant_temps_tan_1",
+   "level": "family",
+   "n": 4,
+   "better": 0,
+   "worse": 4,
+   "precision": 0.0,
+   "default": false
+  },
+  {
+   "id": "g2__conf_toi_toit",
+   "level": "family",
+   "n": 1,
+   "better": 0,
+   "worse": 1,
+   "precision": 0.0,
+   "default": false
+  },
+  {
+   "id": "g2__conf_très_trait",
+   "level": "family",
+   "n": 3,
+   "better": 0,
+   "worse": 3,
+   "precision": 0.0,
+   "default": false
+  },
+  {
+   "id": "g2__conf_un_in",
+   "level": "family",
+   "n": 5,
+   "better": 0,
+   "worse": 4,
+   "precision": 0.0,
+   "default": false
+  },
+  {
+   "id": "g2__conf_à_a_infinitif",
+   "level": "family",
+   "n": 6,
+   "better": 0,
+   "worse": 6,
+   "precision": 0.0,
+   "default": false
+  },
+  {
+   "id": "g2__conf_à_qui_infinitif",
+   "level": "family",
+   "n": 1,
+   "better": 0,
+   "worse": 1,
+   "precision": 0.0,
+   "default": false
+  },
+  {
+   "id": "g2__conf_à_vconj",
+   "level": "family",
+   "n": 1,
+   "better": 0,
+   "worse": 1,
+   "precision": 0.0,
+   "default": false
+  },
+  {
+   "id": "g2__eleu_beau_bel_nouvel_nouveau_euphonie",
+   "level": "family",
+   "n": 1,
+   "better": 0,
+   "worse": 1,
+   "precision": 0.0,
+   "default": false
+  },
+  {
+   "id": "g2__pleo_substantifs",
+   "level": "family",
+   "n": 13,
+   "better": 0,
+   "worse": 13,
+   "precision": 0.0,
+   "default": false
+  },
+  {
+   "id": "g2__pleo_verbes",
+   "level": "family",
+   "n": 4,
+   "better": 0,
+   "worse": 4,
+   "precision": 0.0,
+   "default": false
+  },
+  {
+   "id": "g2__tu_locutions",
+   "level": "family",
+   "n": 8,
+   "better": 0,
+   "worse": 2,
+   "precision": 0.0,
+   "default": false
+  },
+  {
+   "id": "g3__conf_sceptique_septique",
+   "level": "family",
+   "n": 3,
+   "better": 0,
+   "worse": 3,
+   "precision": 0.0,
+   "default": false
+  },
+  {
+   "id": "g3__conf_tache_tâche",
+   "level": "family",
+   "n": 9,
+   "better": 0,
+   "worse": 8,
+   "precision": 0.0,
+   "default": false
+  },
+  {
+   "id": "g3__conf_à_a_après_verbes",
+   "level": "family",
+   "n": 1,
+   "better": 0,
+   "worse": 1,
+   "precision": 0.0,
+   "default": false
+  },
+  {
+   "id": "g3__gn_ce_1m",
+   "level": "family",
+   "n": 3,
+   "better": 0,
+   "worse": 2,
+   "precision": 0.0,
+   "default": false
+  },
+  {
+   "id": "g3__gn_det_epi_plur_2m_virg",
+   "level": "family",
+   "n": 1,
+   "better": 0,
+   "worse": 1,
+   "precision": 0.0,
+   "default": false
+  },
+  {
+   "id": "g3__gn_det_les_3m_et",
+   "level": "family",
+   "n": 2,
+   "better": 0,
+   "worse": 2,
+   "precision": 0.0,
+   "default": false
+  },
+  {
+   "id": "g3__gn_det_mas_sing_2m_virg",
+   "level": "family",
+   "n": 2,
+   "better": 0,
+   "worse": 2,
+   "precision": 0.0,
+   "default": false
+  },
+  {
+   "id": "g3__gn_ma_ta_sa_1m",
+   "level": "family",
+   "n": 8,
+   "better": 0,
+   "worse": 4,
+   "precision": 0.0,
+   "default": false
+  },
+  {
+   "id": "g3__gn_mon_ton_son_1m",
+   "level": "family",
+   "n": 10,
+   "better": 0,
+   "worse": 6,
+   "precision": 0.0,
+   "default": false
+  },
+  {
+   "id": "g3__gn_nombre_de_1m",
+   "level": "family",
+   "n": 1,
+   "better": 0,
+   "worse": 1,
+   "precision": 0.0,
+   "default": false
+  },
+  {
+   "id": "g3__gn_prépositions",
+   "level": "family",
+   "n": 4,
+   "better": 0,
+   "worse": 4,
+   "precision": 0.0,
+   "default": false
+  },
+  {
+   "id": "g3__gn_start_3m_et",
+   "level": "family",
+   "n": 1,
+   "better": 0,
+   "worse": 1,
+   "precision": 0.0,
+   "default": false
+  },
+  {
+   "id": "g3__infi_par_pour_sans",
+   "level": "family",
+   "n": 17,
+   "better": 0,
+   "worse": 2,
+   "precision": 0.0,
+   "default": false
+  },
+  {
+   "id": "g3__infi_verbes",
+   "level": "family",
+   "n": 15,
+   "better": 0,
+   "worse": 14,
+   "precision": 0.0,
+   "default": false
+  },
+  {
+   "id": "g3__infi_y_verbe",
+   "level": "family",
+   "n": 1,
+   "better": 0,
+   "worse": 1,
+   "precision": 0.0,
+   "default": false
+  },
+  {
+   "id": "gv1__conf_suj_verbe_det_verbe_nom",
+   "level": "family",
+   "n": 11,
+   "better": 0,
+   "worse": 10,
+   "precision": 0.0,
+   "default": false
+  },
+  {
+   "id": "gv1__conf_vinfi_adj",
+   "level": "family",
+   "n": 1,
+   "better": 0,
+   "worse": 1,
+   "precision": 0.0,
+   "default": false
+  },
+  {
+   "id": "gv1__imp_union_en",
+   "level": "family",
+   "n": 2,
+   "better": 0,
+   "worse": 2,
+   "precision": 0.0,
+   "default": false
+  },
+  {
+   "id": "gv1__imp_union_le_la_leur",
+   "level": "family",
+   "n": 2,
+   "better": 0,
+   "worse": 1,
+   "precision": 0.0,
+   "default": false
+  },
+  {
+   "id": "gv1__imp_verbe_groupe2_groupe3_t",
+   "level": "family",
+   "n": 6,
+   "better": 0,
+   "worse": 3,
+   "precision": 0.0,
+   "default": false
+  },
+  {
+   "id": "gv1__ppas_det_sing_COD_que_avoir",
+   "level": "family",
+   "n": 5,
+   "better": 0,
+   "worse": 5,
+   "precision": 0.0,
+   "default": false
+  },
+  {
+   "id": "gv1__ppas_pronom_avoir",
+   "level": "family",
+   "n": 3,
+   "better": 0,
+   "worse": 2,
+   "precision": 0.0,
+   "default": false
+  },
+  {
+   "id": "gv2__conf_et_est2",
+   "level": "family",
+   "n": 1,
+   "better": 0,
+   "worse": 1,
+   "precision": 0.0,
+   "default": false
+  },
+  {
+   "id": "gv2__conj_les_nom",
+   "level": "family",
+   "n": 7,
+   "better": 0,
+   "worse": 5,
+   "precision": 0.0,
+   "default": false
+  },
+  {
+   "id": "eepi_écriture_épicène_singulier",
+   "level": "family",
+   "n": 3,
+   "better": 0,
+   "worse": 0,
+   "precision": null,
+   "default": false
+  },
+  {
+   "id": "g0__imp_verbes_composés_impératifs",
+   "level": "family",
+   "n": 0,
+   "better": 0,
+   "worse": 0,
+   "precision": null,
+   "default": false
+  },
+  {
+   "id": "g0__inte_verbes_composés_interrogatifs",
+   "level": "family",
+   "n": 0,
+   "better": 0,
+   "worse": 0,
+   "precision": null,
+   "default": false
+  },
+  {
+   "id": "g2__conf_au_qqch",
+   "level": "family",
+   "n": 0,
+   "better": 0,
+   "worse": 0,
+   "precision": null,
+   "default": false
+  },
+  {
+   "id": "g2__conf_ce_ceux_se",
+   "level": "family",
+   "n": 0,
+   "better": 0,
+   "worse": 0,
+   "precision": null,
+   "default": false
+  },
+  {
+   "id": "g2__conf_coup_cout_cou1",
+   "level": "family",
+   "n": 0,
+   "better": 0,
+   "worse": 0,
+   "precision": null,
+   "default": false
+  },
+  {
+   "id": "g2__conf_ils_non_verbe",
+   "level": "family",
+   "n": 0,
+   "better": 0,
+   "worse": 0,
+   "precision": null,
+   "default": false
+  },
+  {
+   "id": "g2__conf_je_non_verbe",
+   "level": "family",
+   "n": 1,
+   "better": 0,
+   "worse": 0,
+   "precision": null,
+   "default": false
+  },
+  {
+   "id": "g2__conf_non_verbe_après_préverbes",
+   "level": "family",
+   "n": 1,
+   "better": 0,
+   "worse": 0,
+   "precision": null,
+   "default": false
+  },
+  {
+   "id": "g2__conf_ont_on",
+   "level": "family",
+   "n": 2,
+   "better": 0,
+   "worse": 0,
+   "precision": null,
+   "default": false
+  },
+  {
+   "id": "g2__conf_si_vconj",
+   "level": "family",
+   "n": 0,
+   "better": 0,
+   "worse": 0,
+   "precision": null,
+   "default": false
+  },
+  {
+   "id": "g2__conf_start_nom_ppas",
+   "level": "family",
+   "n": 0,
+   "better": 0,
+   "worse": 0,
+   "precision": null,
+   "default": false
+  },
+  {
+   "id": "g2__conf_sur_vconj",
+   "level": "family",
+   "n": 0,
+   "better": 0,
+   "worse": 0,
+   "precision": null,
+   "default": false
+  },
+  {
+   "id": "g2__conf_t_as_ta_t_a",
+   "level": "family",
+   "n": 0,
+   "better": 0,
+   "worse": 0,
+   "precision": null,
+   "default": false
+  },
+  {
+   "id": "g2__conf_ver_vers_verre_vert",
+   "level": "family",
+   "n": 0,
+   "better": 0,
+   "worse": 0,
+   "precision": null,
+   "default": false
+  },
+  {
+   "id": "g2__conf_âge_age",
+   "level": "family",
+   "n": 1,
+   "better": 0,
+   "worse": 0,
+   "precision": null,
+   "default": false
+  },
+  {
+   "id": "g2__conj_1p_sans_sujet",
+   "level": "family",
+   "n": 1,
+   "better": 0,
+   "worse": 0,
+   "precision": null,
+   "default": false
+  },
+  {
+   "id": "g2__conj_on",
+   "level": "family",
+   "n": 0,
+   "better": 0,
+   "worse": 0,
+   "precision": null,
+   "default": false
+  },
+  {
+   "id": "g2__conj_tu",
+   "level": "family",
+   "n": 0,
+   "better": 0,
+   "worse": 0,
+   "precision": null,
+   "default": false
+  },
+  {
+   "id": "g2__conj_vous",
+   "level": "family",
+   "n": 0,
+   "better": 0,
+   "worse": 0,
+   "precision": null,
+   "default": false
+  },
+  {
+   "id": "g2__eleu_euphonie_ma_ta_sa",
+   "level": "family",
+   "n": 1,
+   "better": 0,
+   "worse": 0,
+   "precision": null,
+   "default": false
+  },
+  {
+   "id": "g2__pleo_locutions",
+   "level": "family",
+   "n": 0,
+   "better": 0,
+   "worse": 0,
+   "precision": null,
+   "default": false
+  },
+  {
+   "id": "g2__tu_préfixe_divers",
+   "level": "family",
+   "n": 2,
+   "better": 0,
+   "worse": 0,
+   "precision": null,
+   "default": false
+  },
+  {
+   "id": "g2__tu_préfixe_mi",
+   "level": "family",
+   "n": 3,
+   "better": 0,
+   "worse": 0,
+   "precision": null,
+   "default": false
+  },
+  {
+   "id": "g2__tu_préfixe_quasi",
+   "level": "family",
+   "n": 4,
+   "better": 0,
+   "worse": 0,
+   "precision": null,
+   "default": false
+  },
+  {
+   "id": "g2__tu_préfixe_xxxo",
+   "level": "family",
+   "n": 1,
+   "better": 0,
+   "worse": 0,
+   "precision": null,
+   "default": false
+  },
+  {
+   "id": "g2__tu_prénoms",
+   "level": "family",
+   "n": 1,
+   "better": 0,
+   "worse": 0,
+   "precision": null,
+   "default": false
+  },
+  {
+   "id": "g2__tu_substantifs",
+   "level": "family",
+   "n": 50,
+   "better": 0,
+   "worse": 0,
+   "precision": null,
+   "default": false
+  },
+  {
+   "id": "g2__tu_toponymes",
+   "level": "family",
+   "n": 1,
+   "better": 0,
+   "worse": 0,
+   "precision": null,
+   "default": false
+  },
+  {
+   "id": "g3__conf_canne_cane",
+   "level": "family",
+   "n": 1,
+   "better": 0,
+   "worse": 0,
+   "precision": null,
+   "default": false
+  },
+  {
+   "id": "g3__gn_det_nom_de_det_nom_adj_sing_plur",
+   "level": "family",
+   "n": 0,
+   "better": 0,
+   "worse": 0,
+   "precision": null,
+   "default": false
+  },
+  {
+   "id": "g3__gn_det_nom_fem_et_det_nom_fem",
+   "level": "family",
+   "n": 0,
+   "better": 0,
+   "worse": 0,
+   "precision": null,
+   "default": false
+  },
+  {
+   "id": "g3__gn_det_nom_mas_et_det_nom_fem",
+   "level": "family",
+   "n": 0,
+   "better": 0,
+   "worse": 0,
+   "precision": null,
+   "default": false
+  },
+  {
+   "id": "g3__gn_det_nom_mas_et_det_nom_mas",
+   "level": "family",
+   "n": 0,
+   "better": 0,
+   "worse": 0,
+   "precision": null,
+   "default": false
+  },
+  {
+   "id": "g3__gn_nulle_1m",
+   "level": "family",
+   "n": 3,
+   "better": 0,
+   "worse": 0,
+   "precision": null,
+   "default": false
+  },
+  {
+   "id": "g3__gn_une_des_1m",
+   "level": "family",
+   "n": 1,
+   "better": 0,
+   "worse": 0,
+   "precision": null,
+   "default": false
+  },
+  {
+   "id": "gv1__conf_le_la_leur_les_verbe_nom",
+   "level": "family",
+   "n": 0,
+   "better": 0,
+   "worse": 0,
+   "precision": null,
+   "default": false
+  },
+  {
+   "id": "gv1__imp_union_nous_vous_lui",
+   "level": "family",
+   "n": 1,
+   "better": 0,
+   "worse": 0,
+   "precision": null,
+   "default": false
+  },
+  {
+   "id": "gv1__imp_verbe_groupe1",
+   "level": "family",
+   "n": 4,
+   "better": 0,
+   "worse": 0,
+   "precision": null,
+   "default": false
+  },
+  {
+   "id": "gv1__ppas_qui_avoir",
+   "level": "family",
+   "n": 0,
+   "better": 0,
+   "worse": 0,
+   "precision": null,
+   "default": false
+  },
+  {
+   "id": "gv2__conj_det_plur_nom",
+   "level": "family",
+   "n": 1,
+   "better": 0,
+   "worse": 0,
+   "precision": null,
+   "default": false
+  },
+  {
+   "id": "gv2__conj_que_où_comment_verbe_sujet_sing",
+   "level": "family",
+   "n": 1,
+   "better": 0,
+   "worse": 0,
+   "precision": null,
+   "default": false
+  },
+  {
+   "id": "gv2__vmode_bien_que_subjonctif",
+   "level": "family",
+   "n": 0,
+   "better": 0,
+   "worse": 0,
+   "precision": null,
+   "default": false
+  },
+  {
+   "id": "gv2__vmode_sujet_indicatif",
+   "level": "family",
+   "n": 0,
+   "better": 0,
+   "worse": 0,
+   "precision": null,
+   "default": false
+  },
+  {
+   "id": "num_grand_nombre_avec_points",
+   "level": "family",
+   "n": 1,
+   "better": 0,
+   "worse": 0,
+   "precision": null,
+   "default": false
+  },
+  {
+   "id": "p_sigle",
+   "level": "family",
+   "n": 0,
+   "better": 0,
+   "worse": 0,
+   "precision": null,
+   "default": false
+  }
+ ]
+}

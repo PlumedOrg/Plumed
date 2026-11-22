@@ -198,7 +198,11 @@ fn apply_dictionary_correction(
 
 fn apply_formatting_rules(app: &AppHandle, text: String, trace: &mut StepTrace) -> String {
     match formatting_rules::load(app) {
-        Ok(settings) => formatting_rules::apply_formatting_traced(text, &settings, trace),
+        Ok(settings) => {
+            let text = formatting_rules::apply_formatting_traced(text, &settings, trace);
+            // Plumed: 7. grammar, last, so it sees the final spelling
+            crate::grammar::apply_traced(app, text, settings.built_in.grammar, trace)
+        }
         Err(e) => {
             warn!("Failed to load formatting rules: {}. Skipping.", e);
             text

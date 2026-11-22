@@ -21,6 +21,7 @@ pub enum PipelineStep {
     ShortText,
     FormattingRules,
     BuiltInFormatting,
+    Grammar,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

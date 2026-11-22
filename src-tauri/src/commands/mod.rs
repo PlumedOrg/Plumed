@@ -1,6 +1,7 @@
 pub mod clipboard;
 pub mod dictionary;
 pub mod formatting_rules;
+pub mod grammar;
 pub mod history;
 pub mod medical;
 pub mod medical_data;
@@ -18,6 +19,7 @@ pub mod telemetry;
 pub use clipboard::*;
 pub use dictionary::*;
 pub use formatting_rules::*;
+pub use grammar::*;
 pub use history::*;
 pub use medical::*;
 pub use medical_data::*;

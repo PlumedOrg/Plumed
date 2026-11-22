@@ -7,6 +7,7 @@ mod commands;
 mod dictionary;
 mod engine;
 mod formatting_rules;
+mod grammar;
 mod history;
 mod medical;
 mod model;
@@ -340,6 +341,7 @@ pub fn run() {
                 match preload_engine(&startup_handle) {
                     Ok(_) => {
                         info!("Transcription engine initialized and ready");
+                        crate::grammar::warm_up(&startup_handle);
                         telemetry::send_if_due(&startup_handle);
                         crate::medical::data_update::check_at_startup(&startup_handle);
                     }
@@ -464,6 +466,9 @@ pub fn run() {
             import_medical_list,
             get_medical_changes,
             import_medical_changes,
+            get_grammar_rules,
+            set_grammar_rules,
+            reset_grammar_rules,
             get_medical_data_status,
             get_medical_data_offer,
             dismiss_medical_data_offer,

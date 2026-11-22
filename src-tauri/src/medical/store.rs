@@ -35,6 +35,13 @@ pub const CONFUSION_OVERLAY: StoreFile = StoreFile {
     what: "confusion group changes",
 };
 
+/// Changes to the grammar step's rules ([`crate::grammar::rules::GrammarOverlay`]).
+pub const GRAMMAR_OVERLAY: StoreFile = StoreFile {
+    name: "grammar_rules.json",
+    key: "overlay",
+    what: "grammar rule changes",
+};
+
 /// The saved changes, the default (no change) when there are none.
 pub fn load<T: DeserializeOwned + Default>(app: &AppHandle, file: &StoreFile) -> Result<T, String> {
     let store = app.store(file.name).map_err(|e| e.to_string())?;

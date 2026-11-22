@@ -14,7 +14,7 @@ mod drug_rules;
 pub mod engine_lists;
 mod interhop;
 pub mod list_overlay;
-mod store;
+pub(crate) mod store;
 
 pub use changes::MedicalChanges;
 use drug_rules::DrugRules;
@@ -171,6 +171,8 @@ pub enum ListFile {
     Rules,
     Phrases,
     ConfusionGroups,
+    /// The grammar rules turned on (`crate::grammar`), one id per line.
+    Grammar,
 }
 
 /// The list's content in use (data set plus the user's changes).
@@ -180,6 +182,7 @@ pub fn export_list(app: &AppHandle, list: ListFile) -> Result<String, String> {
         ListFile::Rules => Ok(data.rules.export_jsonl(&get_edits(app)?)),
         ListFile::Phrases => Ok(overlaid_list(app, MedicalList::Phrases, &data)),
         ListFile::ConfusionGroups => Ok(overlaid_list(app, MedicalList::ConfusionGroups, &data)),
+        ListFile::Grammar => crate::grammar::export_list(app),
     }
 }
 
@@ -215,5 +218,6 @@ pub fn import_list(app: &AppHandle, list: ListFile, content: &str) -> Result<(),
         }
         ListFile::Phrases => import_overlay::<Phrase>(app, content),
         ListFile::ConfusionGroups => import_overlay::<ConfusionGroup>(app, content),
+        ListFile::Grammar => crate::grammar::import_list(app, content),
     }
 }

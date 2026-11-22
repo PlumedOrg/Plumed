@@ -17,6 +17,7 @@ pub fn set_formatting_settings(
     let before = formatting_rules::load(&app).ok().map(|s| s.built_in);
     formatting_rules::save(&app, &settings)?;
     crate::medical::engine_lists::apply_settings(&app, before.as_ref(), &settings.built_in);
+    crate::grammar::warm_up(&app);
     Ok(())
 }
 

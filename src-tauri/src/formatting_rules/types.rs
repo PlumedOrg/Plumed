@@ -98,6 +98,8 @@ pub struct BuiltInOptions {
     pub phrase_boosting: bool,
     /// Plumed: re-score sound-alike medical words on the audio (confusion groups)
     pub confusion_rescoring: bool,
+    /// Plumed: apply Grammalecte's fixes of the chosen rules (grammar step, last)
+    pub grammar: bool,
 }
 
 impl Default for BuiltInOptions {
@@ -112,6 +114,7 @@ impl Default for BuiltInOptions {
             medical_fixes: true,
             phrase_boosting: true,
             confusion_rescoring: true,
+            grammar: true,
         }
     }
 }
