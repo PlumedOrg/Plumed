@@ -32,9 +32,6 @@ import { useTranslation } from '@/i18n';
 import { useDictionaryRevampSeen } from '@/features/personalize/custom-dictionary/hooks/use-dictionary-revamp-seen';
 import appIcon from '@/assets/app-icon.png';
 import { isPathInItems } from './app-sidebar.helpers';
-import { Onboarding } from '@/features/onboarding/onboarding';
-import { useIsWayland } from '@/components/hooks/use-linux-session-type';
-import { useShortcut, SHORTCUT_CONFIGS } from '@/features/settings/shortcuts/hooks/use-shortcut';
 import { PLUMED_LATEST_RELEASE_URL, PLUMED_NEW_ISSUE_URL, PLUMED_RELEASES_URL } from '@/utils/plumed-links';
 
 const getTopLevelItems = (t: (key: string) => string) => [
@@ -78,8 +75,6 @@ export const AppSidebar = () => {
     const showRevampDot = !revampSeen;
     const isSettingsActive = isPathInItems(pathname, settingsSubItems);
     const isAboutActive = pathname === '/about';
-    const { shortcut: recordShortcut } = useShortcut(SHORTCUT_CONFIGS.record);
-    const isWayland = useIsWayland();
 
     return (
         <Sidebar className="bg-background border-border border-r overflow-hidden w-[15.5rem]">
@@ -148,11 +143,6 @@ export const AppSidebar = () => {
                         </SidebarMenuItem>
                     </SidebarMenu>
                 </SidebarGroup>
-                {!isWayland && (
-                    <div className="mt-auto px-2 pb-2 empty:hidden">
-                        <Onboarding recordShortcut={recordShortcut} />
-                    </div>
-                )}
             </SidebarContent>
             <SidebarFooter className="bg-background ">
                 <a

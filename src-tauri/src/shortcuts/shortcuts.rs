@@ -127,7 +127,7 @@ fn pushtotalk_recording_action<F>(
     match event_type {
         KeyEventType::Pressed => {
             if *recording_source == RecordingSource::None {
-                start_recording(app, &mut recording_source, target, start_fn);
+                start_recording(&mut recording_source, target, start_fn);
             }
         }
         KeyEventType::Released => {
@@ -165,19 +165,14 @@ pub(crate) fn toggle_recording_action<F>(
             return;
         }
         shortcut_state.set_toggled(true);
-        start_recording(app, &mut recording_source, target, start_fn);
+        start_recording(&mut recording_source, target, start_fn);
     }
 }
 
-fn start_recording<F>(
-    app: &AppHandle,
-    recording_source: &mut RecordingSource,
-    target: RecordingSource,
-    start_fn: F,
-) where
+fn start_recording<F>(recording_source: &mut RecordingSource, target: RecordingSource, start_fn: F)
+where
     F: FnOnce() + Send + 'static,
 {
-    crate::onboarding::onboarding::capture_focus_at_record_start(app);
     *recording_source = target;
     *recording_state().last_toggle_start.lock() = Instant::now();
     // Run off-thread so the shortcut processor stays reactive during the

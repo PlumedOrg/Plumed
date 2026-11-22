@@ -94,8 +94,6 @@ pub fn add_transcription(app: &AppHandle, text: String, steps: Vec<StepText>) ->
 
     let _ = app.emit("history-updated", ());
 
-    crate::onboarding::onboarding::mark_onboarding_on_history_write(app);
-
     Ok(())
 }
 

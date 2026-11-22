@@ -12,15 +12,6 @@ pub enum PasteMethod {
     Direct,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Default)]
-#[serde(default)]
-pub struct OnboardingState {
-    pub used_home_shortcut: bool,
-    pub transcribed_outside_app: bool,
-    pub added_dictionary_word: bool,
-    pub congrats_dismissed: bool,
-}
-
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(default)]
 pub struct AppSettings {
@@ -40,7 +31,6 @@ pub struct AppSettings {
     pub sound_volume: u8,
     pub lower_output_while_recording: bool,
     pub output_volume_while_recording: u8,
-    pub onboarding: OnboardingState,
     pub cancel_shortcut: String,
     pub mic_id: Option<String>,
     pub mic_label: Option<String>, // Persisted so the disconnected-mic UI can still show a friendly name
@@ -164,7 +154,6 @@ impl Default for AppSettings {
             sound_volume: 50,
             lower_output_while_recording: false,
             output_volume_while_recording: 50,
-            onboarding: OnboardingState::default(),
             cancel_shortcut: "ctrl+backspace".to_string(),
             mic_id: None,
             mic_label: None,
@@ -214,6 +203,15 @@ mod tests {
     fn new_installs_type_the_text_except_on_wayland() {
         assert_eq!(default_paste_method(false), PasteMethod::Direct);
         assert_eq!(default_paste_method(true), PasteMethod::CtrlV);
+    }
+
+    #[test]
+    fn settings_with_the_removed_onboarding_checklist_still_load() {
+        let parsed: AppSettings = serde_json::from_str(
+            r#"{"sound_volume":42,"onboarding":{"used_home_shortcut":true,"congrats_dismissed":true}}"#,
+        )
+        .unwrap();
+        assert_eq!(parsed.sound_volume, 42);
     }
 
     #[test]

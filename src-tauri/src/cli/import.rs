@@ -117,8 +117,7 @@ pub fn execute_import(
     }
 
     // Wayland onboarding flags are environment-specific (not part of the config payload),
-    // so importing must always re-show those cards. Auto-complete the main onboarding for
-    // returning users who already mastered the app on another machine.
+    // so importing must always re-show those cards.
     if !imported_categories.is_empty() {
         let mut s = crate::settings::load_settings(app);
         let mut dirty = false;
@@ -129,13 +128,6 @@ pub fn execute_import(
         }
         if s.wayland_clipboard_fallback_dismissed {
             s.wayland_clipboard_fallback_dismissed = false;
-            dirty = true;
-        }
-        if !s.onboarding.congrats_dismissed {
-            s.onboarding.used_home_shortcut = true;
-            s.onboarding.transcribed_outside_app = true;
-            s.onboarding.added_dictionary_word = true;
-            s.onboarding.congrats_dismissed = true;
             dirty = true;
         }
 

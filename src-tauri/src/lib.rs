@@ -10,7 +10,6 @@ mod formatting_rules;
 mod history;
 mod medical;
 mod model;
-mod onboarding;
 mod overlay;
 mod remote_mic;
 mod settings;
@@ -431,11 +430,6 @@ pub fn run() {
             set_current_mic_id,
             get_current_mic_label,
             get_mic_list,
-            get_onboarding_state,
-            set_onboarding_used_home_shortcut,
-            set_onboarding_transcribed_outside_app,
-            set_onboarding_added_dictionary_word,
-            set_onboarding_congrats_dismissed,
             set_sound_enabled,
             set_sound_volume,
             set_lower_output_while_recording,
