@@ -38,33 +38,39 @@ pub fn build_input_with_buffer_fallback<S>(
 }
 
 pub fn ensure_recordings_dir(app: &tauri::AppHandle) -> Result<PathBuf> {
-    let parent = recordings_parent(app.path().runtime_dir().ok(), || {
+    recordings_dir(app.path().runtime_dir().ok(), || {
         app.path()
             .app_cache_dir()
             .context("Failed to resolve app cache dir")
-    })?;
-    std::fs::create_dir_all(&parent)
-        .with_context(|| format!("Failed to create {}", parent.display()))?;
-    // Plumed fork: own folder, never shared with an installed Murmure.
-    let recordings = parent.join("plumed_recordings");
-
-    ensure_private_dir(&recordings)?;
-    Ok(recordings)
+    })
 }
 
-/// Folder holding `plumed_recordings`, private to this user so that no other
+/// `plumed_recordings`, in a folder private to this user so that no other
 /// account can create it first (as it could in the shared `/tmp`). On Linux
 /// the session runtime dir (`$XDG_RUNTIME_DIR`: RAM, 0700, emptied at logout)
-/// when the session has one, otherwise (and on Windows and macOS, where Tauri
-/// has no runtime dir) the app cache dir.
-fn recordings_parent(
+/// when the session has a usable one, otherwise (a variable kept from another
+/// account by `su`, and on Windows and macOS, where Tauri has no runtime dir)
+/// the app cache dir.
+fn recordings_dir(
     runtime_dir: Option<PathBuf>,
     cache_dir: impl FnOnce() -> Result<PathBuf>,
 ) -> Result<PathBuf> {
-    match runtime_dir {
-        Some(dir) => Ok(dir),
-        None => cache_dir(),
+    if let Some(runtime_dir) = runtime_dir {
+        match private_recordings_dir_in(&runtime_dir) {
+            Ok(dir) => return Ok(dir),
+            Err(e) => warn!("Runtime dir unusable for recordings, using the cache dir: {e:#}"),
+        }
     }
+    private_recordings_dir_in(&cache_dir()?)
+}
+
+fn private_recordings_dir_in(parent: &Path) -> Result<PathBuf> {
+    std::fs::create_dir_all(parent)
+        .with_context(|| format!("Failed to create {}", parent.display()))?;
+    // Plumed fork: own folder, never shared with an installed Murmure.
+    let recordings = parent.join("plumed_recordings");
+    ensure_private_dir(&recordings)?;
+    Ok(recordings)
 }
 
 /// Creates `dir` readable by this user only. Its parent is per user, but the
@@ -357,20 +363,38 @@ mod tests {
         std::fs::remove_dir_all(scratch).unwrap();
     }
 
+    #[cfg(unix)]
     #[test]
-    fn recordings_parent_prefers_the_runtime_dir() {
-        let runtime = PathBuf::from("/run/user/1000");
-        let parent = recordings_parent(Some(runtime.clone()), || {
+    fn recordings_go_to_the_runtime_dir() {
+        let runtime = scratch_dir();
+        let dir = recordings_dir(Some(runtime.clone()), || {
             anyhow::bail!("the cache dir must not be resolved")
         });
-        assert_eq!(parent.unwrap(), runtime);
+        assert_eq!(dir.unwrap(), runtime.join("plumed_recordings"));
+        std::fs::remove_dir_all(runtime).unwrap();
     }
 
+    #[cfg(unix)]
     #[test]
-    fn recordings_parent_falls_back_to_the_cache_dir() {
-        let cache = PathBuf::from("/home/u/.cache/org.olicorne.plumed");
-        let parent = recordings_parent(None, || Ok(cache.clone()));
-        assert_eq!(parent.unwrap(), cache);
+    fn recordings_go_to_the_cache_dir_without_a_runtime_dir() {
+        let cache = scratch_dir();
+        let dir = recordings_dir(None, || Ok(cache.clone()));
+        assert_eq!(dir.unwrap(), cache.join("plumed_recordings"));
+        std::fs::remove_dir_all(cache).unwrap();
+    }
+
+    /// `su` keeps the other account's `$XDG_RUNTIME_DIR`, which this user
+    /// cannot write to: recording must still work.
+    #[cfg(unix)]
+    #[test]
+    fn recordings_go_to_the_cache_dir_when_the_runtime_dir_is_unusable() {
+        let scratch = scratch_dir();
+        let runtime = scratch.join("not-a-folder");
+        std::fs::write(&runtime, "").unwrap();
+        let cache = scratch.join("cache");
+        let dir = recordings_dir(Some(runtime), || Ok(cache.clone()));
+        assert_eq!(dir.unwrap(), cache.join("plumed_recordings"));
+        std::fs::remove_dir_all(scratch).unwrap();
     }
 
     #[test]

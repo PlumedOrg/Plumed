@@ -40,7 +40,7 @@ This local data is not transmitted by default.
 
 Plumed does not listen to your microphone outside of an active recording session.
 
-During a recording, the audio is written to a temporary WAV file in a `plumed_recordings` folder that only your user account can read: on Linux in the session runtime folder (`$XDG_RUNTIME_DIR`, in memory, erased at logout) when there is one, otherwise in Plumed's cache folder. The file is deleted after transcription, unless you turned on "Keep audio recordings", which keeps the last 5.
+During a recording, the audio is written to a temporary WAV file in a `plumed_recordings` folder that only your user account can read: on Linux in the session runtime folder (`$XDG_RUNTIME_DIR`, in memory, erased at logout) when there is a usable one, otherwise in Plumed's cache folder. The file is deleted after transcription, unless you turned on "Keep audio recordings", which keeps the last 5.
 
 ## Context for short dictations
 
