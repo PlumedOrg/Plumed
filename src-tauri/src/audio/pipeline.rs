@@ -12,6 +12,7 @@ use crate::stats;
 use anyhow::Result;
 use log::{debug, error, warn};
 use std::path::Path;
+use std::time::Duration;
 use tauri::{AppHandle, Emitter, Manager};
 
 pub enum ChunkOutcome {
@@ -142,16 +143,7 @@ fn with_short_context(
 }
 
 /// Post-processes the concatenated chunks at the end of transcription
-pub fn merge_all_chunks(app: &AppHandle, accumulated: String, file_path: &Path) -> Result<String> {
-    let text = post_process_chunks(app, accumulated);
-    if !text.trim().is_empty() {
-        // 7. Save stats & history
-        save_stats_and_history(app, file_path, &text)?;
-    }
-    Ok(text)
-}
-
-fn post_process_chunks(app: &AppHandle, accumulated: String) -> String {
+pub fn post_process_chunks(app: &AppHandle, accumulated: String) -> String {
     if accumulated.trim().is_empty() {
         return accumulated;
     }
@@ -207,40 +199,63 @@ fn apply_formatting_rules(app: &AppHandle, text: String) -> String {
     }
 }
 
-/// Duration (seconds) and size (bytes) of a WAV file, zeros when unreadable.
-pub fn wav_duration_and_size(file_path: &Path) -> (f64, u64) {
-    match hound::WavReader::open(file_path) {
-        Ok(reader) => {
-            let spec = reader.spec();
-            let total_samples = reader.duration() as f64;
-            let seconds = if spec.sample_rate > 0 {
-                total_samples / (spec.sample_rate as f64)
-            } else {
-                0.0
-            };
-            let size = std::fs::metadata(file_path).map(|m| m.len()).unwrap_or(0);
-            (seconds, size)
+/// Length and size of the audio behind a finished dictation.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct DictationAudio {
+    pub seconds: f64,
+    pub bytes: u64,
+}
+
+impl DictationAudio {
+    /// Duration and size of a WAV file, zeros when unreadable.
+    pub fn from_wav(file_path: &Path) -> Self {
+        match hound::WavReader::open(file_path) {
+            Ok(reader) => {
+                let spec = reader.spec();
+                let total_samples = reader.duration() as f64;
+                let seconds = if spec.sample_rate > 0 {
+                    total_samples / (spec.sample_rate as f64)
+                } else {
+                    0.0
+                };
+                let bytes = std::fs::metadata(file_path).map(|m| m.len()).unwrap_or(0);
+                Self { seconds, bytes }
+            }
+            Err(_) => Self {
+                seconds: 0.0,
+                bytes: 0,
+            },
         }
-        Err(_) => (0.0, 0),
+    }
+
+    /// A mono 16-bit PCM recording of `samples` samples at `sample_rate` Hz.
+    pub fn from_pcm16(samples: usize, sample_rate: u32) -> Self {
+        let seconds = match sample_rate {
+            0 => 0.0,
+            rate => samples as f64 / rate as f64,
+        };
+        Self {
+            seconds,
+            bytes: samples as u64 * 2,
+        }
     }
 }
 
-fn save_stats_and_history(app: &AppHandle, file_path: &Path, text: &str) -> Result<()> {
-    let (duration_seconds, wav_size_bytes) = wav_duration_and_size(file_path);
-
-    let word_count: u64 = text.split_whitespace().filter(|s| !s.is_empty()).count() as u64;
-
+/// Single entry point for a finished dictation, whatever its source (keyboard
+/// shortcut or PhoneMic): adds it to the history, the stats and the usage
+/// statistics. Empty texts are not recorded.
+pub fn record_dictation(app: &AppHandle, text: &str, audio: DictationAudio, processing: Duration) {
+    if text.trim().is_empty() {
+        return;
+    }
     if let Err(e) = history::add_transcription(app, text.to_string()) {
         error!("Failed to save to history: {}", e);
     }
-
-    if let Err(e) =
-        stats::add_transcription_session(app, word_count, duration_seconds, wav_size_bytes)
-    {
+    let word_count = text.split_whitespace().count() as u64;
+    if let Err(e) = stats::add_transcription_session(app, word_count, audio.seconds, audio.bytes) {
         error!("Failed to save stats session: {}", e);
     }
-
-    Ok(())
+    crate::telemetry::record_transcription(app, audio.seconds, text, processing);
 }
 
 /// Process a recording from raw samples (no WAV file), used by the remote mic.
@@ -264,10 +279,8 @@ pub fn process_recording_from_samples(app: &AppHandle, samples: Vec<f32>) -> Res
     let text = apply_dictionary_correction(app, text, &result.word_confidences)?;
 
     // 4. Formatting rules
-    let final_text = apply_formatting_rules(app, text);
-
-    // Note: No save_stats_and_history (no WAV file, no duration)
-    Ok(final_text)
+    // The caller records the whole recording once (see record_dictation).
+    Ok(apply_formatting_rules(app, text))
 }
 
 fn transcribe_samples_direct(app: &AppHandle, samples: Vec<f32>) -> Result<TranscriptionResult> {
@@ -296,6 +309,18 @@ mod tests {
     use super::*;
 
     const SR: u32 = 16000;
+
+    #[test]
+    fn pcm16_dictation_audio_is_measured_from_the_sample_count() {
+        assert_eq!(
+            DictationAudio::from_pcm16(48_000 * 3, 48_000),
+            DictationAudio {
+                seconds: 3.0,
+                bytes: 288_000
+            }
+        );
+        assert_eq!(DictationAudio::from_pcm16(100, 0).seconds, 0.0);
+    }
 
     #[test]
     fn should_add_a_quarter_second_of_silence_at_both_ends() {

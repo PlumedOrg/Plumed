@@ -1,4 +1,5 @@
 use crate::audio::helpers::{cleanup_recordings, ensure_recordings_dir, generate_unique_wav_name};
+use crate::audio::pipeline::DictationAudio;
 use crate::audio::recorder::AudioRecorder;
 use crate::audio::types::{AudioState, RecorderStartError};
 use crate::audio::ChunkPipeline;
@@ -197,22 +198,20 @@ fn finalize_chunked_session(
     let accumulated = pipeline.finalize();
     let _ = app.emit("transcription-processing-end", ());
 
-    match crate::audio::pipeline::merge_all_chunks(app, accumulated, path) {
-        Ok(text) => {
-            crate::telemetry::record_transcription(app, path, &text, processing_started.elapsed());
-            if let Err(e) = write_transcription(app, &text) {
-                error!("Failed to use clipboard: {}", e);
-            }
-            if state.current_session() == my_gen {
-                overlay::show_result_panel_if_allowed(app, &text);
-            }
-            reset_recording_ui(app);
-        }
-        Err(e) => {
-            error!("Finalize failed: {}", e);
-            reset_recording_ui(app);
-        }
+    let text = crate::audio::pipeline::post_process_chunks(app, accumulated);
+    crate::audio::pipeline::record_dictation(
+        app,
+        &text,
+        DictationAudio::from_wav(path),
+        processing_started.elapsed(),
+    );
+    if let Err(e) = write_transcription(app, &text) {
+        error!("Failed to use clipboard: {}", e);
     }
+    if state.current_session() == my_gen {
+        overlay::show_result_panel_if_allowed(app, &text);
+    }
+    reset_recording_ui(app);
 
     // A newer session took ownership while this one was post-processing: it now
     // owns the flag and releases it on its own stop path.

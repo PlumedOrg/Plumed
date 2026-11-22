@@ -19,7 +19,6 @@ use log::{info, warn};
 use payload::{count_bucket, known_value, Environment, FeatureFlags};
 use serde_json::Value;
 use state::TelemetryState;
-use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 use tauri::{AppHandle, Manager};
@@ -115,11 +114,10 @@ fn request(
 
 /// Counts a finished transcription (`processing` is the time from the end
 /// of the recording to the final text). Does nothing unless enabled.
-pub fn record_transcription(app: &AppHandle, wav_path: &Path, text: &str, processing: Duration) {
+pub fn record_transcription(app: &AppHandle, audio_secs: f64, text: &str, processing: Duration) {
     if text.trim().is_empty() || !is_enabled(app) {
         return;
     }
-    let (audio_secs, _) = crate::audio::pipeline::wav_duration_and_size(wav_path);
     let chars = text.chars().count();
     let today = today();
     let updated = state::update(app, today, |s| {

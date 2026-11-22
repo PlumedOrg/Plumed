@@ -1,6 +1,7 @@
 //! Phone recording (pcm-s16) to text: buffering, resampling, chunked transcription.
 
 use crate::audio::helpers::resample;
+use crate::audio::pipeline::{record_dictation, DictationAudio};
 
 const CHUNK_SAMPLES: usize = 960_000;
 const MAX_SAMPLES: usize = 19_200_000;
@@ -56,12 +57,15 @@ pub enum TranscribeError {
     Failed(#[source] anyhow::Error),
 }
 
-/// Transcribes a phone recording (pcm-s16 at `sample_rate`), chunk by chunk.
+/// Transcribes a phone recording (pcm-s16 at `sample_rate`), chunk by chunk,
+/// and records it like a keyboard dictation (history, stats, usage statistics).
 pub fn transcribe_pcm(
     app: &tauri::AppHandle,
     buffer: Vec<i16>,
     sample_rate: u32,
 ) -> Result<String, TranscribeError> {
+    let started = std::time::Instant::now();
+    let audio = DictationAudio::from_pcm16(buffer.len(), sample_rate);
     let chunks = split_into_chunks(buffer, sample_rate);
     crate::audio::preload_engine(app).map_err(TranscribeError::ModelUnavailable)?;
     let mut parts: Vec<String> = Vec::with_capacity(chunks.len());
@@ -72,5 +76,7 @@ pub fn transcribe_pcm(
             parts.push(text);
         }
     }
-    Ok(parts.join(" "))
+    let text = parts.join(" ");
+    record_dictation(app, &text, audio, started.elapsed());
+    Ok(text)
 }
