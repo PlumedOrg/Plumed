@@ -28,6 +28,7 @@ Plumed stores the following locally in the app's data directory:
 - **Medical rules** (`medical_rules.json`, your edits to the drug and medical term corrections)
 - **Medical vocabulary changes** (`medical_phrases.json`, the phrases you turned off or added to the medical phrase list)
 - **Sound-alike word changes** (`medical_confusion_groups.json`, the groups you turned off or added)
+- **Grammar rule changes** (`grammar_rules.json`, the grammar rules you turned off or on)
 - **Application logs** (do not contain transcriptions by default)
 - **Usage statistics counters** (`telemetry.json`, only if you opted in, see below)
 - **Downloaded medical rules** (`medical-data/` folder, only if you chose to download a medical data update; no personal data)
@@ -35,6 +36,10 @@ Plumed stores the following locally in the app's data directory:
 By default, **no transcription is persisted to disk**. Transcription history is kept in memory only and is cleared when the application closes. If you explicitly enable the "Persist history" option, the last 5 transcriptions will be saved on disk in the app's data directory. Each history entry also keeps the text after each processing step (to show on the home page what each correction step changed); these texts follow exactly the same rules: in memory only by default, on disk only with "Persist history", and only for those last 5 transcriptions.
 
 This local data is not transmitted by default.
+
+## Grammar step
+
+The grammar checker (Grammalecte, step 7 of the corrections) is embedded in Plumed and runs on your computer. The text it checks is never sent anywhere and is not stored by this step.
 
 ## Microphone
 

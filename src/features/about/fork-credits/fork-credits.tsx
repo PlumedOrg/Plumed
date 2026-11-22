@@ -11,6 +11,11 @@ const PARAKEET_WEB = 'https://github.com/thiswillbeyourgithub/parakeet_web';
 const ULTIMED_RULES = 'https://github.com/UltiMed-Org/UltiMed-ASR-FR-v2-regex-fixes';
 const INTERHOP = 'https://framagit.org/interhop/murmure-regex';
 const LPSN = 'https://lpsn.dsmz.de/';
+const GRAMMALECTE = 'https://grammalecte.net';
+// Source offer for the bundled Grammalecte build (GPL v3): the pinned extension package
+// (the JavaScript Plumed ships, unminified) and the upstream source archive of the same version.
+const GRAMMALECTE_PACKAGE = 'https://addons.mozilla.org/firefox/downloads/file/4643560/grammalecte_fr-2.3.0.xpi';
+const GRAMMALECTE_SOURCE = 'https://grammalecte.net/zip/Grammalecte-fr-v2.3.0.zip';
 
 interface CreditsText {
     intro: [string, string, string];
@@ -18,6 +23,7 @@ interface CreditsText {
     drugRules: [string, string];
     dictationRules: string;
     phraseList: [string, string];
+    grammar: [string, string, string, string];
     upstream: string;
 }
 
@@ -35,6 +41,12 @@ const TEXT: Record<'fr' | 'en', CreditsText> = {
         ],
         dictationRules: 'Medical dictation rules: ',
         phraseList: ['Medical phrase boosting list: ', ' (AGPL v3). Bacterial names from '],
+        grammar: [
+            'Grammar checker (Corrections step 7): ',
+            ' 2.3.0 by Olivier R. (GNU GPL v3 or later), shipped unmodified with its license. Source: ',
+            'the bundled package',
+            'the source archive',
+        ],
         upstream: 'Murmure is made by Al1x-ai. Please support the original project above.',
     },
     fr: {
@@ -50,6 +62,12 @@ const TEXT: Record<'fr' | 'en', CreditsText> = {
         ],
         dictationRules: 'Règles de dictée médicale : ',
         phraseList: ["Liste d'amplification de phrases médicales : ", ' (AGPL v3). Noms de bactéries issus de '],
+        grammar: [
+            'Correcteur grammatical (étape 7 des corrections) : ',
+            ' 2.3.0 par Olivier R. (GNU GPL v3 ou ultérieure), inclus sans modification avec sa licence. Source : ',
+            'le paquet inclus',
+            "l'archive des sources",
+        ],
         upstream: 'Murmure est développé par Al1x-ai. Soutenez le projet original ci-dessus.',
     },
 };
@@ -100,6 +118,21 @@ export const ForkCredits = () => {
                             LPSN
                         </ExternalLink>{' '}
                         (CC BY-SA 4.0)
+                    </li>
+                    <li>
+                        {text.grammar[0]}
+                        <ExternalLink href={GRAMMALECTE} withIcon={false}>
+                            Grammalecte
+                        </ExternalLink>
+                        {text.grammar[1]}
+                        <ExternalLink href={GRAMMALECTE_PACKAGE} withIcon={false}>
+                            {text.grammar[2]}
+                        </ExternalLink>
+                        {', '}
+                        <ExternalLink href={GRAMMALECTE_SOURCE} withIcon={false}>
+                            {text.grammar[3]}
+                        </ExternalLink>
+                        .
                     </li>
                 </ul>
             </div>
