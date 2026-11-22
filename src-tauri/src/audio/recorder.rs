@@ -2,13 +2,11 @@ use crate::audio::chunking::{ChunkJob, Chunker, PreviewLink};
 use crate::audio::helpers::create_wav_writer;
 use crate::audio::output_volume::LoweredState;
 use crate::audio::sound;
-use crate::audio::types::RecordingTrigger;
-use crate::audio::vad::{AdaptiveVad, VoiceActivity};
 use anyhow::{Context, Error, Result};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::Device;
 use hound::WavWriter;
-use log::{debug, error, info, trace};
+use log::{debug, error};
 use parking_lot::Mutex;
 use std::fs::File;
 use std::io::BufWriter;
@@ -46,7 +44,6 @@ pub struct AudioRecorder {
 impl AudioRecorder {
     pub fn new(app: AppHandle, file_path: &Path) -> Result<Self> {
         let audio_state = app.state::<crate::audio::types::AudioState>();
-        let recording_trigger = audio_state.get_recording_trigger();
         let chunk_cfg = audio_state
             .chunk_pipeline
             .lock()
@@ -85,7 +82,6 @@ impl AudioRecorder {
 
         let writer_ctx = WriterThreadCtx {
             app: app.clone(),
-            recording_trigger,
             chunk_cfg,
             preview_link,
             sample_rate: config.sample_rate(),
@@ -211,7 +207,6 @@ impl Drop for AudioRecorder {
 
 struct WriterThreadCtx {
     app: AppHandle,
-    recording_trigger: RecordingTrigger,
     /// Present when the session chunks its audio: the chunk sender.
     chunk_cfg: Option<Sender<ChunkJob>>,
     preview_link: Option<PreviewLink>,
@@ -290,7 +285,6 @@ fn spawn_writer_thread(
 ) -> JoinHandle<()> {
     let WriterThreadCtx {
         app,
-        recording_trigger,
         chunk_cfg,
         preview_link,
         sample_rate,
@@ -302,18 +296,6 @@ fn spawn_writer_thread(
         let mut ema_level: f32 = 0.0;
         let alpha: f32 = 0.35; // smoothing factor
         let mut last_emit = std::time::Instant::now();
-
-        let is_wake_word = recording_trigger == RecordingTrigger::WakeWord;
-        let settings = crate::settings::load_settings(&app);
-        let silence_auto_stop_ms = if settings.silence_timeout_ms == 0 {
-            0
-        } else {
-            settings.silence_timeout_ms.clamp(500, 5000)
-        };
-        let mut silence_start: Option<std::time::Instant> = None;
-        let mut silence_auto_stop_triggered = false;
-        let mut has_speech_started = false;
-        let mut silence_auto_stop_vad = AdaptiveVad::new();
 
         let mut chunker = chunk_cfg.map(|tx| Chunker::new(tx, sample_rate, preview_link.clone()));
         let mut last_keepalive = std::time::Instant::now();
@@ -359,40 +341,6 @@ fn spawn_writer_thread(
                     let _ = app.emit("mic-level", ema_level);
                     if let Some(overlay_window) = app.get_webview_window("recording_overlay") {
                         let _ = overlay_window.emit("mic-level", ema_level);
-                    }
-
-                    if is_wake_word && !silence_auto_stop_triggered && silence_auto_stop_ms > 0 {
-                        match silence_auto_stop_vad.update(rms) {
-                            VoiceActivity::Active => {
-                                if !has_speech_started {
-                                    info!("Wake word auto-stop: speech detected (rms={:.4})", rms);
-                                    has_speech_started = true;
-                                }
-                                silence_start = None;
-                            }
-                            VoiceActivity::Silent => {
-                                if silence_start.is_none() {
-                                    silence_start = Some(std::time::Instant::now());
-                                    trace!("Wake word auto-stop: silence started (rms={:.4})", rms);
-                                }
-                                if let Some(start) = silence_start {
-                                    if start.elapsed()
-                                        >= std::time::Duration::from_millis(silence_auto_stop_ms)
-                                    {
-                                        silence_auto_stop_triggered = true;
-                                        info!(
-                                            "Wake word auto-stop: stopping after {}ms silence",
-                                            silence_auto_stop_ms
-                                        );
-                                        let app = app.clone();
-                                        std::thread::spawn(move || {
-                                            crate::shortcuts::force_stop_recording(&app);
-                                        });
-                                    }
-                                }
-                            }
-                            VoiceActivity::NotStarted => {}
-                        }
                     }
 
                     if let Some(chunker) = chunker.as_mut() {

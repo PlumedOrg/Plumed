@@ -17,7 +17,6 @@ pub enum CliCommand {
     Transcription,
     PasteLast,
     Cancel,
-    VoiceMode,
     Quit,
 }
 
@@ -42,7 +41,6 @@ pub struct MurmureExportData {
 pub struct ExportedCategories {
     pub settings: Option<SystemSettings>,
     pub shortcuts: Option<ShortcutSettings>,
-    pub voice_mode: Option<VoiceModeSettings>,
     pub formatting_rules: Option<FormattingSettings>,
     pub dictionary: Option<DictionaryExport>,
 }
@@ -121,36 +119,9 @@ impl Default for SystemSettings {
 
 #[derive(Deserialize)]
 #[serde(default)]
-pub struct VoiceModeSettings {
-    pub wake_word_enabled: bool,
-    pub wake_word_record: String,
-    pub wake_word_cancel: String,
-    pub wake_word_validate: String,
-    pub wake_word_submit: String,
-    pub auto_enter_after_wake_word: bool,
-    pub silence_timeout_ms: u64,
-}
-
-impl Default for VoiceModeSettings {
-    fn default() -> Self {
-        Self {
-            wake_word_enabled: false,
-            wake_word_record: "ok alix".to_string(),
-            wake_word_cancel: "alix cancel".to_string(),
-            wake_word_validate: "alix validate".to_string(),
-            wake_word_submit: "thank you alix".to_string(),
-            auto_enter_after_wake_word: false,
-            silence_timeout_ms: 1500,
-        }
-    }
-}
-
-#[derive(Deserialize)]
-#[serde(default)]
 pub struct ShortcutSettings {
     pub record_shortcut: String,
     pub last_transcript_shortcut: String,
-    pub voice_mode_toggle_shortcut: String,
     pub cancel_shortcut: String,
 }
 
@@ -159,7 +130,6 @@ impl Default for ShortcutSettings {
         Self {
             record_shortcut: "ctrl+space".to_string(),
             last_transcript_shortcut: "ctrl+shift+space".to_string(),
-            voice_mode_toggle_shortcut: "ctrl+shift+0".to_string(),
             cancel_shortcut: "ctrl+backspace".to_string(),
         }
     }

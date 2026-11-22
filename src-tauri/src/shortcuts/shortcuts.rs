@@ -8,7 +8,7 @@ use log::{debug, info, warn};
 use parking_lot::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Manager};
 
 const SHORTCUT_COOLDOWN: Duration = Duration::from_millis(250);
 
@@ -55,17 +55,6 @@ pub fn handle_shortcut_event(
         ShortcutAction::CancelRecording => {
             if event_type == KeyEventType::Pressed && !is_recording_idle() {
                 force_cancel_recording(app);
-            }
-        }
-        ShortcutAction::ToggleVoiceMode => {
-            if event_type == KeyEventType::Pressed {
-                let mut last_switch = recording_state().last_mode_switch.lock();
-                if last_switch.elapsed() <= Duration::from_millis(50) {
-                    return;
-                }
-                *last_switch = Instant::now();
-                drop(last_switch);
-                let _ = app.emit("voice-mode-toggle-requested", ());
             }
         }
     }
@@ -211,16 +200,6 @@ fn finish_stop(app: &AppHandle) {
         let _ = crate::audio::stop_recording(&app);
         info!("Stopped recording");
     });
-}
-
-pub fn force_stop_recording(app: &AppHandle) {
-    let shortcut_state = app.state::<ShortcutState>();
-    shortcut_state.set_toggled(false);
-    {
-        let mut recording_source = recording_state().source.lock();
-        *recording_source = RecordingSource::None;
-    }
-    let _ = crate::audio::stop_recording(app);
 }
 
 pub fn force_cancel_recording(app: &AppHandle) {

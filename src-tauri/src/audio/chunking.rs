@@ -1,3 +1,4 @@
+use crate::audio::helpers::normalize_text;
 use crate::audio::pipeline::{process_chunk, ChunkOutcome};
 use crate::audio::types::{AudioState, PreviewSnapshot};
 use crate::audio::vad::{AdaptiveVad, VoiceActivity};
@@ -5,7 +6,6 @@ use crate::formatting_rules;
 use crate::formatting_rules::highlighter::{
     apply_formatting_with_highlights_and_original, HighlightRange,
 };
-use crate::wake_word::wake_word::normalize_text;
 use log::{debug, error};
 use parking_lot::Mutex as PlMutex;
 use serde::Serialize;

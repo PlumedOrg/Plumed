@@ -1,5 +1,5 @@
 use log::warn;
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Manager};
 
 use crate::audio::record_audio;
 use crate::cli::types::CliCommand;
@@ -17,9 +17,6 @@ pub fn dispatch(app: &AppHandle, cmd: &CliCommand) {
         CliCommand::Transcription => cli_toggle_recording(app),
         CliCommand::PasteLast => spawn_paste_last_transcript(app),
         CliCommand::Cancel => cancel(app),
-        CliCommand::VoiceMode => {
-            let _ = app.emit("voice-mode-toggle-requested", ());
-        }
         CliCommand::Quit => app.exit(0),
         CliCommand::Import { .. } => {
             warn!("cli_dispatch::dispatch called with Import; handled separately");

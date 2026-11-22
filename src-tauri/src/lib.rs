@@ -18,7 +18,6 @@ mod shortcuts;
 mod stats;
 mod telemetry;
 mod utils;
-mod wake_word;
 
 #[cfg(target_os = "linux")]
 pub use utils::platform::is_wayland_session;
@@ -36,7 +35,6 @@ use std::sync::Arc;
 use tauri::{DeviceEventFilter, Manager};
 use tauri_plugin_autostart::ManagerExt;
 use tauri_plugin_log::{Target, TargetKind, TimezoneStrategy};
-use wake_word::types::WakeWordState;
 
 fn show_main_window(app: &tauri::AppHandle) {
     if let Some(main_window) = app.get_webview_window("main") {
@@ -212,7 +210,6 @@ pub fn run() {
                 Arc::new(Model::new(app.handle().clone()).expect("Failed to initialize model"));
             app.manage(model);
             app.manage(AudioState::new());
-            app.manage(WakeWordState::new());
             app.manage(crate::overlay::overlay::PendingFlashState::default());
 
             let mut s = settings::load_settings(app.handle());
@@ -355,15 +352,7 @@ pub fn run() {
 
             audio::output_volume::restore_pending(app.handle());
 
-            audio::microphone::init_mic_cache_if_needed(app.handle(), s.mic_id.clone());
-
-            if s.wake_word_enabled {
-                let app_handle = app.handle().clone();
-                std::thread::spawn(move || {
-                    std::thread::sleep(std::time::Duration::from_secs(2));
-                    wake_word::start_listener(&app_handle);
-                });
-            }
+            audio::microphone::migrate_mic_id_if_needed(app.handle(), s.mic_id.clone());
 
             if !is_transcribe {
                 crate::utils::log_watchdog::spawn(app.handle());
@@ -424,8 +413,6 @@ pub fn run() {
             get_cancel_shortcut,
             set_cancel_shortcut,
             cancel_recording,
-            get_voice_mode_toggle_shortcut,
-            set_voice_mode_toggle_shortcut,
             set_overlay_mode,
             set_overlay_position,
             set_tray_menu_labels,
@@ -502,20 +489,6 @@ pub fn run() {
             get_recordings_dir,
             open_accessibility_settings,
             check_accessibility_permission,
-            get_wake_word_enabled,
-            set_wake_word_enabled,
-            get_wake_word_record,
-            set_wake_word_record,
-            get_wake_word_cancel,
-            set_wake_word_cancel,
-            get_wake_word_validate,
-            set_wake_word_validate,
-            get_wake_word_submit,
-            set_wake_word_submit,
-            get_silence_timeout_ms,
-            set_silence_timeout_ms,
-            get_auto_enter_after_wake_word,
-            set_auto_enter_after_wake_word,
             get_streaming_preview,
             set_streaming_preview,
             set_overlay_size,

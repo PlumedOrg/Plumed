@@ -40,12 +40,6 @@ impl ShortcutRegistry {
             ActivationMode::PushToTalk,
         );
 
-        push_if_set(
-            &settings.voice_mode_toggle_shortcut,
-            ShortcutAction::ToggleVoiceMode,
-            ActivationMode::PushToTalk,
-        );
-
         // Sort bindings by key count descending so that more specific shortcuts
         // (e.g. Ctrl+A+Space) are matched before less specific ones (e.g. Ctrl+Space)
         bindings.sort_by(|a, b| b.keys.len().cmp(&a.keys.len()));

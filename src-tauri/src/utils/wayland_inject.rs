@@ -181,10 +181,6 @@ pub fn paste(shift: bool) -> Result<(), String> {
     with_device("paste", |h| press_chord(h, keys))
 }
 
-pub fn enter() -> Result<(), String> {
-    with_device("enter", |h| press_chord(h, &[Key::Enter]))
-}
-
 #[derive(Debug)]
 pub enum TypeTextError {
     DeviceUnavailable,

@@ -26,7 +26,6 @@ pub struct OnboardingState {
 pub struct AppSettings {
     pub record_shortcut: String,
     pub last_transcript_shortcut: String,
-    pub voice_mode_toggle_shortcut: String,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub dictionary: Vec<String>,
     pub record_mode: String,      // "push_to_talk" | "toggle_to_talk"
@@ -49,13 +48,6 @@ pub struct AppSettings {
     // Debug aid: keep the recorded WAV files in the system temp dir after
     // transcription instead of deleting them.
     pub keep_recordings: bool,
-    pub wake_word_enabled: bool,
-    pub wake_word_record: String,
-    pub wake_word_cancel: String,
-    pub wake_word_validate: String,
-    pub wake_word_submit: String,
-    pub auto_enter_after_wake_word: bool,
-    pub silence_timeout_ms: u64,
     pub show_in_dock: bool,
     pub streaming_preview: bool,
     pub overlay_size: String, // "small" | "medium" | "large"
@@ -104,7 +96,6 @@ impl Default for AppSettings {
         Self {
             record_shortcut: "ctrl+space".to_string(),
             last_transcript_shortcut: "ctrl+shift+space".to_string(),
-            voice_mode_toggle_shortcut: "ctrl+shift+0".to_string(),
             dictionary: Vec::new(),
             // Wayland CLI mode binds shortcuts at the OS level, so Murmure receives no key-release events. Push-to-talk is impossible.
             record_mode: {
@@ -168,13 +159,6 @@ impl Default for AppSettings {
             mic_label: None,
             log_level: "info".to_string(),
             keep_recordings: false,
-            wake_word_enabled: false,
-            wake_word_record: "ok alix".to_string(),
-            wake_word_cancel: "alix cancel".to_string(),
-            wake_word_validate: "alix validate".to_string(),
-            wake_word_submit: "thank you alix".to_string(),
-            auto_enter_after_wake_word: false,
-            silence_timeout_ms: 1500,
             show_in_dock: true,
             streaming_preview: true,
             overlay_size: "small".to_string(),

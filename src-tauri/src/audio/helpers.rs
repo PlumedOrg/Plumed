@@ -11,6 +11,7 @@ use std::fs::{File, OpenOptions};
 use std::io::BufWriter;
 use std::path::{Path, PathBuf};
 use tauri::Manager;
+use unicode_normalization::UnicodeNormalization;
 
 /// Capture buffer requested from cpal, in frames. The backend-default size
 /// can silently drop a large share of capture periods, heard as crackling,
@@ -241,6 +242,20 @@ pub fn create_wav_writer(
     WavWriter::new(writer, spec).context("Failed to create WAV writer")
 }
 
+/// Lowercase, accent-free, punctuation-free words joined by single spaces, to
+/// compare transcribed words: "  Écoute, MURMÙRE!  " -> "ecoute murmure".
+pub(crate) fn normalize_text(text: &str) -> String {
+    text.to_lowercase()
+        .nfd()
+        // NFD decomposes é into e + \u{0301}; filter out the combining marks
+        .filter(|c| !('\u{0300}'..='\u{036F}').contains(c))
+        .filter(|c| c.is_alphanumeric() || c.is_whitespace())
+        .collect::<String>()
+        .split_whitespace()
+        .collect::<Vec<&str>>()
+        .join(" ")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -341,5 +356,14 @@ mod tests {
         assert!(names
             .iter()
             .all(|n| n.starts_with("plumed-") && n.ends_with(".wav")));
+    }
+
+    #[test]
+    fn normalize_text_folds_case_accents_punctuation_and_spaces() {
+        assert_eq!(normalize_text("MURMURE"), "murmure");
+        assert_eq!(normalize_text("écoute café"), "ecoute cafe");
+        assert_eq!(normalize_text("\"murmure.\""), "murmure");
+        assert_eq!(normalize_text("  bonjour   murmure  "), "bonjour murmure");
+        assert_eq!(normalize_text("  Écoute, MURMÙRE!  "), "ecoute murmure");
     }
 }

@@ -130,23 +130,6 @@ pub fn stop_shortcut_capture(app_handle: AppHandle) {
 }
 
 // ============================================================================
-// Voice Mode Toggle Shortcut
-// ============================================================================
-
-#[command]
-pub fn get_voice_mode_toggle_shortcut(app: AppHandle) -> Result<String, String> {
-    let s = settings::load_settings(&app);
-    Ok(s.voice_mode_toggle_shortcut)
-}
-
-#[command]
-pub fn set_voice_mode_toggle_shortcut(app: AppHandle, binding: String) -> Result<String, String> {
-    apply_shortcut(&app, &binding, ShortcutAction::ToggleVoiceMode, |s| {
-        &mut s.voice_mode_toggle_shortcut
-    })
-}
-
-// ============================================================================
 // Accessibility (macOS only)
 // ============================================================================
 

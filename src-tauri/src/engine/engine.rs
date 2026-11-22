@@ -625,7 +625,7 @@ impl ParakeetModel {
             let encodings_len = encodings_len as usize;
             let mut sequence =
                 self.decode_sequence(&encodings.view(), encodings_len, beam_width)?;
-            // Final transcriptions only: the preview and the wake word are greedy.
+            // Final transcriptions only: the preview is greedy.
             if beam_width > 1 {
                 sequence = self.rescore_confusions(&encodings.view(), encodings_len, sequence)?;
             }

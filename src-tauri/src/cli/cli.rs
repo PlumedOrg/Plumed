@@ -9,7 +9,6 @@ const ACTION_FLAGS: &[(&str, CliCommand)] = &[
     ("transcription", CliCommand::Transcription),
     ("paste-last", CliCommand::PasteLast),
     ("cancel", CliCommand::Cancel),
-    ("voice-mode", CliCommand::VoiceMode),
     ("quit", CliCommand::Quit),
 ];
 
@@ -47,7 +46,6 @@ OPTIONS:
     --transcription              Toggle standard transcription on/off
     --paste-last                 Paste the last transcription
     --cancel                     Cancel the current recording
-    --voice-mode                 Toggle Voice Mode on/off
     --quit                       Quit the running instance of Murmure
     --hidden                     Start without showing the main window
     -h, --help                   Print help information
@@ -380,7 +378,6 @@ mod tests {
             ("--transcription", CliCommand::Transcription),
             ("--paste-last", CliCommand::PasteLast),
             ("--cancel", CliCommand::Cancel),
-            ("--voice-mode", CliCommand::VoiceMode),
             ("--quit", CliCommand::Quit),
         ];
 

@@ -1,7 +1,6 @@
 //! MAES beam search for the TDT decoder, ported from ParakeetWeb's
 //! `_decodeBeam` (written with Claude Code). Only final transcriptions use it:
-//! the streaming preview and the wake word stay greedy, which is several times
-//! cheaper.
+//! the streaming preview stays greedy, which is several times cheaper.
 //!
 //! Every hypothesis carries its own decoder state, last token, dictionary
 //! boost state and phrase trie active set, so a phrase engaged on one

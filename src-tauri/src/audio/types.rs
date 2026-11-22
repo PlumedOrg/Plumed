@@ -2,10 +2,9 @@ use crate::audio::chunking::ChunkPipeline;
 use crate::audio::recorder::AudioRecorder;
 use crate::audio::short_context::ContextAudio;
 use crate::engine::ParakeetEngine;
-use cpal::Device;
 use parking_lot::Mutex;
 use serde::Serialize;
-use std::sync::atomic::{AtomicBool, AtomicU64, AtomicU8, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 
 #[derive(Debug, Clone, Serialize)]
@@ -25,11 +24,6 @@ pub struct AudioState {
     pub recorder: Mutex<Option<AudioRecorder>>,
     pub engine: Mutex<Option<ParakeetEngine>>,
     pub current_file_name: Mutex<Option<String>>,
-    recording_trigger: AtomicU8,
-    /// Cached audio input device to avoid re-enumerating devices on each recording
-    pub cached_device: Mutex<Option<Device>>,
-    /// Wake word to strip from the end of the transcription (set by validate trigger)
-    pub strip_word: Mutex<Option<String>>,
     pub streaming_handle: Mutex<Option<std::thread::JoinHandle<()>>>,
     pub streaming_stop: Arc<AtomicBool>,
     pub preview_snapshot: Arc<Mutex<PreviewSnapshot>>,
@@ -45,31 +39,12 @@ pub struct AudioState {
     pub short_context: Arc<Mutex<ContextAudio>>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(u8)]
-pub enum RecordingTrigger {
-    Keyboard = 0,
-    WakeWord = 1,
-}
-
-impl From<u8> for RecordingTrigger {
-    fn from(val: u8) -> Self {
-        match val {
-            1 => RecordingTrigger::WakeWord,
-            _ => RecordingTrigger::Keyboard,
-        }
-    }
-}
-
 impl AudioState {
     pub fn new() -> Self {
         Self {
             recorder: Mutex::new(None),
             engine: Mutex::new(None),
             current_file_name: Mutex::new(None),
-            recording_trigger: AtomicU8::new(RecordingTrigger::Keyboard as u8),
-            cached_device: Mutex::new(None),
-            strip_word: Mutex::new(None),
             streaming_handle: Mutex::new(None),
             streaming_stop: Arc::new(AtomicBool::new(false)),
             preview_snapshot: Arc::new(Mutex::new(PreviewSnapshot::default())),
@@ -99,25 +74,6 @@ impl AudioState {
 
     pub fn is_session_active(&self) -> bool {
         self.session_active.load(Ordering::SeqCst)
-    }
-
-    pub fn set_recording_trigger(&self, trigger: RecordingTrigger) {
-        self.recording_trigger
-            .store(trigger as u8, Ordering::SeqCst);
-    }
-
-    pub fn get_recording_trigger(&self) -> RecordingTrigger {
-        self.recording_trigger.load(Ordering::SeqCst).into()
-    }
-
-    /// Sets the cached audio device
-    pub fn set_cached_device(&self, device: Option<Device>) {
-        *self.cached_device.lock() = device;
-    }
-
-    /// Gets a clone of the cached audio device
-    pub fn get_cached_device(&self) -> Option<Device> {
-        self.cached_device.lock().clone()
     }
 }
 

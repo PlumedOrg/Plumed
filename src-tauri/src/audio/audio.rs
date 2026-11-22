@@ -1,7 +1,6 @@
-use crate::audio::clean_recording::strip_and_record;
 use crate::audio::helpers::{cleanup_recordings, ensure_recordings_dir, generate_unique_wav_name};
 use crate::audio::recorder::AudioRecorder;
-use crate::audio::types::{AudioState, RecorderStartError, RecordingTrigger};
+use crate::audio::types::{AudioState, RecorderStartError};
 use crate::audio::ChunkPipeline;
 use crate::clipboard;
 use crate::engine::ParakeetEngine;
@@ -16,9 +15,6 @@ pub fn record_audio(app: &AppHandle) {
     let state = app.state::<AudioState>();
     let my_gen = state.begin_session();
     state.set_session_active(true);
-    if state.get_recording_trigger() != RecordingTrigger::WakeWord {
-        state.set_recording_trigger(RecordingTrigger::Keyboard);
-    }
 
     let settings = crate::settings::load_settings(app);
     let preview =
@@ -205,7 +201,6 @@ fn finalize_chunked_session(
     match crate::audio::pipeline::merge_all_chunks(app, accumulated, path) {
         Ok(text) => {
             crate::telemetry::record_transcription(app, path, &text, processing_started.elapsed());
-            let text = strip_and_record(app, state, text);
             if let Err(e) = write_transcription(app, &text) {
                 error!("Failed to use clipboard: {}", e);
             }
@@ -268,15 +263,8 @@ pub fn cancel_recording(app: &AppHandle) {
     info!("Recording cancelled by user");
 }
 
-fn reset_recording_state(app: &AppHandle) {
-    let state = app.state::<AudioState>();
-    let _ = app.emit("mic-level", 0.0f32);
-    state.set_recording_trigger(RecordingTrigger::Keyboard);
-    crate::wake_word::resume_listener(app);
-}
-
 fn reset_recording_ui(app: &AppHandle) {
-    reset_recording_state(app);
+    let _ = app.emit("mic-level", 0.0f32);
     crate::overlay::tray::set_tray_idle(app);
     crate::audio::streaming::reset_overlay_preview(app);
     let s = crate::settings::load_settings(app);
@@ -317,26 +305,6 @@ pub fn write_transcription(app: &AppHandle, transcription: &str) -> Result<()> {
 
     debug!("Transcription written to clipboard {}", transcription);
     Ok(())
-}
-
-pub fn simulate_enter_key(app: &AppHandle) -> Result<(), String> {
-    std::thread::sleep(std::time::Duration::from_millis(200));
-
-    #[cfg(target_os = "linux")]
-    {
-        if crate::utils::platform::is_wayland_session() {
-            log::info!("simulate_enter_key: Wayland path (uinput Enter)");
-            return crate::utils::wayland_inject::enter();
-        }
-    }
-
-    log::info!("simulate_enter_key: enigo path");
-    use enigo::{Key, Keyboard};
-    crate::utils::enigo_session::with_enigo(app, |enigo| {
-        enigo
-            .key(Key::Return, enigo::Direction::Click)
-            .map_err(|e| format!("Failed to press Enter: {}", e))
-    })
 }
 
 pub fn write_last_transcription(app: &AppHandle, transcription: &str) -> Result<()> {

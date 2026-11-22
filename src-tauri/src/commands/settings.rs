@@ -40,10 +40,10 @@ pub fn set_current_mic_id(
     mic_label: Option<String>,
 ) -> Result<(), String> {
     let mut s = crate::settings::load_settings(&app);
-    s.mic_id = mic_id.clone();
+    log::info!("Microphone selection updated: {:?}", mic_id);
+    s.mic_id = mic_id;
     s.mic_label = mic_label;
     crate::settings::save_settings(&app, &s)?;
-    crate::audio::microphone::update_mic_cache(&app, mic_id);
     Ok(())
 }
 

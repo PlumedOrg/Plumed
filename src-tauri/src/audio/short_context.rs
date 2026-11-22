@@ -186,7 +186,7 @@ mod tests {
 
     /// Word errors between two texts, after case/accent/punctuation normalization.
     fn word_errors(reference: &str, hypothesis: &str) -> usize {
-        let norm = crate::wake_word::wake_word::normalize_text;
+        let norm = crate::audio::helpers::normalize_text;
         let (r, h) = (norm(reference), norm(hypothesis));
         let (r, h): (Vec<&str>, Vec<&str>) = (
             r.split_whitespace().collect(),

@@ -1,7 +1,6 @@
 use cpal::traits::{DeviceTrait, HostTrait};
 use log::{debug, info, warn};
 use std::collections::{HashMap, HashSet};
-use tauri::Manager;
 
 use super::types::MicInfo;
 
@@ -487,29 +486,8 @@ fn find_device_by_identifier(identifier: &str) -> Option<cpal::Device> {
     })
 }
 
-pub fn update_mic_cache(app: &tauri::AppHandle, mic_id: Option<String>) {
-    let audio_state = app.state::<crate::audio::types::AudioState>();
-    match mic_id {
-        Some(ref id) => {
-            #[cfg(not(target_os = "linux"))]
-            {
-                audio_state.set_cached_device(find_device_by_identifier(id));
-            }
-
-            #[cfg(target_os = "linux")]
-            {
-                audio_state.set_cached_device(None);
-            }
-
-            info!("Microphone selection updated: {}", id);
-        }
-        None => {
-            audio_state.set_cached_device(None);
-        }
-    }
-}
-
-pub fn init_mic_cache_if_needed(app: &tauri::AppHandle, mic_id: Option<String>) {
+/// Older settings stored the microphone display name: replace it with the device ID.
+pub fn migrate_mic_id_if_needed(app: &tauri::AppHandle, mic_id: Option<String>) {
     if let Some(id) = mic_id {
         #[cfg(not(target_os = "linux"))]
         {
@@ -530,10 +508,6 @@ pub fn init_mic_cache_if_needed(app: &tauri::AppHandle, mic_id: Option<String>) 
                             }
                         }
                     }
-
-                    let audio_state = app_handle.state::<crate::audio::types::AudioState>();
-                    audio_state.set_cached_device(Some(device));
-                    info!("Microphone cache initialized: {}", id);
                 }
             });
         }

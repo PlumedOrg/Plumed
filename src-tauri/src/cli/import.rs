@@ -31,7 +31,6 @@ fn category_display_name(key: &str) -> &str {
     match key {
         "settings" => "System Settings",
         "shortcuts" => "Shortcuts",
-        "voice_mode" => "Voice Mode",
         "formatting_rules" => "Formatting Rules",
         "dictionary" => "Dictionary",
         _ => key,
@@ -67,9 +66,8 @@ pub fn execute_import(
 
     let has_settings = data.categories.settings.is_some();
     let has_shortcuts = data.categories.shortcuts.is_some();
-    let has_voice_mode = data.categories.voice_mode.is_some();
 
-    if has_settings || has_shortcuts || has_voice_mode {
+    if has_settings || has_shortcuts {
         let mut current = crate::settings::load_settings(app);
 
         if let Some(ref s) = data.categories.settings {
@@ -101,20 +99,8 @@ pub fn execute_import(
         if let Some(ref sc) = data.categories.shortcuts {
             current.record_shortcut = sc.record_shortcut.clone();
             current.last_transcript_shortcut = sc.last_transcript_shortcut.clone();
-            current.voice_mode_toggle_shortcut = sc.voice_mode_toggle_shortcut.clone();
             current.cancel_shortcut = sc.cancel_shortcut.clone();
             imported_categories.push("shortcuts");
-        }
-
-        if let Some(ref vm) = data.categories.voice_mode {
-            current.wake_word_enabled = vm.wake_word_enabled;
-            current.wake_word_record = vm.wake_word_record.clone();
-            current.wake_word_cancel = vm.wake_word_cancel.clone();
-            current.wake_word_validate = vm.wake_word_validate.clone();
-            current.wake_word_submit = vm.wake_word_submit.clone();
-            current.auto_enter_after_wake_word = vm.auto_enter_after_wake_word;
-            current.silence_timeout_ms = vm.silence_timeout_ms;
-            imported_categories.push("voice_mode");
         }
 
         crate::settings::save_settings(app, &current)?;
@@ -260,8 +246,6 @@ pub fn apply_hot_reload_side_effects(app: &AppHandle) {
         log::set_max_level(level);
     }
 
-    crate::commands::wake_word::restart_listener_if_active(app, &settings);
-
     match crate::dictionary::store::load(app) {
         Ok(dict) => {
             let dictionary_state = app.state::<Dictionary>();
@@ -370,16 +354,17 @@ mod tests {
 
     #[test]
     fn test_parse_export_ignores_removed_feature_keys() {
-        // Exports made before the local API, command mode, prompt mode and
-        // SmartMic were removed must still import their remaining settings.
+        // Exports made before the local API, command mode, prompt mode,
+        // SmartMic and voice mode were removed must still import their
+        // remaining settings.
         let content = r#"{
             "version": 1,
             "app_version": "1.0.0",
             "exported_at": "2026-01-01T00:00:00Z",
             "categories": {
                 "settings": { "api_enabled": true, "api_port": 4900, "sound_volume": 42 },
-                "shortcuts": { "command_shortcut": "ctrl+shift+x", "llm_mode_1_shortcut": "ctrl+shift+1" },
-                "voice_mode": { "wake_word_command": "alix command", "wake_word_record": "ok alix" },
+                "shortcuts": { "command_shortcut": "ctrl+shift+x", "llm_mode_1_shortcut": "ctrl+shift+1", "voice_mode_toggle_shortcut": "ctrl+shift+0", "cancel_shortcut": "ctrl+alt+c" },
+                "voice_mode": { "wake_word_enabled": true, "wake_word_command": "alix command", "wake_word_record": "ok alix", "silence_timeout_ms": 1500 },
                 "llm_connect": { "url": "http://localhost:11434/api", "modes": [] },
                 "smartmic": { "smartmic_enabled": true, "smartmic_port": 4801 }
             }
@@ -388,10 +373,9 @@ mod tests {
         let data = parse_export(content).unwrap();
 
         assert_eq!(data.categories.settings.unwrap().sound_volume, 42);
-        assert!(data.categories.shortcuts.is_some());
         assert_eq!(
-            data.categories.voice_mode.unwrap().wake_word_record,
-            "ok alix"
+            data.categories.shortcuts.unwrap().cancel_shortcut,
+            "ctrl+alt+c"
         );
     }
 
