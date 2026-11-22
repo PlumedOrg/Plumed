@@ -66,9 +66,8 @@ pub(super) const BUNDLED_PHRASE_LIST: &str =
     include_str!("../../../medical-data/phrase-boosting/french_medical.txt");
 
 /// Minisign public key of the `medical-data` release, set at build time
-/// (base64 key line of `plumed-rules.pub`). TODO: generate the key pair and
-/// set the `PLUMED_RULES_PUBKEY` repository secret on GitHub, release
-/// builds never look for medical data updates until then.
+/// (base64 key line of `plumed-rules.pub`, the `PLUMED_RULES_PUBKEY`
+/// repository secret, set on 2026-11-21). Unset means the feature is inert.
 const PUBLIC_KEY: Option<&str> = option_env!("PLUMED_RULES_PUBKEY");
 
 /// Highest share of unusable lines a downloaded rule set may have.
