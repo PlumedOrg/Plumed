@@ -55,7 +55,6 @@ body:
           options:
               - Transcription
               - Push-to-talk
-              - Wake word
               - Overlay
               - LLM Connect
               - Shortcuts

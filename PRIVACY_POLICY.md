@@ -36,13 +36,9 @@ By default, **no transcription is persisted to disk**. Transcription history is 
 
 This local data is not transmitted by default.
 
-## Voice mode
+## Microphone
 
-Voice mode allows Plumed to listen for a wake word to start recording hands-free. This feature is **disabled by default** and must be explicitly enabled by the user.
-
-When enabled, voice mode maintains a continuous audio stream from your microphone to detect speech. Only detected speech segments are transcribed locally to check for wake word matches. The raw audio is **immediately discarded** after processing. All processing happens on-device: no audio or transcription data leaves your computer.
-
-When disabled (default), Plumed does not listen to your microphone outside of an active recording session.
+Plumed does not listen to your microphone outside of an active recording session.
 
 ## Context for short dictations
 
