@@ -232,8 +232,19 @@ pub(crate) fn wl_paste_bytes(mime: &str) -> Result<Vec<u8>, String> {
     }
 }
 
+// Typing a control character presses a key: enigo sends U+0008 as a
+// Backspace, U+001B as Escape, U+0016 as the Ctrl+V a Windows edit control
+// pastes on, U+000D as Enter. A text rule or an imported list could carry
+// one, so only newlines and tabs, typed as line breaks and indents, remain.
+fn typable_text(text: &str) -> String {
+    text.chars()
+        .filter(|&c| matches!(c, '\n' | '\t') || !c.is_control())
+        .collect()
+}
+
 #[allow(unused_variables)]
 fn paste_direct(text: &str, app_handle: &tauri::AppHandle) -> Result<(), String> {
+    let text = &typable_text(text);
     #[cfg(target_os = "linux")]
     {
         if crate::utils::platform::is_wayland_session() {
@@ -334,4 +345,17 @@ fn send_paste(paste_method: &PasteMethod, app_handle: &tauri::AppHandle) -> Resu
 
         Ok(())
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::typable_text;
+
+    #[test]
+    fn typed_text_keeps_no_control_key_but_newlines_and_tabs() {
+        assert_eq!(
+            typable_text("a\u{8}\u{8}b\u{1b}\u{16}\r\nc\td\u{7f}\u{85}é"),
+            "ab\nc\tdé"
+        );
+    }
 }
