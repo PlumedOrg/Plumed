@@ -38,22 +38,40 @@ pub fn build_input_with_buffer_fallback<S>(
 }
 
 pub fn ensure_recordings_dir(app: &tauri::AppHandle) -> Result<PathBuf> {
-    let recordings = app
-        .path()
-        .temp_dir()
-        .context("Failed to resolve temp dir")?
-        // Plumed fork: own folder, never shared with an installed Murmure.
-        .join("plumed_recordings");
+    let parent = recordings_parent(app.path().runtime_dir().ok(), || {
+        app.path()
+            .app_cache_dir()
+            .context("Failed to resolve app cache dir")
+    })?;
+    std::fs::create_dir_all(&parent)
+        .with_context(|| format!("Failed to create {}", parent.display()))?;
+    // Plumed fork: own folder, never shared with an installed Murmure.
+    let recordings = parent.join("plumed_recordings");
 
     ensure_private_dir(&recordings)?;
     Ok(recordings)
 }
 
-/// Creates `dir` readable by this user only. The temp dir is shared on Linux
-/// (`/tmp`): another user may have created `dir` first, as a symlink to one of
-/// our folders (whose files `cleanup_recordings` would then delete, and where
-/// the dictation audio would land) or as a folder of their own. Both are
-/// refused rather than used.
+/// Folder holding `plumed_recordings`, private to this user so that no other
+/// account can create it first (as it could in the shared `/tmp`). On Linux
+/// the session runtime dir (`$XDG_RUNTIME_DIR`: RAM, 0700, emptied at logout)
+/// when the session has one, otherwise (and on Windows and macOS, where Tauri
+/// has no runtime dir) the app cache dir.
+fn recordings_parent(
+    runtime_dir: Option<PathBuf>,
+    cache_dir: impl FnOnce() -> Result<PathBuf>,
+) -> Result<PathBuf> {
+    match runtime_dir {
+        Some(dir) => Ok(dir),
+        None => cache_dir(),
+    }
+}
+
+/// Creates `dir` readable by this user only. Its parent is per user, but the
+/// checks stay as defense in depth: a symlink planted to one of our folders
+/// (whose files `cleanup_recordings` would then delete, and where the
+/// dictation audio would land) or a folder owned by someone else is refused
+/// rather than used.
 #[cfg(unix)]
 fn ensure_private_dir(dir: &Path) -> Result<()> {
     use std::os::unix::fs::{DirBuilderExt, MetadataExt, PermissionsExt};
@@ -109,7 +127,7 @@ pub fn generate_unique_wav_name() -> String {
 
 /// Recordings kept on disk when `keep_recordings` is enabled, rolling like
 /// the transcription history (`MAX_HISTORY_ENTRIES`) so the audio matching a
-/// history entry is still available without growing the temp dir forever.
+/// history entry is still available without growing the folder forever.
 const KEPT_RECORDINGS: usize = 5;
 
 pub fn cleanup_recordings(app: &tauri::AppHandle) -> Result<()> {
@@ -339,6 +357,22 @@ mod tests {
         let mode = std::fs::metadata(&victim).unwrap().permissions().mode();
         assert_eq!(mode & 0o777, 0o755);
         std::fs::remove_dir_all(scratch).unwrap();
+    }
+
+    #[test]
+    fn recordings_parent_prefers_the_runtime_dir() {
+        let runtime = PathBuf::from("/run/user/1000");
+        let parent = recordings_parent(Some(runtime.clone()), || {
+            anyhow::bail!("the cache dir must not be resolved")
+        });
+        assert_eq!(parent.unwrap(), runtime);
+    }
+
+    #[test]
+    fn recordings_parent_falls_back_to_the_cache_dir() {
+        let cache = PathBuf::from("/home/u/.cache/org.olicorne.plumed");
+        let parent = recordings_parent(None, || Ok(cache.clone()));
+        assert_eq!(parent.unwrap(), cache);
     }
 
     #[test]

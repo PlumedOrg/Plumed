@@ -195,7 +195,7 @@
     "Block command-line import": "Bloquer l'import en ligne de commande",
     "Refuse \"plumed import\" from the command line, so another program cannot silently replace your settings. Importing from this window still works.": "Refuser « plumed import » en ligne de commande, pour qu'aucun autre programme ne puisse remplacer vos réglages à votre insu. L'import depuis cette fenêtre reste possible.",
     "Failed to save the command-line import setting": "Échec de la sauvegarde du réglage d'import en ligne de commande",
-    "Keep the last five recordings in the system temporary folder instead of deleting them after transcription.": "Conserve les cinq derniers enregistrements dans le dossier temporaire du système au lieu de les supprimer après la transcription.",
+    "Keep the last five recordings instead of deleting them after transcription, in a folder only your account can read (on Linux usually in memory, erased at logout). The folder button opens it.": "Conserve les cinq derniers enregistrements au lieu de les supprimer après la transcription, dans un dossier lisible seulement par votre compte (sous Linux généralement en mémoire, effacé à la déconnexion). Le bouton dossier l'ouvre.",
     "Keep transcription in clipboard after recording finishes": "Conserver la transcription dans le presse-papiers après la fin de l'enregistrement",
     "Keyboard layout could not be detected. To avoid mistyped characters, switch back to Ctrl+V.": "Le layout clavier n'a pas pu être détecté. Pour éviter les caractères mal tapés, repasse en Ctrl+V.",
     "Language": "Langue",

@@ -32,7 +32,7 @@ export const KeepRecordingsSettings = () => {
                 </Typography.Title>
                 <Typography.Paragraph>
                     {t(
-                        'Keep the last five recordings in the system temporary folder instead of deleting them after transcription.'
+                        'Keep the last five recordings instead of deleting them after transcription, in a folder only your account can read (on Linux usually in memory, erased at logout). The folder button opens it.'
                     )}
                 </Typography.Paragraph>
             </SettingsUI.Description>
