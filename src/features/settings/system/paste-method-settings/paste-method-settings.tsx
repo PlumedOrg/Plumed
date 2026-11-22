@@ -33,7 +33,7 @@ export const PasteMethodSettings = () => {
                     <ul className="list-disc pl-6 text-xs">
                         <li>
                             <span className="font-bold text-sky-400">{t('Standard: ')}</span>
-                            {t('Fast and default option. Works in most applications, but not in terminals.')}
+                            {t('Fast. Works in most applications, but not in terminals. Default option on Wayland.')}
                         </li>
                         <li>
                             <span className="font-bold text-sky-400">{t('Terminal: ')}</span>
@@ -43,7 +43,8 @@ export const PasteMethodSettings = () => {
                         </li>
                         <li>
                             <span className="font-bold text-sky-400">{t('Direct: ')}</span>
-                            {t('Types text character by character. Works everywhere, but is the slowest option.')}
+                            {t('Types text character by character. Works everywhere, but is the slowest option.')}{' '}
+                            {t('Default option, except on Wayland.')}
                         </li>
                     </ul>
                 </Typography.Paragraph>
@@ -68,9 +69,7 @@ export const PasteMethodSettings = () => {
                             <SelectItem key={method.key} value={method.key}>
                                 {t(method.label)}
                                 {isExperimental ? (
-                                    <span className="ml-2 text-xs text-yellow-400">
-                                        ({t('Experimental')})
-                                    </span>
+                                    <span className="ml-2 text-xs text-yellow-400">({t('Experimental')})</span>
                                 ) : null}
                             </SelectItem>
                         );

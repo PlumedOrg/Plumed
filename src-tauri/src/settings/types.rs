@@ -91,6 +91,17 @@ pub struct AppSettings {
     pub medical_data_update_asked: bool,
 }
 
+/// Plumed: new installs type the text (Direct), which needs no clipboard and
+/// works in every application. Wayland keeps Ctrl+V: Direct is experimental
+/// there (keyboard layout detection can fail). Existing settings files keep
+/// their value, `paste_method` is always saved.
+fn default_paste_method(is_wayland: bool) -> PasteMethod {
+    match is_wayland {
+        true => PasteMethod::CtrlV,
+        false => PasteMethod::Direct,
+    }
+}
+
 impl Default for AppSettings {
     fn default() -> Self {
         Self {
@@ -145,7 +156,7 @@ impl Default for AppSettings {
                     false
                 }
             },
-            paste_method: PasteMethod::default(),
+            paste_method: default_paste_method(crate::utils::platform::is_wayland_session()),
             auto_insert: true,
             persist_history: false,
             language: "default".to_string(),
@@ -197,5 +208,17 @@ mod tests {
         let parsed: AppSettings = serde_json::from_str(&json).unwrap();
 
         assert_eq!(parsed.record_shortcut, "");
+    }
+
+    #[test]
+    fn new_installs_type_the_text_except_on_wayland() {
+        assert_eq!(default_paste_method(false), PasteMethod::Direct);
+        assert_eq!(default_paste_method(true), PasteMethod::CtrlV);
+    }
+
+    #[test]
+    fn saved_paste_method_is_kept() {
+        let parsed: AppSettings = serde_json::from_str(r#"{"paste_method":"ctrl_v"}"#).unwrap();
+        assert_eq!(parsed.paste_method, PasteMethod::CtrlV);
     }
 }
