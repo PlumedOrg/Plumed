@@ -13,6 +13,7 @@ import { RemoteMicPrompt } from '../onboarding/remote-mic-prompt/remote-mic-prom
 import { TelemetryPrompt } from '../onboarding/telemetry-prompt/telemetry-prompt';
 import { MedicalDataPrompt } from '../onboarding/medical-data-prompt/medical-data-prompt';
 import { MedicalDataQuestion } from '../onboarding/medical-data-question/medical-data-question';
+import { MedicalDataCheckFailureNotice } from '../medical-data/medical-data-check-failure-notice/medical-data-check-failure-notice';
 
 export const Home = () => {
     const isWayland = useIsWayland();
@@ -28,6 +29,7 @@ export const Home = () => {
             <TelemetryPrompt />
             <MedicalDataQuestion />
             <MedicalDataPrompt />
+            <MedicalDataCheckFailureNotice />
 
             <div className="space-y-4">
                 <div className="space-y-2 flex flex-col items-center">
