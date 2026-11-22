@@ -145,6 +145,8 @@ pub enum Origin {
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct EntryView<T> {
+    /// What disables it (see [`OverlayEntry::key`]).
+    pub key: String,
     pub entry: T,
     pub origin: Origin,
     pub enabled: bool,
@@ -202,6 +204,7 @@ impl<T: OverlayEntry> ListOverlay<T> {
         let bundled: Vec<T> = bundled_entries(bundled).collect();
         let bundled_keys: HashSet<String> = bundled.iter().map(T::key).collect();
         let added = self.added.iter().map(|entry| EntryView {
+            key: entry.key(),
             entry: entry.clone(),
             origin: Origin::Added,
             enabled: true,
@@ -211,14 +214,19 @@ impl<T: OverlayEntry> ListOverlay<T> {
             .iter()
             .filter(|key| !bundled_keys.contains(key.as_str()))
             .map(|key| EntryView {
+                key: key.clone(),
                 entry: T::from_key(key),
                 origin: Origin::Orphaned,
                 enabled: false,
             });
-        let bundled = bundled.into_iter().map(|entry| EntryView {
-            enabled: !disabled.contains(entry.key().as_str()),
-            entry,
-            origin: Origin::Bundled,
+        let bundled = bundled.into_iter().map(|entry| {
+            let key = entry.key();
+            EntryView {
+                enabled: !disabled.contains(key.as_str()),
+                key,
+                entry,
+                origin: Origin::Bundled,
+            }
         });
         added.chain(orphaned).chain(bundled).collect()
     }
@@ -359,6 +367,7 @@ mod tests {
         assert_eq!(
             views[1],
             EntryView {
+                key: "ancienne expression".to_string(),
                 entry: Phrase("ancienne expression".to_string()),
                 origin: Origin::Orphaned,
                 enabled: false
