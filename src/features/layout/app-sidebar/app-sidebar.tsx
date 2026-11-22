@@ -3,7 +3,6 @@ import {
     Settings,
     Info,
     ChevronRight,
-    Keyboard,
     Power,
     Bug,
     Newspaper,
@@ -53,12 +52,6 @@ const getSettingsSubItems = (t: (key: string) => string) => [
         url: '/corrections',
         icon: SpellCheck,
         dataTestId: 'corrections-tab',
-    },
-    {
-        name: t('Shortcuts'),
-        url: '/settings/shortcuts',
-        icon: Keyboard,
-        dataTestId: 'shortcuts-tab',
     },
     {
         name: t('System'),

@@ -21,11 +21,24 @@ import { ShortDictationContextSettings } from './short-dictation-context-setting
 import { BlockCliImportSettings } from './block-cli-import-settings/block-cli-import-settings';
 import { TelemetrySettings } from './telemetry-settings/telemetry-settings';
 import { useTelemetryAvailable } from '@/features/telemetry/hooks/use-telemetry-available';
-import { Settings, Wrench, Monitor } from 'lucide-react';
+import { Keyboard, Monitor, Settings, Wrench } from 'lucide-react';
+import { useLocation, useNavigate } from '@tanstack/react-router';
+import { Tabs } from '@/components/tabs';
+import { pickTabFromHash } from '@/components/tabs.helpers';
+import { Shortcuts } from '@/features/settings/shortcuts/shortcuts';
+
+// Plumed fork (written with Claude Code): the sections are tabs, and the
+// keyboard shortcuts are the last one. The URL hash selects the tab.
+const SYSTEM_TABS = ['general', 'overlay', 'advanced', 'shortcuts'] as const;
+type SystemTab = (typeof SYSTEM_TABS)[number];
 
 export const System = () => {
     const { t } = useTranslation();
     const telemetryAvailable = useTelemetryAvailable();
+    const { hash } = useLocation();
+    const navigate = useNavigate();
+    const activeTab = pickTabFromHash(hash, SYSTEM_TABS, 'general');
+    const selectTab = (tab: SystemTab) => void navigate({ to: '/settings/system', hash: tab, replace: true });
     return (
         <main>
             <div className="space-y-8">
@@ -36,9 +49,18 @@ export const System = () => {
                     </Typography.Paragraph>
                 </Page.Header>
 
-                <div className="flex justify-center">
-                    <div className="w-full space-y-6">
-                        <SettingsUI.Section title={t('General')} icon={Settings}>
+                <Tabs
+                    value={activeTab}
+                    onValueChange={selectTab}
+                    tabs={[
+                        { value: 'general', label: t('General'), icon: Settings },
+                        { value: 'overlay', label: t('Overlay'), icon: Monitor },
+                        { value: 'advanced', label: t('Advanced'), icon: Wrench },
+                        { value: 'shortcuts', label: t('Shortcuts'), icon: Keyboard },
+                    ]}
+                >
+                    {activeTab === 'general' && (
+                        <SettingsUI.Container>
                             <LanguageSettings />
                             <SettingsUI.Separator />
                             <MicSettings />
@@ -62,13 +84,15 @@ export const System = () => {
                             <HistorySettings />
                             <SettingsUI.Separator />
                             <SoundSettings />
-                        </SettingsUI.Section>
-
-                        <SettingsUI.Section title={t('Overlay')} icon={Monitor}>
+                        </SettingsUI.Container>
+                    )}
+                    {activeTab === 'overlay' && (
+                        <SettingsUI.Container>
                             <OverlaySettings />
-                        </SettingsUI.Section>
-
-                        <SettingsUI.Section title={t('Advanced')} icon={Wrench}>
+                        </SettingsUI.Container>
+                    )}
+                    {activeTab === 'advanced' && (
+                        <SettingsUI.Container>
                             <LogLevelSettings />
                             <SettingsUI.Separator />
                             <KeepRecordingsSettings />
@@ -84,9 +108,10 @@ export const System = () => {
                                     <TelemetrySettings />
                                 </>
                             )}
-                        </SettingsUI.Section>
-                    </div>
-                </div>
+                        </SettingsUI.Container>
+                    )}
+                    {activeTab === 'shortcuts' && <Shortcuts />}
+                </Tabs>
             </div>
         </main>
     );

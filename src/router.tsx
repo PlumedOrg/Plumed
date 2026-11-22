@@ -2,7 +2,6 @@ import { createRouter, createRoute, createRootRoute, Navigate } from '@tanstack/
 import { Home } from './features/home/home';
 import { Layout } from './features/layout/layout';
 import { About } from './features/about/about';
-import { Shortcuts } from './features/settings/shortcuts/shortcuts';
 import { Corrections } from './features/corrections/corrections';
 import { System } from './features/settings/system/system';
 import { ImportExport } from './features/settings/import-export/import-export';
@@ -18,10 +17,11 @@ const indexRoute = createRoute({
     component: Home,
 });
 
+// Plumed: the shortcuts moved into a tab of the System page
 const settingsShortcutsRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/settings/shortcuts',
-    component: Shortcuts,
+    component: () => <Navigate to="/settings/system" hash="shortcuts" />,
 });
 
 const correctionsRoute = createRoute({
@@ -52,7 +52,7 @@ const settingsSystemRoute = createRoute({
 const settingsIndexRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/settings',
-    component: () => <Navigate to="/settings/shortcuts" />,
+    component: () => <Navigate to="/settings/system" />,
 });
 
 const personalizeIndexRoute = createRoute({

@@ -1,3 +1,5 @@
+import { pickTabFromHash } from '@/components/tabs.helpers';
+
 export const CORRECTIONS_PATH = '/corrections';
 
 /** One tab per list, in the order the pipeline uses them, after the explanation. */
@@ -104,6 +106,6 @@ export const tabFromHash = (hash: string): CorrectionsTab => {
         case 'custom-rules':
             return 'formatting';
         default:
-            return TABS.find((tab) => tab === hash) ?? 'explanation';
+            return pickTabFromHash(hash, TABS, 'explanation');
     }
 };
