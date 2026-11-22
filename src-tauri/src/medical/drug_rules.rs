@@ -130,7 +130,7 @@ fn eq_ignore_case(a: char, b: char) -> bool {
 }
 
 /// Lowercase, strip accents: "Médicament" -> "medicament".
-fn fold(text: &str) -> String {
+pub(super) fn fold(text: &str) -> String {
     text.to_lowercase()
         .nfkd()
         .filter(|c| !is_combining_mark(*c))
@@ -196,10 +196,8 @@ fn has_lookaround(core: &str) -> bool {
 /// "before vowel" rule, or `None` when it does not have the expected shape.
 fn parse_pattern(pattern: &str) -> Option<(Vec<Vec<char>>, &str, bool)> {
     let exclusion_start = format!("(?<!(?<!{WORD_CLASS}])");
-    let prefix = format!(
-        "(?<!{WORD_CLASS}-])(?:(?<!['’])|(?<=(?<!{WORD_CLASS}])[dlnjmtsc]['’])|(?<=qu['’]))"
-    );
-    let suffix = format!("(?!{WORD_CLASS}-])");
+    let prefix = pattern_prefix();
+    let suffix = pattern_suffix();
 
     let mut rest = pattern;
     let mut exclusions = Vec::new();
@@ -217,6 +215,35 @@ fn parse_pattern(pattern: &str) -> Option<(Vec<Vec<char>>, &str, bool)> {
         return None;
     }
     Some((exclusions, core, before_vowel))
+}
+
+fn pattern_prefix() -> String {
+    format!("(?<!{WORD_CLASS}-])(?:(?<!['’])|(?<=(?<!{WORD_CLASS}])[dlnjmtsc]['’])|(?<=qu['’]))")
+}
+
+fn pattern_suffix() -> String {
+    format!("(?!{WORD_CLASS}-])")
+}
+
+/// The full pattern of `core`: `original` with its core swapped, or the
+/// plain PREFIX + core + SUFFIX of a new rule.
+fn pattern_with_core(core: &str, original: Option<&str>) -> String {
+    let parsed = original.and_then(|o| parse_pattern(o).map(|(_, old_core, _)| (o, old_core)));
+    match parsed {
+        Some((original, old_core)) => {
+            // `old_core` is a slice of `original`: its offset locates it.
+            let start = old_core.as_ptr() as usize - original.as_ptr() as usize;
+            let end = start + old_core.len();
+            format!("{}{core}{}", &original[..start], &original[end..])
+        }
+        None => format!("{}{core}{}", pattern_prefix(), pattern_suffix()),
+    }
+}
+
+/// The core of a pattern from a rule file: a full pattern's core, or the
+/// whole text when it is a bare core ("veine lafaxine").
+fn core_of(pattern: &str) -> String {
+    parse_pattern(pattern).map_or_else(|| pattern.to_string(), |(_, core, _)| core.to_string())
 }
 
 /// `dr\. ` -> "dr. ". Rejects anything that is not a plain literal.
@@ -617,6 +644,135 @@ impl DrugRules {
             }
         }
         text
+    }
+}
+
+/// One line of an exported rule file: UltiMed's shape, plus the pattern of
+/// the bundled rule a rule with a changed core replaces.
+#[derive(Serialize, Deserialize)]
+struct FileRule {
+    pattern: String,
+    replacement: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    original: Option<String>,
+}
+
+impl FileRule {
+    fn line(pattern: String, replacement: &str, original: Option<&str>) -> String {
+        let rule = FileRule {
+            pattern,
+            replacement: replacement.to_string(),
+            original: original.map(str::to_string),
+        };
+        serde_json::to_string(&rule).unwrap_or_default()
+    }
+}
+
+impl Bundled {
+    /// The rules that run, as a JSONL rule file: the user's new rules first,
+    /// then the bundled ones in order, changed or left out per `edits`.
+    pub fn export_jsonl(&self, edits: &[RuleEdit]) -> String {
+        let by_original: HashMap<&str, &RuleEdit> = edits
+            .iter()
+            .filter_map(|e| e.original.as_deref().map(|o| (o, e)))
+            .collect();
+        let added = edits
+            .iter()
+            .filter(|e| e.enabled && e.original.is_none())
+            .map(|e| FileRule::line(pattern_with_core(&e.core, None), &e.replacement, None));
+        let bundled = self
+            .patterns
+            .iter()
+            .zip(&self.rules)
+            .filter_map(|(pattern, rule)| {
+                let rule = rule.as_ref()?;
+                match by_original.get(pattern.as_str()) {
+                    None => Some(FileRule::line(pattern.clone(), &rule.replacement, None)),
+                    Some(edit) if !edit.enabled => None,
+                    Some(edit) if edit.core == rule.core => {
+                        Some(FileRule::line(pattern.clone(), &edit.replacement, None))
+                    }
+                    Some(edit) => Some(FileRule::line(
+                        pattern_with_core(&edit.core, Some(pattern)),
+                        &edit.replacement,
+                        Some(pattern),
+                    )),
+                }
+            });
+        added.chain(bundled).collect::<Vec<_>>().join("\n")
+    }
+
+    /// The edits that turn these rules into the `text` rule file: bundled
+    /// rules missing from it are disabled, changed ones edited, unknown ones
+    /// added. Every unreadable line or invalid rule is reported, by line.
+    pub fn import_jsonl(&self, text: &str) -> Result<Vec<RuleEdit>, Vec<String>> {
+        let mut ids: HashMap<&str, usize> = HashMap::new();
+        for (id, pattern) in self.patterns.iter().enumerate() {
+            ids.entry(pattern.as_str()).or_insert(id);
+        }
+        let mut errors = Vec::new();
+        let mut added = Vec::new();
+        let mut changed = Vec::new();
+        let mut matched: HashSet<usize> = HashSet::new();
+        let mut rules_read = 0;
+        for (index, line) in text.lines().enumerate() {
+            if line.trim().is_empty() {
+                continue;
+            }
+            let file_rule: FileRule = match serde_json::from_str(line) {
+                Ok(rule) => rule,
+                Err(e) => {
+                    errors.push(format!("line {}: {e}", index + 1));
+                    continue;
+                }
+            };
+            rules_read += 1;
+            let target = file_rule.original.as_deref().unwrap_or(&file_rule.pattern);
+            let bundled = ids
+                .get(target)
+                .and_then(|id| self.rules[*id].as_ref().map(|rule| (*id, rule)));
+            let edit = RuleEdit {
+                original: bundled.map(|_| target.to_string()),
+                core: core_of(&file_rule.pattern),
+                replacement: file_rule.replacement,
+                enabled: true,
+            };
+            if let Err(e) = validate_edit(&edit) {
+                errors.push(format!("line {}: {e}", index + 1));
+                continue;
+            }
+            let Some((id, rule)) = bundled else {
+                added.push(edit);
+                continue;
+            };
+            let first = matched.insert(id);
+            let unchanged = rule.core == edit.core && rule.replacement == edit.replacement;
+            if first && !unchanged {
+                changed.push(edit);
+            }
+        }
+        if errors.is_empty() && rules_read == 0 {
+            errors.push("the file has no rule".to_string());
+        }
+        if !errors.is_empty() {
+            return Err(errors);
+        }
+        let disabled = self
+            .patterns
+            .iter()
+            .zip(&self.rules)
+            .enumerate()
+            .filter(|(id, _)| !matched.contains(id))
+            .filter_map(|(_, (pattern, rule))| {
+                let rule = rule.as_ref()?;
+                Some(RuleEdit {
+                    original: Some(pattern.clone()),
+                    core: rule.core.clone(),
+                    replacement: rule.replacement.clone(),
+                    enabled: false,
+                })
+            });
+        Ok(added.into_iter().chain(changed).chain(disabled).collect())
     }
 }
 

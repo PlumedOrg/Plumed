@@ -301,3 +301,71 @@ fn every_plumed_rule_compiles() {
     let bundled = Bundled::from_jsonl(&[crate::medical::data_set::PLUMED_RULES]);
     assert!(bundled.rules.iter().all(Option::is_some));
 }
+
+fn two_rules() -> Bundled {
+    let jsonl = [
+        serde_json::json!({"pattern": pattern("veine lafaxine", &[]), "replacement": "venlafaxine"}),
+        serde_json::json!({"pattern": pattern("tacadol", &["docteur "]), "replacement": "Takadol"}),
+    ]
+    .map(|line| line.to_string())
+    .join("\n");
+    Bundled::from_jsonl(&[&jsonl])
+}
+
+#[test]
+fn exporting_then_importing_the_rules_keeps_the_edits() {
+    let base = two_rules();
+    let edits = vec![
+        RuleEdit {
+            original: None,
+            core: "ituximab".to_string(),
+            replacement: "rituximab".to_string(),
+            enabled: true,
+        },
+        RuleEdit {
+            original: Some(pattern("veine lafaxine", &[])),
+            core: "veine? lafaxine".to_string(),
+            replacement: "venlafaxine".to_string(),
+            enabled: true,
+        },
+        RuleEdit {
+            original: Some(pattern("tacadol", &["docteur "])),
+            core: "tacadol".to_string(),
+            replacement: "Takadol".to_string(),
+            enabled: false,
+        },
+    ];
+    let exported = base.export_jsonl(&edits);
+    assert_eq!(exported.lines().count(), 2);
+    let imported = base.import_jsonl(&exported).unwrap();
+    assert_eq!(imported, edits);
+    // The changed rule keeps the bundled rule's boundaries.
+    let changed = DrugRules::new(Arc::new(two_rules()), &imported);
+    assert_eq!(changed.apply("sous vein lafaxine"), "sous venlafaxine");
+}
+
+#[test]
+fn importing_the_bundled_rules_changes_nothing() {
+    let base = two_rules();
+    assert_eq!(base.import_jsonl(&base.export_jsonl(&[])), Ok(Vec::new()));
+}
+
+#[test]
+fn importing_a_bare_core_adds_a_rule_and_bad_lines_are_reported() {
+    let base = two_rules();
+    let file = format!(
+        "{}\n{}\n{}",
+        serde_json::json!({"pattern": "veine lafaxine x", "replacement": "venlafaxine"}),
+        "not json",
+        serde_json::json!({"pattern": "(unclosed", "replacement": "x"}),
+    );
+    let errors = base.import_jsonl(&file).unwrap_err();
+    assert_eq!(errors.len(), 2);
+    assert!(errors[0].starts_with("line 2"));
+    assert!(errors[1].starts_with("line 3"));
+    let file = serde_json::json!({"pattern": "veine lafaxine x", "replacement": "venlafaxine"});
+    let edits = base.import_jsonl(&file.to_string()).unwrap();
+    assert_eq!(edits[0].original, None);
+    assert_eq!(edits[0].core, "veine lafaxine x");
+    assert_eq!(edits.iter().filter(|e| !e.enabled).count(), 2);
+}
