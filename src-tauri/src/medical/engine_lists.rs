@@ -117,7 +117,7 @@ mod tests {
             list.phrases.len()
         );
         let first = &list.phrases[0];
-        assert_eq!((first.weight, first.minp), (0.75, 0.01));
+        assert_eq!((first.weight, first.minp), (0.5, 0.01));
     }
 
     #[test]

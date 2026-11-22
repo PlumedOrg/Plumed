@@ -1,5 +1,5 @@
 #!commitment 0.5
-*:0.75:0.01:fhpn
+*:0.5:0.01:fhpn
 1 et 2 reggie
 1,25-dihydroxy-cholécalciférol
 1-alpha-hydroxylase
