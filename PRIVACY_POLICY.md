@@ -32,7 +32,7 @@ Plumed stores the following locally in the app's data directory:
 - **Usage statistics counters** (`telemetry.json`, only if you opted in, see below)
 - **Downloaded medical rules** (`medical-data/` folder, only if you chose to download a medical data update; no personal data)
 
-By default, **no transcription is persisted to disk**. Transcription history is kept in memory only and is cleared when the application closes. If you explicitly enable the "Persist history" option, the last 5 transcriptions will be saved on disk in the app's data directory.
+By default, **no transcription is persisted to disk**. Transcription history is kept in memory only and is cleared when the application closes. If you explicitly enable the "Persist history" option, the last 5 transcriptions will be saved on disk in the app's data directory. Each history entry also keeps the text after each processing step (to show on the home page what each correction step changed); these texts follow exactly the same rules: in memory only by default, on disk only with "Persist history", and only for those last 5 transcriptions.
 
 This local data is not transmitted by default.
 
