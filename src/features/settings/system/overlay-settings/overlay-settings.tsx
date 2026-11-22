@@ -6,6 +6,7 @@ import { ClipboardCheck, Eye, Maximize2, MoveHorizontal, Rows3, Ruler, Subtitles
 import { useOverlayState } from './hooks/use-overlay-state';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/select';
 import { useTranslation } from '@/i18n';
+import { Trans } from 'react-i18next';
 import { AudioVisualizer } from '@/features/home/audio-visualizer/audio-visualizer';
 import clsx from 'clsx';
 import { VISUALIZER_CONFIG } from '@/overlay/visualizer-config';
@@ -70,12 +71,11 @@ export const OverlaySettings = () => {
                                         overflow: 'hidden',
                                     }}
                                 >
-                                    So basically Plumed does real-time{' '}
-                                    <span className="text-cyan-400">transcription</span> as you speak, and it runs
-                                    entirely on your machine so nothing leaves your device. It handles multiple
-                                    languages, applies automatic <span className="text-cyan-400">punctuation</span> and
-                                    corrects words on the fly. Pretty useful for writing emails or crafting{' '}
-                                    <span className="text-cyan-400">prompts</span> to ChatGPT or Claude Code...
+                                    {/* Plumed fork: a translated medical sample instead of upstream's English text. */}
+                                    <Trans
+                                        i18nKey="67-year-old patient admitted for community-acquired <hl>pneumonia</hl>. Started on <hl>amoxicillin</hl> with a good clinical course, no <hl>dyspnea</hl> at discharge. Plumed transcribes as you speak, entirely on your computer, so nothing leaves it..."
+                                        components={{ hl: <span className="text-cyan-400" /> }}
+                                    />
                                 </div>
                             );
                             return overlayPosition === 'bottom' ? (
