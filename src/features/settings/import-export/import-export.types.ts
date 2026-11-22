@@ -19,6 +19,7 @@ export type ExportedSystemSettings = Omit<
     | 'telemetry_asked'
     | 'medical_data_update_check'
     | 'medical_data_skipped_version'
+    | 'medical_data_update_asked'
 >;
 
 export interface MurmureExportData {

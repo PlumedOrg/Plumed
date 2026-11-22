@@ -33,6 +33,7 @@ export interface SystemSettings {
     telemetry_asked: boolean;
     medical_data_update_check: boolean;
     medical_data_skipped_version: string;
+    medical_data_update_asked: boolean;
 }
 
 export interface ShortcutSettings {

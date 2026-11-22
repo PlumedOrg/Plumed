@@ -1,19 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import { AppSettings } from '@/features/settings/settings.types';
 import { MedicalDataUpdateDialog } from '@/features/medical-data/medical-data-update-dialog/medical-data-update-dialog';
 import { MedicalDataOffer } from '@/features/medical-data/types';
-
-/** Whether the remote microphone or the usage statistics question is asked this launch. */
-const otherPromptDue = async (): Promise<boolean> => {
-    const [settings, remoteMicDue, telemetryAvailable] = await Promise.all([
-        invoke<AppSettings>('get_all_settings'),
-        invoke<boolean>('remote_mic_prompt_due'),
-        invoke<boolean>('is_telemetry_available'),
-    ]);
-    return remoteMicDue || (telemetryAvailable && !settings.telemetry_asked);
-};
+import { isEarlierStartupPromptDue } from '../startup-prompts.helpers';
 
 // Plumed fork (written with Claude Code): when the startup check (backend,
 // after the model loaded) found a newer signed medical data set, asks
@@ -24,7 +14,7 @@ export const MedicalDataPrompt = () => {
     const blocked = useRef<Promise<boolean> | null>(null);
 
     useEffect(() => {
-        blocked.current = otherPromptDue().catch((e) => {
+        blocked.current = isEarlierStartupPromptDue().catch((e) => {
             console.error('Failed to check the other startup questions:', e);
             return true;
         });

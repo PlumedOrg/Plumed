@@ -12,6 +12,7 @@ import { PrivacyNotice } from './privacy-notice/privacy-notice';
 import { RemoteMicPrompt } from '../onboarding/remote-mic-prompt/remote-mic-prompt';
 import { TelemetryPrompt } from '../onboarding/telemetry-prompt/telemetry-prompt';
 import { MedicalDataPrompt } from '../onboarding/medical-data-prompt/medical-data-prompt';
+import { MedicalDataQuestion } from '../onboarding/medical-data-question/medical-data-question';
 
 export const Home = () => {
     const isWayland = useIsWayland();
@@ -25,6 +26,7 @@ export const Home = () => {
             <MicDisconnectedBanner />
             <RemoteMicPrompt />
             <TelemetryPrompt />
+            <MedicalDataQuestion />
             <MedicalDataPrompt />
 
             <div className="space-y-4">
