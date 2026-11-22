@@ -2,22 +2,33 @@
 
 Fonctionnalités propres au fork Plumed, absentes de Murmure.
 
-**Paramètres > Corrections** regroupe tout ce qui modifie le texte transcrit, en trois onglets : **Explication** (chaque étape de correction dans l'ordre où elle s'applique, si elle est activée, et un bouton vers son réglage), **Dictionnaire personnel** et **Règles**. L'onglet Règles n'affiche par défaut que vos propres règles ; l'interrupteur **Afficher les règles intégrées** (mémorisé) ajoute les options intégrées, les mises à jour des données médicales et la recherche dans les règles intégrées.
+**Paramètres > Corrections** regroupe tout ce qui modifie le texte transcrit, avec un onglet par liste :
+
+- **Explication** : une carte par étape de correction, dans l'ordre où le code les applique, reliées par des flèches. Chaque carte montre un exemple avant et après, si l'étape est activée, et un bouton vers sa liste ou son option.
+- **Vocabulaire médical** : les quelque 77 000 expressions vers lesquelles le modèle est orienté pendant la reconnaissance (« microangiopathie » rend « thrombotique » plus probable).
+- **Mots qui se ressemblent** : les groupes de mots que Plumed départage en réécoutant le passage (« ituximab » devient « rituximab » après « instaure », « cetuximab » après « on passe »).
+- **Dictionnaire personnel** : vos mots, favorisés pendant la reconnaissance puis écrits avec votre orthographe.
+- **Corrections du modèle** : les règles qui corrigent les erreurs fréquentes du modèle (« veine lafaxine » devient « venlafaxine »).
+- **Règles de mise en forme** : vos propres règles (au départ celles d'InterHop) ; l'interrupteur **Afficher les règles préinstallées** (mémorisé) ajoute les options de mise en forme préinstallées.
+
+Chaque liste se recherche (sans tenir compte des accents ni des majuscules), et chaque entrée préinstallée peut être désactivée ou complétée par les vôtres. Chaque onglet a aussi **Importer**, **Exporter** (dans le format de la liste : une expression par ligne pour le vocabulaire, JSONL comme les fichiers d'UltiMed pour les mots qui se ressemblent et les corrections du modèle, fichier `.murmure` pour les règles de mise en forme) et **Revenir à la liste d'origine**, qui supprime vos modifications après confirmation. Un import invalide (expression régulière incorrecte, groupe de moins de 2 candidats) est refusé en entier, avec la liste des erreurs.
+
+Vos modifications des listes médicales sont enregistrées à part, une liste par fichier (`medical_rules.json`, `medical_phrases.json`, `medical_confusion_groups.json`), jamais exportées avec les paramètres, et conservées lors d'une mise à jour des données médicales.
 
 ## Correction des noms de médicaments et des termes médicaux
 
-Activée par défaut : **Paramètres > Corrections > Règles**, avec **Afficher les règles intégrées**, option **Corriger les noms de médicaments et les termes médicaux**.
+Activée par défaut : **Paramètres > Corrections > Corrections du modèle**, interrupteur en haut de l'onglet.
 
-Environ 25 000 règles intégrées corrigent les noms de médicaments et les termes médicaux que la reconnaissance vocale entend mal, par exemple « tacadol » devient « Takadol », « polllachiurie » devient « pollakiurie » et « soucrural » devient « sous-crural ». Ce sont les mêmes règles que le mode médical de [ParakeetWeb](http://parakeetweb.olicorne.org/?mode=med), appliquées en local, avant toutes les autres règles de formatage. Provenance et licence (AGPL-3.0-or-later) : [`src-tauri/medical-data/SOURCE.md`](src-tauri/medical-data/SOURCE.md).
+Environ 25 000 règles préinstallées corrigent les noms de médicaments et les termes médicaux que la reconnaissance vocale entend mal, par exemple « tacadol » devient « Takadol », « polllachiurie » devient « pollakiurie » et « soucrural » devient « sous-crural ». Ce sont les mêmes règles que le mode médical de [ParakeetWeb](http://parakeetweb.olicorne.org/?mode=med), appliquées en local, avant toutes les autres règles de formatage. Provenance et licence (AGPL-3.0-or-later) : [`src-tauri/medical-data/SOURCE.md`](src-tauri/medical-data/SOURCE.md).
 
-Dans l'onglet **Règles**, la section **Vos modifications des règles des médicaments et termes médicaux** permet de :
+Dans l'onglet **Corrections du modèle**, la section **Règles de correction** permet de :
 
 - **Essayer les règles** : tapez une phrase pour voir ce que les règles en font.
-- **Trouver une règle intégrée** (avec **Afficher les règles intégrées**) : cherchez par le mot correct (« Takadol ») ou par ce que la transcription a écrit (« tacadol »), puis modifiez le texte reconnu ou le remplacement, ou désactivez la règle.
-- **Ajouter une règle** : un texte mal reconnu (expression régulière, sans distinction de casse, limites de mot ajoutées automatiquement) et son remplacement. Les règles ajoutées passent avant les règles intégrées.
-- La liste en tête de section montre tout ce que vous avez changé. Chaque règle peut être rétablie, et le bouton de réinitialisation revient exactement aux règles intégrées.
+- **Trouver une règle préinstallée** : cherchez par le mot correct (« Takadol ») ou par ce que la transcription a écrit (« tacadol »), puis modifiez le texte reconnu ou le remplacement, ou désactivez la règle.
+- **Ajouter une règle** : un texte mal reconnu (expression régulière, sans distinction de casse, limites de mot ajoutées automatiquement) et son remplacement. Les règles ajoutées passent avant les règles préinstallées.
+- **Vos modifications** montre tout ce que vous avez changé. Chaque règle peut être rétablie, et **Revenir à la liste d'origine** revient exactement aux règles préinstallées.
 
-Ces modifications sont enregistrées à part (`medical_rules.json`), séparément de vos règles personnalisées : importer ou réinitialiser l'un ne touche pas l'autre. Pour corriger autre chose qu'un médicament (un nom propre, par exemple), utilisez plutôt les règles personnalisées.
+Ces modifications sont enregistrées à part (`medical_rules.json`), séparément de vos règles de mise en forme : importer ou réinitialiser l'un ne touche pas l'autre. Pour corriger autre chose qu'un médicament (un nom propre, par exemple), utilisez plutôt les règles personnalisées.
 
 ## Contexte pour les dictées courtes
 
@@ -48,7 +59,7 @@ Seul le relais HTTPS est utilisé (pas de WebRTC, souvent bloqué sur les résea
 
 L'association [InterHop](https://interhop.org/) maintient des règles de dictée médicale pour Murmure (unités, constantes, ponctuation dictée, modèles d'examen déclenchés par « ajoute la commande ... ») : [framagit.org/interhop/murmure-regex](https://framagit.org/interhop/murmure-regex). Par exemple « tension 120 80 » devient « TA : 120/80 » et « 3 fois par jour » devient « 3/j ».
 
-Une nouvelle installation de Plumed les contient déjà dans **Paramètres > Corrections > Règles** (section **Vos règles de formatage**), comme règles personnalisées ordinaires : vous pouvez les modifier, les désactiver ou les supprimer, et ajouter les vôtres. Elles s'appliquent après la correction des médicaments.
+Une nouvelle installation de Plumed les contient déjà dans **Paramètres > Corrections > Règles de mise en forme**, comme règles personnalisées ordinaires : vous pouvez les modifier, les désactiver ou les supprimer, et ajouter les vôtres. Elles s'appliquent après la correction des médicaments. **Revenir à la liste d'origine** remet exactement ces règles.
 
 Sur une installation existante (ou après les avoir supprimées), vous pouvez les importer :
 
@@ -57,6 +68,6 @@ Sur une installation existante (ou après les avoir supprimées), vous pouvez le
 
 En ligne de commande : `plumed import config.murmure --strategy merge`. Sur un poste verrouillé, l'option **Paramètres > Système > Avancé > Bloquer l'import en ligne de commande** refuse cette commande.
 
-Attention : l'import, quelle que soit la stratégie, applique aussi les options intégrées d'InterHop (espace avant ? et !, conversion des nombres en chiffres en français, etc.). La correction des médicaments reste activée.
+Attention : l'import, quelle que soit la stratégie, applique aussi les options préinstallées d'InterHop (espace avant ? et !, conversion des nombres en chiffres en français, etc.). La correction des médicaments reste activée.
 
 Rédigé avec Claude Code.

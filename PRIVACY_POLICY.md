@@ -26,6 +26,8 @@ Plumed stores the following locally in the app's data directory:
 - **Custom dictionary words**
 - **Formatting rules**
 - **Medical rules** (`medical_rules.json`, your edits to the drug and medical term corrections)
+- **Medical vocabulary changes** (`medical_phrases.json`, the phrases you turned off or added to the medical phrase list)
+- **Sound-alike word changes** (`medical_confusion_groups.json`, the groups you turned off or added)
 - **Application logs** (do not contain transcriptions by default)
 - **Usage statistics counters** (`telemetry.json`, only if you opted in, see below)
 - **Downloaded medical rules** (`medical-data/` folder, only if you chose to download a medical data update; no personal data)

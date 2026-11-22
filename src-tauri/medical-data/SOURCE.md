@@ -12,7 +12,7 @@ Drug-name and medical-term fix rules (25,099 regexes, mined from the errors of t
 
 `plumed_fix_rules.jsonl`: Plumed's own fix rules, for fixes that should not (or not yet) go to the UltiMed rules repo. Same JSONL shape as UltiMed's `manual_fix_rules.jsonl` (`pattern`, `replacement`, `variant`), applied after every UltiMed file. Empty for now. The test `every_plumed_rule_compiles` checks each line. ParakeetWeb does not have these rules: once the file is not empty, the parity check against ParakeetWeb (below) differs on texts they change.
 
-User edits made in the app (disabled, changed or added rules) are stored in `medical_rules.json` in the app data folder, separate from the user's formatting rules. Deleting them ("Reset") goes back to exactly these files.
+User edits made in the app (disabled, changed or added rules) are stored in `medical_rules.json` in the app data folder, separate from the user's formatting rules. Deleting them ("Back to the original list") goes back to exactly these files. The phrase list and the confusion groups get the same overlay (disabled entries by key, added entries) in `medical_phrases.json` and `medical_confusion_groups.json` (`src-tauri/src/medical/list_overlay.rs`, written with Claude Code).
 
 ### Refresh
 
@@ -101,7 +101,7 @@ Everything is an asset of the GitHub release with the fixed tag `medical-data` o
 3. Each downloaded file's size and SHA-256, before anything is moved into place (download into a staging folder, then a rename).
 4. That the new set parses (at most 5% unusable rule lines, a non-empty phrase list and confusion groups when present). Otherwise it is deleted and the previous data stays.
 
-Installed sets live in `medical-data/<version>/` in the app data folder (files + signed manifest), and `medical-data/active.json` names the one in use. At every start the signature and hashes are checked again; a missing, corrupt or unparsable set, or one not newer than the bundled data, falls back to the bundled data with a warning in the log. The user's edits (`medical_rules.json`) are never touched; edits of rules that no longer exist are kept and listed in the rules editor.
+Installed sets live in `medical-data/<version>/` in the app data folder (files + signed manifest), and `medical-data/active.json` names the one in use. At every start the signature and hashes are checked again; a missing, corrupt or unparsable set, or one not newer than the bundled data, falls back to the bundled data with a warning in the log. The user's changes (`medical_rules.json`, `medical_phrases.json`, `medical_confusion_groups.json`) are never touched; changes to entries that no longer exist are kept and listed in their tab.
 
 ### Publishing
 
