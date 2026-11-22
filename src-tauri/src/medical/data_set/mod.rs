@@ -25,7 +25,7 @@ use tauri::{AppHandle, Manager};
 /// A downloaded set for another model is refused.
 pub const MODEL_ID: &str = "ultimed-v2";
 /// Version of the bundled data, the same shape as a manifest version.
-pub const BUNDLED_VERSION: &str = "2026.11.21";
+pub const BUNDLED_VERSION: &str = "2026.11.22";
 
 /// Rule file names, in the order they apply: UltiMed's, then Plumed's own
 /// (last, so it also respells what an UltiMed rule wrote). A downloaded set

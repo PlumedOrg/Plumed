@@ -110,14 +110,14 @@ mod tests {
             "{:?}",
             &list.warnings[..3.min(list.warnings.len())]
         );
-        assert_eq!(list.commitment, Some(0.0));
+        assert_eq!(list.commitment, Some(0.5));
         assert!(
             list.phrases.len() > 70_000,
             "{} phrases",
             list.phrases.len()
         );
         let first = &list.phrases[0];
-        assert_eq!((first.weight, first.minp), (1.5, 0.01));
+        assert_eq!((first.weight, first.minp), (0.75, 0.01));
     }
 
     #[test]
