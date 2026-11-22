@@ -20,12 +20,16 @@ jobs:
         secrets:
             TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
             TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
+            PLUMED_TELEMETRY_WEBSITE_ID: ${{ secrets.PLUMED_TELEMETRY_WEBSITE_ID }}
+            PLUMED_RULES_PUBKEY: ${{ secrets.PLUMED_RULES_PUBKEY }}
     windows:
         if: ${{ github.event.inputs.target == 'all' || github.event.inputs.target == 'windows' }}
         uses: ./.github/workflows/build-windows.yml
         secrets:
             TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
             TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
+            PLUMED_TELEMETRY_WEBSITE_ID: ${{ secrets.PLUMED_TELEMETRY_WEBSITE_ID }}
+            PLUMED_RULES_PUBKEY: ${{ secrets.PLUMED_RULES_PUBKEY }}
             SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
             SIGNPATH_ORG_ID: ${{ secrets.SIGNPATH_ORG_ID }}
             SIGNPATH_PROJECT_SLUG: ${{ secrets.SIGNPATH_PROJECT_SLUG }}
@@ -36,6 +40,8 @@ jobs:
         secrets:
             TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
             TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
+            PLUMED_TELEMETRY_WEBSITE_ID: ${{ secrets.PLUMED_TELEMETRY_WEBSITE_ID }}
+            PLUMED_RULES_PUBKEY: ${{ secrets.PLUMED_RULES_PUBKEY }}
             MACOS_CODESIGN_P12_B64: ${{ secrets.MACOS_CODESIGN_P12_B64 }}
             CERT_PASSWORD: ${{ secrets.CERT_PASSWORD }}
             MACOS_CODESIGN_IDENTITY: ${{ secrets.MACOS_CODESIGN_IDENTITY }}
@@ -48,6 +54,8 @@ jobs:
         secrets:
             TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
             TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
+            PLUMED_TELEMETRY_WEBSITE_ID: ${{ secrets.PLUMED_TELEMETRY_WEBSITE_ID }}
+            PLUMED_RULES_PUBKEY: ${{ secrets.PLUMED_RULES_PUBKEY }}
             MACOS_CODESIGN_P12_B64: ${{ secrets.MACOS_CODESIGN_P12_B64 }}
             CERT_PASSWORD: ${{ secrets.CERT_PASSWORD }}
             MACOS_CODESIGN_IDENTITY: ${{ secrets.MACOS_CODESIGN_IDENTITY }}

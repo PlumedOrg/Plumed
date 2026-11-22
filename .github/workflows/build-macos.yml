@@ -12,6 +12,10 @@ on:
                 required: false
             TAURI_KEY_PASSWORD:
                 required: false
+            PLUMED_TELEMETRY_WEBSITE_ID:
+                required: false
+            PLUMED_RULES_PUBKEY:
+                required: false
             MACOS_CODESIGN_P12_B64:
                 required: false
             CERT_PASSWORD:
