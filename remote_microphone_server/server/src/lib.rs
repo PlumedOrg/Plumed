@@ -9,8 +9,9 @@
 mod assets;
 pub mod limiter;
 pub mod rooms;
+pub mod serve;
 
-use axum::extract::{ConnectInfo, DefaultBodyLimit, Path, Request, State};
+use axum::extract::{DefaultBodyLimit, Path, Request, State};
 use axum::http::{header, HeaderMap, HeaderName, HeaderValue, StatusCode};
 use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
@@ -21,7 +22,7 @@ use plumed_relay_protocol::{
     valid_inbox_tag, validate, Role, MAX_BODY, POLL_WAIT_SECS, ROOMS_PATH, SECRET_HEADER,
 };
 use rooms::{Inbox, PushError, Refused, Room, Rooms, Taken, QUEUE_BUDGET};
-use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use serve::{client_key, retry_after};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::Semaphore;
@@ -146,45 +147,6 @@ async fn limit_in_flight(State(state): State<AppState>, req: Request, next: Next
         Ok(_permit) => next.run(req).await,
         Err(_) => retry_after(StatusCode::SERVICE_UNAVAILABLE, 5),
     }
-}
-
-/// A reverse proxy on this machine or in the container network.
-fn is_local(ip: IpAddr) -> bool {
-    match ip.to_canonical() {
-        IpAddr::V4(v4) => v4.is_loopback() || v4.is_private(),
-        IpAddr::V6(v6) => v6.is_loopback() || (v6.segments()[0] & 0xfe00) == 0xfc00,
-    }
-}
-
-/// The client, as counted by the rate limits (see [`limiter::bucket`]).
-/// `X-Forwarded-For` is only believed when a local proxy sent it: exposed
-/// directly by mistake, the relay would otherwise let anyone pick their IP.
-fn client_key(req: &Request, trust_proxy: bool) -> IpAddr {
-    let forwarded = || {
-        req.headers()
-            .get("x-forwarded-for")?
-            .to_str()
-            .ok()?
-            .rsplit(',')
-            .next()?
-            .trim()
-            .parse()
-            .ok()
-    };
-    let peer = req
-        .extensions()
-        .get::<ConnectInfo<SocketAddr>>()
-        .map(|c| c.0.ip());
-    let ip = match peer {
-        Some(p) if trust_proxy && is_local(p) => forwarded().or(peer),
-        _ => peer,
-    };
-    // Unknown: every such client shares one bucket
-    limiter::bucket(ip.unwrap_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED)))
-}
-
-fn retry_after(status: StatusCode, secs: u64) -> Response {
-    (status, [(header::RETRY_AFTER, secs.to_string())]).into_response()
 }
 
 /// Only for the desktop app, which sends no `Origin`: a browser always does
@@ -353,37 +315,5 @@ async fn close_room(
             StatusCode::NO_CONTENT.into_response()
         }
         Err(status) => status.into_response(),
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn request(peer: &str, xff: Option<&str>) -> Request {
-        let mut builder = Request::builder();
-        if let Some(xff) = xff {
-            builder = builder.header("x-forwarded-for", xff);
-        }
-        let mut req = builder.body(axum::body::Body::empty()).unwrap();
-        let peer: SocketAddr = peer.parse().unwrap();
-        req.extensions_mut().insert(ConnectInfo(peer));
-        req
-    }
-
-    #[test]
-    fn forwarded_for_is_only_believed_from_a_local_proxy() {
-        let ip = |s: &str| s.parse::<IpAddr>().unwrap();
-        // Caddy through the docker bridge
-        let via_proxy = request("172.17.0.1:4000", Some("6.6.6.6, 1.2.3.4"));
-        assert_eq!(client_key(&via_proxy, true), ip("1.2.3.4"));
-        // Exposed directly: a client cannot pick its own IP
-        let spoofed = request("9.9.9.9:4000", Some("1.2.3.4"));
-        assert_eq!(client_key(&spoofed, true), ip("9.9.9.9"));
-        // Not behind a proxy at all
-        let local = request("127.0.0.1:4000", Some("1.2.3.4"));
-        assert_eq!(client_key(&local, false), ip("127.0.0.1"));
-        // A local proxy that sent no header
-        assert_eq!(client_key(&request("[::1]:4000", None), true), ip("::"));
     }
 }
