@@ -132,7 +132,8 @@ impl RelayClient {
     pub async fn create_room(&self) -> Result<Room, ClientError> {
         let url = format!("{}{}", self.origin, ROOMS_PATH);
         let resp = check(self.http.post(url).send().await?).await?;
-        Ok(resp.json().await?)
+        serde_json::from_slice(&bounded_body(resp).await?)
+            .map_err(|e| ClientError::Invalid(e.to_string()))
     }
 
     /// Posts frames to the inbox at `path`, proving `secret`.
@@ -254,6 +255,27 @@ mod tests {
         let client = RelayClient::new(format!("http://{addr}")).unwrap();
         assert!(matches!(
             client.poll_from("/api/rooms/r/desktop", "s").await,
+            Err(ClientError::Invalid(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn oversized_room_answers_are_refused() {
+        let body = format!(
+            r#"{{"room":"{}","desktop":"d","phone":"p"}}"#,
+            "a".repeat(MAX_BODY)
+        );
+        let mut answer = format!(
+            "HTTP/1.1 201 Created\r\nContent-Length: {}\r\n\r\n",
+            body.len()
+        )
+        .into_bytes();
+        answer.extend(body.into_bytes());
+        let addr = one_shot_server(answer).await;
+        let _ = rustls::crypto::ring::default_provider().install_default();
+        let client = RelayClient::new(format!("http://{addr}")).unwrap();
+        assert!(matches!(
+            client.create_room().await,
             Err(ClientError::Invalid(_))
         ));
     }
