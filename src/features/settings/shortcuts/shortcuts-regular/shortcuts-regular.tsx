@@ -1,4 +1,4 @@
-import { Lightbulb, Mic, Settings } from 'lucide-react';
+import { Lightbulb, Settings } from 'lucide-react';
 import { Typography } from '@/components/typography';
 import { ShortcutButton } from './shortcut-button/shortcut-button';
 import { SettingsUI } from '@/components/settings-ui';
@@ -29,12 +29,6 @@ export const ShortcutsRegular = () => {
         resetShortcut: resetCancelShortcut,
     } = useShortcut(SHORTCUT_CONFIGS.cancel);
 
-    const {
-        shortcut: voiceModeToggleShortcut,
-        setShortcut: setVoiceModeToggleShortcut,
-        resetShortcut: resetVoiceModeToggleShortcut,
-    } = useShortcut(SHORTCUT_CONFIGS.voiceModeToggle);
-
     const isPushToTalk = recordMode === 'push_to_talk';
     const recordTitle = isPushToTalk ? t('Push to talk') : t('Toggle to talk');
     const recordTestId = isPushToTalk ? 'push-to-talk-button' : 'toggle-to-talk-button';
@@ -47,7 +41,6 @@ export const ShortcutsRegular = () => {
         { id: 'record', name: recordTitle, value: recordShortcut },
         { id: 'lastTranscript', name: t('Paste last transcript'), value: lastTranscriptShortcut },
         { id: 'cancel', name: t('Cancel recording'), value: cancelShortcut },
-        { id: 'voiceModeToggle', name: t('Toggle Voice Mode'), value: voiceModeToggleShortcut },
     ];
 
     const othersOf = (id: string) =>
@@ -109,23 +102,6 @@ export const ShortcutsRegular = () => {
                             resetShortcut={resetCancelShortcut}
                             dataTestId="cancel-recording-button"
                             existingShortcuts={othersOf('cancel')}
-                        />
-                    </SettingsUI.Item>
-                </SettingsUI.Section>
-
-                <SettingsUI.Section title={t('Voice Mode')} icon={Mic} titleTestId="voice-mode-title">
-                    <SettingsUI.Item>
-                        <SettingsUI.Description className="flex-1 min-w-0">
-                            <Typography.Title>{t('Toggle Voice Mode')}</Typography.Title>
-                            <Typography.Paragraph>{t('Mutes or unmutes Voice Mode listening.')}</Typography.Paragraph>
-                        </SettingsUI.Description>
-                        <ShortcutButton
-                            keyName={t('Toggle Voice Mode')}
-                            shortcut={voiceModeToggleShortcut}
-                            saveShortcut={setVoiceModeToggleShortcut}
-                            resetShortcut={resetVoiceModeToggleShortcut}
-                            dataTestId="voice-mode-toggle-button"
-                            existingShortcuts={othersOf('voiceModeToggle')}
                         />
                     </SettingsUI.Item>
                 </SettingsUI.Section>

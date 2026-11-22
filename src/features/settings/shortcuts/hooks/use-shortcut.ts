@@ -66,9 +66,4 @@ export const SHORTCUT_CONFIGS = {
         getCommand: 'get_cancel_shortcut',
         setCommand: 'set_cancel_shortcut',
     },
-    voiceModeToggle: {
-        defaultShortcut: 'ctrl+shift+0',
-        getCommand: 'get_voice_mode_toggle_shortcut',
-        setCommand: 'set_voice_mode_toggle_shortcut',
-    },
 };

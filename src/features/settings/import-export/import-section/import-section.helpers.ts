@@ -54,20 +54,6 @@ const applySettings = async (categories: ExportedCategories): Promise<void> => {
     }
 };
 
-const applyVoiceMode = async (categories: ExportedCategories): Promise<void> => {
-    const voiceMode = categories.voice_mode;
-    if (voiceMode == null) {
-        return;
-    }
-    await invoke('set_wake_word_enabled', { enabled: voiceMode.wake_word_enabled });
-    await invoke('set_wake_word_record', { word: voiceMode.wake_word_record });
-    await invoke('set_wake_word_cancel', { word: voiceMode.wake_word_cancel });
-    await invoke('set_wake_word_validate', { word: voiceMode.wake_word_validate });
-    await invoke('set_wake_word_submit', { word: voiceMode.wake_word_submit });
-    await invoke('set_auto_enter_after_wake_word', { enabled: voiceMode.auto_enter_after_wake_word });
-    await invoke('set_silence_timeout_ms', { value: voiceMode.silence_timeout_ms });
-};
-
 const applyShortcuts = async (categories: ExportedCategories): Promise<void> => {
     const shortcuts = categories.shortcuts;
     if (shortcuts == null) {
@@ -165,9 +151,6 @@ export const applySingleCategory = async (
             break;
         case 'shortcuts':
             await applyShortcuts(categories);
-            break;
-        case 'voice_mode':
-            await applyVoiceMode(categories);
             break;
         case 'formatting_rules':
             await applyFormattingRules(categories, strategies.formatting_rules ?? 'replace');

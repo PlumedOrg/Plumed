@@ -7,7 +7,6 @@ import { AccessibilityListener } from './listeners/accessibility-listener';
 import { RecordingErrorListener } from './listeners/recording-error-listener';
 import { ConfigImportedListener } from './listeners/config-imported-listener';
 import { WaylandListener } from './listeners/wayland-listener';
-import { VoiceModeToggleListener } from './listeners/voice-mode-toggle-listener';
 import { TrayMenuI18nListener } from './listeners/tray-menu-i18n-listener';
 
 export const Layout = () => {
@@ -18,7 +17,6 @@ export const Layout = () => {
             <RecordingErrorListener />
             <ConfigImportedListener />
             <WaylandListener />
-            <VoiceModeToggleListener />
             <TrayMenuI18nListener />
             <AppSidebar />
             <SidebarInset

@@ -12,7 +12,7 @@ import {
     ExportedCategories,
     AppSettings,
 } from '../../import-export.types';
-import { extractSystemSettings, extractShortcuts, extractVoiceMode } from '../../import-export.helpers';
+import { extractSystemSettings, extractShortcuts } from '../../import-export.helpers';
 import { FormattingSettings } from '@/features/personalize/formatting-rules/types';
 
 interface PreloadedData {
@@ -54,10 +54,6 @@ export const useExport = () => {
 
             if (selectedCategories.includes('shortcuts')) {
                 categories.shortcuts = extractShortcuts(allSettings);
-            }
-
-            if (selectedCategories.includes('voice_mode')) {
-                categories.voice_mode = extractVoiceMode(allSettings);
             }
 
             if (selectedCategories.includes('formatting_rules')) {

@@ -39,18 +39,7 @@ export interface SystemSettings {
 export interface ShortcutSettings {
     record_shortcut: string;
     last_transcript_shortcut: string;
-    voice_mode_toggle_shortcut: string;
     cancel_shortcut: string;
 }
 
-export interface VoiceModeSettings {
-    wake_word_enabled: boolean;
-    wake_word_record: string;
-    wake_word_cancel: string;
-    wake_word_validate: string;
-    wake_word_submit: string;
-    auto_enter_after_wake_word: boolean;
-    silence_timeout_ms: number;
-}
-
-export interface AppSettings extends SystemSettings, ShortcutSettings, VoiceModeSettings {}
+export interface AppSettings extends SystemSettings, ShortcutSettings {}

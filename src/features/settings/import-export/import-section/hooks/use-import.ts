@@ -17,7 +17,6 @@ const CATEGORY_LABEL_KEYS: Record<CategoryKey, string> = {
     formatting_rules: 'Importing formatting rules...',
     dictionary: 'Importing dictionary...',
     shortcuts: 'Importing shortcuts...',
-    voice_mode: 'Importing Voice Mode settings...',
     settings: 'Importing system settings...',
 };
 

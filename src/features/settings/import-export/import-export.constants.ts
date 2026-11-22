@@ -1,4 +1,4 @@
-import { Settings, Keyboard, MicVocal, AlignLeft, BookText } from 'lucide-react';
+import { Settings, Keyboard, AlignLeft, BookText } from 'lucide-react';
 import { CategoryDefinition } from './import-export.types';
 
 export const CURRENT_MURMURE_FORMAT_VERSION = 1;
@@ -22,13 +22,6 @@ export const CATEGORY_DEFINITIONS: CategoryDefinition[] = [
         key: 'shortcuts',
         label: 'Shortcuts',
         icon: Keyboard,
-        supportsMerge: false,
-        subItems: [],
-    },
-    {
-        key: 'voice_mode',
-        label: 'Voice Mode',
-        icon: MicVocal,
         supportsMerge: false,
         subItems: [],
     },

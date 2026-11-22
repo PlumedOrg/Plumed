@@ -7,7 +7,6 @@ import {
     Power,
     Bug,
     Newspaper,
-    Mic,
     ArrowDownUp,
     RadioTower,
     SpellCheck,
@@ -40,12 +39,6 @@ import { useShortcut, SHORTCUT_CONFIGS } from '@/features/settings/shortcuts/hoo
 import { PLUMED_LATEST_RELEASE_URL, PLUMED_NEW_ISSUE_URL, PLUMED_RELEASES_URL } from '@/utils/plumed-links';
 
 const getTopLevelItems = (t: (key: string) => string) => [
-    {
-        name: t('Voice Mode'),
-        url: '/extensions/voice-mode',
-        icon: Mic,
-        dataTestId: 'voice-mode-tab',
-    },
     {
         name: t('PhoneMic'),
         url: '/extensions/remote-mic',

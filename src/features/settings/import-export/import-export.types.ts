@@ -1,8 +1,8 @@
 import type { ComponentType, ReactNode } from 'react';
 import { BuiltInOptions, FormattingRule } from '@/features/personalize/formatting-rules/types';
 
-export type { SystemSettings, ShortcutSettings, VoiceModeSettings, AppSettings } from '../settings.types';
-import type { SystemSettings, ShortcutSettings, VoiceModeSettings } from '../settings.types';
+export type { SystemSettings, ShortcutSettings, AppSettings } from '../settings.types';
+import type { SystemSettings, ShortcutSettings } from '../settings.types';
 
 export type ExportedSystemSettings = Omit<
     SystemSettings,
@@ -32,7 +32,6 @@ export interface MurmureExportData {
 export interface ExportedCategories {
     settings?: ExportedSystemSettings;
     shortcuts?: ShortcutSettings;
-    voice_mode?: VoiceModeSettings;
     formatting_rules?: ExportedFormattingSettings;
     dictionary?: string[];
 }
@@ -42,7 +41,7 @@ export interface ExportedFormattingSettings {
     rules: FormattingRule[];
 }
 
-export type CategoryKey = 'settings' | 'shortcuts' | 'voice_mode' | 'formatting_rules' | 'dictionary';
+export type CategoryKey = 'settings' | 'shortcuts' | 'formatting_rules' | 'dictionary';
 
 export type ImportStrategy = 'replace' | 'merge';
 

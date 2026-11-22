@@ -8,7 +8,6 @@ import {
     ExportedFormattingSettings,
     ExportedSystemSettings,
     ShortcutSettings,
-    VoiceModeSettings,
     AppSettings,
 } from './import-export.types';
 import { CATEGORY_DEFINITIONS, SUB_ITEM_KEY } from './import-export.constants';
@@ -85,23 +84,10 @@ export const extractSystemSettings = (all: AppSettings): ExportedSystemSettings 
     };
 };
 
-export const extractVoiceMode = (all: AppSettings): VoiceModeSettings => {
-    return {
-        wake_word_enabled: all.wake_word_enabled,
-        wake_word_record: all.wake_word_record,
-        wake_word_cancel: all.wake_word_cancel,
-        wake_word_validate: all.wake_word_validate,
-        wake_word_submit: all.wake_word_submit,
-        auto_enter_after_wake_word: all.auto_enter_after_wake_word,
-        silence_timeout_ms: all.silence_timeout_ms,
-    };
-};
-
 export const extractShortcuts = (all: AppSettings): ShortcutSettings => {
     return {
         record_shortcut: all.record_shortcut,
         last_transcript_shortcut: all.last_transcript_shortcut,
-        voice_mode_toggle_shortcut: all.voice_mode_toggle_shortcut,
         cancel_shortcut: all.cancel_shortcut,
     };
 };
@@ -149,9 +135,6 @@ export const buildFilteredCategories = (
     }
     if (selection.shortcuts?.selected && categories.shortcuts != null) {
         filtered.shortcuts = categories.shortcuts;
-    }
-    if (selection.voice_mode?.selected && categories.voice_mode != null) {
-        filtered.voice_mode = categories.voice_mode;
     }
     if (selection.formatting_rules?.selected && categories.formatting_rules != null) {
         filtered.formatting_rules = filterFormattingRules(

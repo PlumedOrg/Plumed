@@ -5,7 +5,6 @@ import { About } from './features/about/about';
 import { Shortcuts } from './features/settings/shortcuts/shortcuts';
 import { Corrections } from './features/corrections/corrections';
 import { System } from './features/settings/system/system';
-import { VoiceMode } from './features/extensions/voice-mode/voice-mode';
 import { ImportExport } from './features/settings/import-export/import-export';
 import { RemoteMic } from './features/extensions/remote-mic/remote-mic';
 
@@ -62,12 +61,6 @@ const personalizeIndexRoute = createRoute({
     component: () => <Navigate to="/corrections" hash="dictionary" />,
 });
 
-const extensionsVoiceModeRoute = createRoute({
-    getParentRoute: () => rootRoute,
-    path: '/extensions/voice-mode',
-    component: VoiceMode,
-});
-
 const extensionsRemoteMicRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/extensions/remote-mic',
@@ -77,13 +70,7 @@ const extensionsRemoteMicRoute = createRoute({
 const extensionsIndexRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/extensions',
-    component: () => <Navigate to="/extensions/voice-mode" />,
-});
-
-const personalizeVoiceModeRedirectRoute = createRoute({
-    getParentRoute: () => rootRoute,
-    path: '/personalize/voice-mode',
-    component: () => <Navigate to="/extensions/voice-mode" />,
+    component: () => <Navigate to="/extensions/remote-mic" />,
 });
 
 const settingsImportExportRoute = createRoute({
@@ -108,9 +95,7 @@ const routeTree = rootRoute.addChildren([
     personalizeIndexRoute,
     personalizeCustomDictionaryRoute,
     personalizeFormattingRulesRoute,
-    personalizeVoiceModeRedirectRoute,
     extensionsIndexRoute,
-    extensionsVoiceModeRoute,
     extensionsRemoteMicRoute,
     aboutRoute,
 ]);

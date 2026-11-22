@@ -13,7 +13,6 @@ export const buildInitialSelection = (
 ): CategorySelection => ({
     settings: { selected: true, subItems: {} },
     shortcuts: { selected: true, subItems: {} },
-    voice_mode: { selected: true, subItems: {} },
     formatting_rules: {
         selected: true,
         subItems: buildSubItems(
