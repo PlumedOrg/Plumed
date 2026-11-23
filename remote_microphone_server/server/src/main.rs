@@ -1,6 +1,6 @@
 //! `plumed-relay`: see the crate docs in lib.rs and remote_microphone_server/README.md.
 
-use plumed_relay::serve::{env_or, healthcheck, shutdown_signal};
+use plumed_relay::serve::{env_or, exit_code, healthcheck, healthcheck_requested, run};
 use plumed_relay::{app, reap_forever, Config};
 use std::net::SocketAddr;
 
@@ -17,43 +17,15 @@ fn config() -> Result<(SocketAddr, Config), String> {
 
 #[tokio::main]
 async fn main() -> std::process::ExitCode {
-    let (bind, config) = match config() {
-        Ok(c) => c,
-        Err(e) => {
-            eprintln!("plumed-relay: {e}");
-            return std::process::ExitCode::FAILURE;
-        }
-    };
-    if std::env::args().nth(1).as_deref() == Some("--healthcheck") {
-        return match healthcheck(bind).await {
-            Ok(()) => std::process::ExitCode::SUCCESS,
-            Err(e) => {
-                eprintln!("plumed-relay: {e}");
-                std::process::ExitCode::FAILURE
-            }
-        };
+    exit_code("plumed-relay", run_relay().await)
+}
+
+async fn run_relay() -> Result<(), String> {
+    let (bind, config) = config()?;
+    if healthcheck_requested() {
+        return healthcheck(bind).await;
     }
     let (router, state) = app(&config);
     tokio::spawn(reap_forever(state));
-    let listener = match tokio::net::TcpListener::bind(bind).await {
-        Ok(l) => l,
-        Err(e) => {
-            eprintln!("plumed-relay: cannot listen on {bind}: {e}");
-            return std::process::ExitCode::FAILURE;
-        }
-    };
-    eprintln!("plumed-relay: listening on {bind}");
-    let served = axum::serve(
-        listener,
-        router.into_make_service_with_connect_info::<SocketAddr>(),
-    )
-    .with_graceful_shutdown(shutdown_signal())
-    .await;
-    match served {
-        Ok(()) => std::process::ExitCode::SUCCESS,
-        Err(e) => {
-            eprintln!("plumed-relay: {e}");
-            std::process::ExitCode::FAILURE
-        }
-    }
+    run("plumed-relay", bind, router).await
 }

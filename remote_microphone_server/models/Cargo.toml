@@ -1,0 +1,16 @@
+[package]
+name = "plumed-models"
+version = "0.1.0"
+edition = "2021"
+license = "AGPL-3.0-or-later"
+description = "Streaming Hugging Face relay of the speech models Plumed downloads"
+publish = false
+
+[dependencies]
+plumed-relay = { path = "../server" }
+plumed-relay-protocol = { path = "../protocol" }
+axum = { version = "0.8", default-features = false, features = ["http1", "tokio"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "signal", "time", "sync"] }
+reqwest = { version = "0.13", default-features = false, features = ["rustls-no-provider", "stream"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+futures-util = { version = "0.3", default-features = false }

@@ -54,7 +54,7 @@ pub fn retry_after(status: StatusCode, secs: u64) -> Response {
     (status, [(header::RETRY_AFTER, secs.to_string())]).into_response()
 }
 
-pub async fn shutdown_signal() {
+async fn shutdown_signal() {
     let ctrl_c = tokio::signal::ctrl_c();
     #[cfg(unix)]
     {
@@ -93,6 +93,38 @@ pub async fn healthcheck(bind: SocketAddr) -> Result<(), String> {
     match answer.starts_with(b"HTTP/1.1 200") {
         true => Ok(()),
         false => Err("unhealthy".to_owned()),
+    }
+}
+
+/// Whether the binary was started as `<binary> --healthcheck`.
+pub fn healthcheck_requested() -> bool {
+    std::env::args().nth(1).as_deref() == Some("--healthcheck")
+}
+
+/// Serves `router` on `bind` (client addresses for [`client_key`]) until
+/// SIGTERM or Ctrl+C.
+pub async fn run(name: &str, bind: SocketAddr, router: axum::Router) -> Result<(), String> {
+    let listener = tokio::net::TcpListener::bind(bind)
+        .await
+        .map_err(|e| format!("cannot listen on {bind}: {e}"))?;
+    eprintln!("{name}: listening on {bind}");
+    axum::serve(
+        listener,
+        router.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .with_graceful_shutdown(shutdown_signal())
+    .await
+    .map_err(|e| e.to_string())
+}
+
+/// The process exit code of `result`, printing its error.
+pub fn exit_code(name: &str, result: Result<(), String>) -> std::process::ExitCode {
+    match result {
+        Ok(()) => std::process::ExitCode::SUCCESS,
+        Err(e) => {
+            eprintln!("{name}: {e}");
+            std::process::ExitCode::FAILURE
+        }
     }
 }
 
