@@ -85,19 +85,22 @@ jobs:
             - name: Add Intel Rust target
               run: rustup target add x86_64-apple-darwin
 
-            - name: Cache ONNX Runtime 1.23.2 (Intel)
+            - name: Cache ONNX Runtime 1.31.0 (Intel)
               id: ort-cache
               uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
               with:
-                  path: ${{ runner.temp }}/onnxruntime-osx-x86_64-1.23.2
-                  key: ort-1.23.2-osx-x86_64-${{ hashFiles('.github/ort/*.patch') }}
+                  path: ${{ runner.temp }}/onnxruntime-osx-x86_64-1.31.0
+                  key: ort-1.31.0-osx-x86_64-${{ hashFiles('.github/ort/*.patch') }}
 
-            - name: Build ONNX Runtime 1.23.2 (Intel)
+            # TODO: check that the patch still applies to 1.31.0: it was written for
+            # 1.23.2, and github.com/microsoft/onnxruntime answered 404 when ort was
+            # upgraded, so neither the clone below nor the check could be tried.
+            - name: Build ONNX Runtime 1.31.0 (Intel)
               if: steps.ort-cache.outputs.cache-hit != 'true'
               shell: bash
               run: |
                   set -euo pipefail
-                  version="1.23.2"
+                  version="1.31.0"
                   src="$RUNNER_TEMP/ort-src"
                   build="$RUNNER_TEMP/ort-build"
                   dest="$RUNNER_TEMP/onnxruntime-osx-x86_64-${version}"
@@ -125,7 +128,7 @@ jobs:
               shell: bash
               run: |
                   set -euo pipefail
-                  version="1.23.2"
+                  version="1.31.0"
                   dest="$RUNNER_TEMP/onnxruntime-osx-x86_64-${version}"
                   echo "ORT_LIB_LOCATION=$dest/lib" >> "$GITHUB_ENV"
                   echo "ORT_PREFER_DYNAMIC_LINK=1" >> "$GITHUB_ENV"
@@ -142,6 +145,8 @@ jobs:
                       END { printf "%d %d\n", symbols, hits }'
                   }
 
+                  # The detector is calibrated on Microsoft's 1.23.2 build, known to
+                  # fuse AVX-VNNI into its AVX2 kernels; it does not need to match ours.
                   version="1.23.2"
                   reference_dir="$(mktemp -d)"
                   curl --proto '=https' -L -o "$reference_dir/ort.tgz" \
@@ -256,7 +261,7 @@ jobs:
                   fi
                   bin="$app/Contents/MacOS/plumed"
                   file "$bin"
-                  file "$app/Contents/Frameworks/libonnxruntime.1.23.2.dylib"
+                  file "$app/Contents/Frameworks/libonnxruntime.1.31.0.dylib"
 
                   if command -v timeout >/dev/null 2>&1; then
                     timeout 600 arch -x86_64 "$bin" transcribe "$RUNNER_TEMP/smoke.wav" --no-dictionary -v \
