@@ -21,7 +21,7 @@ pub const ULTIMED_V2_ULTRA: ModelRepo = ModelRepo {
 
 /// UltiMed v2, "redux" family (experimental, w2a8 encoder).
 pub const ULTIMED_V2_REDUX: ModelRepo = ModelRepo {
-    repo: "Olicorne/parakeet-tdt-0.6b-v3-redux-UltiMed-experimental-onnx",
+    repo: "Olicorne/parakeet-tdt-0.6b-v3-redux-UltiMed-v2-experimental-onnx",
     revision: "fa44bccba301fed3d8ed14f27ac7cf51db7b6d4e",
 };
 
