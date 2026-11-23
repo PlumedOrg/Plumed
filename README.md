@@ -43,8 +43,6 @@ Le modèle de reconnaissance vocale n'est pas inclus dans l'installateur : au pr
 
 ![Écran d'accueil de Plumed : statistiques, visualisation du micro et dernière dictée](docs/screenshots/accueil.png)
 
-TODO : ajouter des captures d'écran des autres pages (corrections, tutoriel, paramètres).
-
 ## Confidentialité
 
 La reconnaissance se fait sur votre ordinateur : l'audio et les transcriptions ne sont jamais envoyés sur internet. Les seules connexions réseau possibles sont listées dans **Paramètres > En ligne** : la vérification des mises à jour de l'application, le téléchargement du modèle, les mises à jour des données médicales (sur demande), les statistiques d'utilisation anonymes (facultatives, des totaux agrégés, jamais de texte ni d'audio) et le relais de PhoneMic. Voir la [politique de confidentialité](PRIVACY_POLICY.md).
