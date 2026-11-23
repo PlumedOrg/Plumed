@@ -64,7 +64,9 @@ fancy-regex = "0.17"
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-autostart = "2"
-tauri-plugin-updater = "2"
+# No "zip" feature: Plumed publishes plain installers (setup.exe, .msi, AppImage, .app.tar.gz), never
+# the legacy zip / AppImage.tar.gz bundles, so the vulnerable zip crate is not needed.
+tauri-plugin-updater = { version = "2", default-features = false, features = ["rustls-tls", "system-proxy"] }
 tauri-plugin-process = "2"
 parking_lot = "0.12"
 
