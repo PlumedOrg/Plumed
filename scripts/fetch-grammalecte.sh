@@ -52,11 +52,13 @@ while read -r kind path; do
         js | data) FILES+=("$path") ;;
     esac
 done < "$FILE_LIST"
+# Extract the whole package, then copy only the listed files: passing the names to unzip fails on
+# the Windows runner ("filename not matched"), since unzip treats them as patterns.
 mkdir -p "$WORK/x"
 if command -v unzip > /dev/null; then
-    unzip -q -o "$XPI" "${FILES[@]}" -d "$WORK/x"
+    unzip -q -o "$XPI" -d "$WORK/x"
 else
-    python3 -c 'import sys, zipfile; zipfile.ZipFile(sys.argv[1]).extractall(sys.argv[2], sys.argv[3:])' "$XPI" "$WORK/x" "${FILES[@]}"
+    python3 -c 'import sys, zipfile; zipfile.ZipFile(sys.argv[1]).extractall(sys.argv[2])' "$XPI" "$WORK/x"
 fi
 
 rm -rf "$DEST"
