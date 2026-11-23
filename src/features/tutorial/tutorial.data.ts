@@ -8,6 +8,11 @@ export interface SpokenCommand {
     say: string;
     /** What Plumed writes (`\n` is a line break). */
     writes: string;
+    /**
+     * The words that show the example was dictated, when `say` has numbers the
+     * model may write differently ("trois" or "3"). Defaults to `say`.
+     */
+    heard?: string;
 }
 
 export const LAYOUT_COMMANDS: SpokenCommand[] = [
@@ -33,20 +38,18 @@ export const PUNCTUATION_COMMANDS: SpokenCommand[] = [
 ];
 
 export const SHORTHAND_COMMANDS: SpokenCommand[] = [
-    { say: '15 mg par kilo par jour', writes: '15 mg/kg/j' },
-    { say: 'tension 120 80', writes: 'TA : 120/80' },
-    { say: 'saturation 98', writes: 'SpO2 98%' },
-    { say: 'pouls 75', writes: 'FC 75 bpm' },
-    { say: '3 fois par jour', writes: '3/j' },
+    { say: '15 mg par kilo par jour', writes: '15 mg/kg/j', heard: 'mg par kilo par jour' },
+    { say: 'tension 120 80', writes: 'TA : 120/80', heard: 'tension' },
+    { say: 'saturation 98', writes: 'SpO2 98%', heard: 'saturation' },
+    { say: 'pouls 75', writes: 'FC 75 bpm', heard: 'pouls' },
+    { say: '3 fois par jour', writes: '3/j', heard: 'fois par jour' },
 ];
 
-/** Whole-text templates: "Ajoute la commande <name>." writes a ready-made note. */
-export const TEMPLATE_NAMES = [
-    'examen clinique',
-    'examen simplifié',
-    'examen traumatisme cranien',
-    'sortie contre avis',
-];
+/**
+ * The bundled text template (src-tauri/medical-data/text-templates/templates.jsonl).
+ * What it writes is translated, so `writes` is filled in by the tutorial.
+ */
+export const TEMPLATE_EXAMPLE: SpokenCommand = { say: "Insère l'examen clinique normal.", writes: '' };
 
 /** A word alone is ambiguous for the model, a sentence gives it context. */
 export const CONTEXT_EXAMPLE = {

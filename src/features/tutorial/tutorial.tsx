@@ -12,8 +12,9 @@ import {
     PUNCTUATION_COMMANDS,
     SHORTHAND_COMMANDS,
     SpokenCommand,
-    TEMPLATE_NAMES,
+    TEMPLATE_EXAMPLE,
 } from './tutorial.data';
+import { TutorialTemplate } from './tutorial-template';
 
 interface SectionProps {
     title: string;
@@ -114,16 +115,12 @@ export const Tutorial = () => {
             <Section
                 title={t('Ready-made notes')}
                 intro={t(
-                    'Say "Ajoute la commande" followed by a name to insert a whole note, for example one of these:'
+                    'A sentence can insert a whole note written in advance. You can see, edit and add text templates in Corrections.'
                 )}
             >
-                <ul className="flex flex-wrap gap-2 text-sm">
-                    {TEMPLATE_NAMES.map((name) => (
-                        <li key={name} className="rounded bg-muted px-2 py-1">
-                            {name}
-                        </li>
-                    ))}
-                </ul>
+                <TutorialTemplate>
+                    <CommandTable commands={[{ ...TEMPLATE_EXAMPLE, writes: t('A complete normal clinical exam') }]} />
+                </TutorialTemplate>
             </Section>
 
             {/* Hidden once finished (and while loading): there is nothing left to do with it. */}
