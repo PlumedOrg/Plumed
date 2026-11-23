@@ -69,6 +69,7 @@ fn today() -> NaiveDate {
 fn environment(app: &AppHandle, settings: &AppSettings) -> Environment {
     Environment {
         version: app.package_info().version.to_string(),
+        update_channel: settings.app_update_channel.as_str(),
         os: std::env::consts::OS,
         arch: std::env::consts::ARCH,
         install_kind: tauri::utils::platform::bundle_type().map(|kind| kind.to_string()),

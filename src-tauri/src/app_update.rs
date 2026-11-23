@@ -43,6 +43,17 @@ pub enum UpdateChannel {
     Disabled,
 }
 
+impl UpdateChannel {
+    /// The serialized name, also sent in the anonymous statistics.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Stable => "stable",
+            Self::Beta => "beta",
+            Self::Disabled => "disabled",
+        }
+    }
+}
+
 /// The update found by the last check, until it is installed.
 static PENDING: Mutex<Option<Update>> = Mutex::new(None);
 
@@ -261,6 +272,18 @@ pub fn set_channel(app: &AppHandle, channel: UpdateChannel) -> Result<(), String
 mod tests {
     use super::*;
     use crate::settings::AppSettings;
+
+    #[test]
+    fn channel_name_matches_its_serialized_form() {
+        for channel in [
+            UpdateChannel::Stable,
+            UpdateChannel::Beta,
+            UpdateChannel::Disabled,
+        ] {
+            let json = serde_json::to_string(&channel).unwrap();
+            assert_eq!(json, format!("\"{}\"", channel.as_str()));
+        }
+    }
 
     const RELAY: &str = "https://relay.test/";
 

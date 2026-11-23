@@ -12,6 +12,8 @@ const EVENT_NAME: &str = "daily";
 /// What describes this installation, read from the settings and the build.
 pub struct Environment {
     pub version: String,
+    /// The app releases the updater follows: tells beta builds from stable.
+    pub update_channel: &'static str,
     pub os: &'static str,
     pub arch: &'static str,
     pub install_kind: Option<String>,
@@ -80,6 +82,7 @@ pub fn event_data(
     let [under_10s, from_10_to_30s, from_30_to_120s, over_120s] = counters.audio_buckets;
     let data = json!({
         "version": env.version,
+        "update_channel": env.update_channel,
         "os": env.os,
         "arch": env.arch,
         "language": env.language,
@@ -171,6 +174,7 @@ mod tests {
     fn env() -> Environment {
         Environment {
             version: "0.1.3".to_string(),
+            update_channel: "beta",
             os: "linux",
             arch: "x86_64",
             install_kind: Some("deb".to_string()),
@@ -221,6 +225,7 @@ mod tests {
         keys.sort_unstable();
         let mut expected = vec![
             "version",
+            "update_channel",
             "os",
             "arch",
             "install_kind",
