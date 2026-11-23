@@ -90,7 +90,7 @@ jobs:
               uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
               with:
                   path: ${{ runner.temp }}/onnxruntime-osx-x86_64-1.31.0
-                  key: ort-1.31.0-osx-x86_64-${{ hashFiles('.github/ort/*.patch') }}
+                  key: ort-1.31.0-osx-x86_64-unpatched
 
             # TEMPORARY, DO NOT KEEP: github.com/microsoft/onnxruntime answers 404
             # since 2026-11 (closed after a key leak), so the source comes from a
@@ -101,7 +101,9 @@ jobs:
             # Microsoft's code or nothing. TODO: drop the fork from the mirror list
             # as soon as the official repo is back, and never bump ORT through it
             # (a new version needs a commit taken from Microsoft, not the fork).
-            # The patch was written for 1.23.2; this is its first run on 1.31.0.
+            # No patch needed: since 1.31.0 MLAS compiles its AVX2 kernels without
+            # -mavxvnni (the VNNI ones live in sqnbitgemm_kernel_avx2vnni.cpp), so
+            # a plain build has no AVX-VNNI in AVX2 code; the check step verifies it.
             - name: Build ONNX Runtime 1.31.0 (Intel)
               if: steps.ort-cache.outputs.cache-hit != 'true'
               shell: bash
@@ -120,7 +122,6 @@ jobs:
                   done
                   git -C "$src" checkout -q FETCH_HEAD
                   test "$(git -C "$src" rev-parse HEAD)" = "$commit"
-                  git -C "$src" apply "$GITHUB_WORKSPACE/.github/ort/0001-mlas-avx2-without-avxvnni.patch"
                   cd "$src"
                   python3 tools/ci_build/build.py --build_dir "$build" --config Release --build_shared_lib --parallel \
                     --skip_tests --skip_submodule_sync --compile_no_warning_as_error \
