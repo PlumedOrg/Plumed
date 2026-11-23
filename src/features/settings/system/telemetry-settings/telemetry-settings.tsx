@@ -21,7 +21,7 @@ export const TelemetrySettings = () => {
             <SettingsUI.Description>
                 <Typography.Title className="flex items-center gap-2">
                     <ChartNoAxesColumn className="w-4 h-4 text-muted-foreground" />
-                    {t('Anonymous usage statistics')}
+                    {t('Send anonymous statistics to the developer?')}
                 </Typography.Title>
                 <TelemetryDetails />
             </SettingsUI.Description>
