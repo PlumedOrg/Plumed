@@ -302,6 +302,13 @@ fn every_plumed_rule_compiles() {
     assert!(bundled.rules.iter().all(Option::is_some));
 }
 
+/// GitHub refuses 0-byte release assets, so publish-medical-data.sh uploads
+/// an empty rule file as a single newline: it must still mean "no rules".
+#[test]
+fn newline_only_rule_file_has_no_rules() {
+    assert_eq!(Bundled::from_jsonl(&["\n"]).len(), 0);
+}
+
 fn two_rules() -> Bundled {
     let jsonl = [
         serde_json::json!({"pattern": pattern("veine lafaxine", &[]), "replacement": "venlafaxine"}),

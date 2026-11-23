@@ -72,6 +72,10 @@ work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 for file in $files; do
     cp "$data/$file" "$work/"
+    # GitHub rejects 0-byte assets ("Bad Content-Length"); a lone newline
+    # parses as an empty list (blank lines are skipped)
+    name="$(basename "$file")"
+    [ -s "$work/$name" ] || printf '\n' >"$work/$name"
 done
 cd "$work"
 
