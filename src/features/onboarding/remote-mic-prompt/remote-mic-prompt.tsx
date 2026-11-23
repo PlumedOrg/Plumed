@@ -8,9 +8,11 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Page } from '@/components/page';
 import { Typography } from '@/components/typography';
 import { RemoteMicRelayDialog } from '@/features/extensions/remote-mic/remote-mic-relay-dialog/remote-mic-relay-dialog';
+import { isModelPromptDue } from '../startup-prompts.helpers';
 
 // Plumed fork: at startup and after each update, when no microphone is found,
-// offers the phone as microphone (the backend decides when it is due).
+// offers the phone as microphone (the backend decides when it is due). Waits
+// for a launch without the model download dialog.
 export const RemoteMicPrompt = () => {
     const { t } = useTranslation();
     const navigate = useNavigate();
@@ -18,8 +20,8 @@ export const RemoteMicPrompt = () => {
     const [choosingRelay, setChoosingRelay] = useState(false);
 
     useEffect(() => {
-        invoke<boolean>('remote_mic_prompt_due')
-            .then(setOpen)
+        Promise.all([invoke<boolean>('remote_mic_prompt_due'), isModelPromptDue()])
+            .then(([due, modelDue]) => setOpen(due && !modelDue))
             .catch((e) => console.error('Failed to check the remote microphone prompt:', e));
     }, []);
 

@@ -8,10 +8,11 @@ import { Page } from '@/components/page';
 import { AppSettings } from '@/features/settings/settings.types';
 import { TelemetryDetails } from '@/features/telemetry/telemetry-details/telemetry-details';
 import { useTelemetryAvailable } from '@/features/telemetry/hooks/use-telemetry-available';
+import { isModelPromptDue } from '../startup-prompts.helpers';
 
 // Plumed fork (written with Claude Code): asks once whether to share anonymous
-// usage statistics. Waits for a launch without the remote microphone question
-// so the two dialogs never stack.
+// usage statistics. Waits for a launch without the model download or remote
+// microphone question so the dialogs never stack.
 export const TelemetryPrompt = () => {
     const { t } = useTranslation();
     const available = useTelemetryAvailable();
@@ -21,9 +22,13 @@ export const TelemetryPrompt = () => {
         if (!available) {
             return;
         }
-        Promise.all([invoke<AppSettings>('get_all_settings'), invoke<boolean>('remote_mic_prompt_due')])
-            .then(([settings, remoteMicDue]) => {
-                setOpen(!settings.telemetry_asked && !remoteMicDue);
+        Promise.all([
+            invoke<AppSettings>('get_all_settings'),
+            invoke<boolean>('remote_mic_prompt_due'),
+            isModelPromptDue(),
+        ])
+            .then(([settings, remoteMicDue, modelDue]) => {
+                setOpen(!settings.telemetry_asked && !remoteMicDue && !modelDue);
             })
             .catch((e) => console.error('Failed to check the usage statistics prompt:', e));
     }, [available]);
