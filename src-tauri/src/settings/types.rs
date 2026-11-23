@@ -181,7 +181,7 @@ impl Default for AppSettings {
             streaming_max_lines: 5,
             result_panel_mode: "off".to_string(),
             result_panel_duration_secs: 5,
-            remove_hesitations: false,
+            remove_hesitations: true,
             wayland_notice_dismissed: false,
             wayland_clipboard_fallback_dismissed: false,
             block_cli_import: true,
@@ -211,6 +211,13 @@ mod tests {
         assert!(AppSettings::default().block_cli_import);
         let saved: AppSettings = serde_json::from_str(r#"{"block_cli_import":false}"#).unwrap();
         assert!(!saved.block_cli_import);
+    }
+
+    #[test]
+    fn new_installs_remove_hesitations_but_saved_settings_keep_their_value() {
+        assert!(AppSettings::default().remove_hesitations);
+        let saved: AppSettings = serde_json::from_str(r#"{"remove_hesitations":false}"#).unwrap();
+        assert!(!saved.remove_hesitations);
     }
 
     #[test]
