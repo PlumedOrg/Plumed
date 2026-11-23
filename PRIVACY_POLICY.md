@@ -56,7 +56,7 @@ Activé par défaut. Pour mieux reconnaître les dictées très courtes (moins d
 
 ## PhoneMic (expérimental)
 
-Cette fonctionnalité est une fonctionnalité expérimentale : attendez-vous à des bogues.
+Cette fonctionnalité est expérimentale : attendez-vous à des bogues.
 
 PhoneMic (le microphone distant) permet à un téléphone, sur n'importe quel réseau, de servir de microphone, par l'intermédiaire d'un serveur relais (par défaut `https://turn.plumed.fr`, configurable). Il est **désactivé par défaut**, et rien n'est envoyé tant que vous n'avez pas cliqué sur « Connecter un téléphone ».
 
