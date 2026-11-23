@@ -46,11 +46,7 @@ export const TelemetryDetails = () => {
                         'Aggregated counts, once a day on days you use Plumed: number of dictations, average length, errors, app version, operating system, which features are on.'
                     )}
                 </li>
-                <li>
-                    {t(
-                        'A random identifier, renewed every 13 months, tells days of the same installation apart.'
-                    )}
-                </li>
+                <li>{t('A random identifier, renewed every 13 months, tells days of the same installation apart.')}</li>
             </DetailsSection>
             <DetailsSection title={t('Never collected')} className="text-emerald-400">
                 <li>{t('No audio and no transcription.')}</li>

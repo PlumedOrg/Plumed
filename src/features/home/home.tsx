@@ -9,10 +9,7 @@ import { RecordLabel } from '@/components/record-label';
 import { MicLabel } from './mic-label/mic-label';
 import { MicDisconnectedBanner } from './mic-disconnected-banner/mic-disconnected-banner';
 import { PrivacyNotice } from './privacy-notice/privacy-notice';
-import { RemoteMicPrompt } from '../onboarding/remote-mic-prompt/remote-mic-prompt';
-import { TelemetryPrompt } from '../onboarding/telemetry-prompt/telemetry-prompt';
 import { MedicalDataPrompt } from '../onboarding/medical-data-prompt/medical-data-prompt';
-import { MedicalDataQuestion } from '../onboarding/medical-data-question/medical-data-question';
 import { MedicalDataCheckFailureNotice } from '../medical-data/medical-data-check-failure-notice/medical-data-check-failure-notice';
 
 export const Home = () => {
@@ -25,9 +22,6 @@ export const Home = () => {
             </Page.Header>
             {isWayland && <WaylandCliOnboardingCard />}
             <MicDisconnectedBanner />
-            <RemoteMicPrompt />
-            <TelemetryPrompt />
-            <MedicalDataQuestion />
             <MedicalDataPrompt />
             <MedicalDataCheckFailureNotice />
 

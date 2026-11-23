@@ -3,18 +3,18 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { MedicalDataUpdateDialog } from '@/features/medical-data/medical-data-update-dialog/medical-data-update-dialog';
 import { MedicalDataOffer } from '@/features/medical-data/types';
-import { isEarlierStartupPromptDue } from '../startup-prompts.helpers';
+import { isStartupWizardDue } from '../startup-prompts.helpers';
 
 // Plumed fork (written with Claude Code): when the startup check (backend,
 // after the model loaded) found a newer signed medical data set, asks
-// whether to download it. Waits for the next launch when another startup
-// question is asked, so dialogs never stack.
+// whether to download it. Waits for the next launch when the startup wizard
+// opens, so dialogs never stack.
 export const MedicalDataPrompt = () => {
     const [offer, setOffer] = useState<MedicalDataOffer | null>(null);
     const blocked = useRef<Promise<boolean> | null>(null);
 
     useEffect(() => {
-        blocked.current = isEarlierStartupPromptDue().catch((e) => {
+        blocked.current = isStartupWizardDue().catch((e) => {
             console.error('Failed to check the other startup questions:', e);
             return true;
         });

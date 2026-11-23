@@ -1,24 +1,45 @@
-// Plumed fork (written with Claude Code): the startup questions show one per
-// launch, in this order: the speech model download (always first, see
-// src/features/model), PhoneMic, usage statistics, medical data check, then
-// the medical data update offer. Each later one waits for a launch where no
-// earlier one is due.
+// Plumed fork (written with Claude Code): the startup wizard asks every first
+// launch question in one dialog (see startup-wizard/). A step is only due while
+// its question is unanswered, so users who already answered are not asked again.
 import { invoke } from '@tauri-apps/api/core';
 import { AppSettings } from '@/features/settings/settings.types';
 import { isModelMissing } from '@/features/model/model.helpers';
 import { ModelStatus } from '@/features/model/types';
 
-/** Whether the model download dialog opens this launch: it beats every other question. */
-export const isModelPromptDue = async (): Promise<boolean> =>
-    isModelMissing(await invoke<ModelStatus>('get_model_status'));
+export type StartupStep = 'model' | 'remote-mic' | 'telemetry' | 'medical-data' | 'update-channel';
 
-/** Whether the model, PhoneMic or usage statistics question is asked this launch. */
-export const isEarlierStartupPromptDue = async (): Promise<boolean> => {
-    const [settings, modelDue, remoteMicDue, telemetryAvailable] = await Promise.all([
+interface TelemetryQuestion {
+    due: boolean;
+    offer_never_again: boolean;
+}
+
+export interface DueSteps {
+    steps: StartupStep[];
+    /** The third usage statistics ask also offers "Never ask again". */
+    offerTelemetryNeverAgain: boolean;
+}
+
+/** The unanswered questions, in the order the wizard asks them. */
+export const getDueSteps = async (): Promise<DueSteps> => {
+    const [settings, modelStatus, remoteMicDue, telemetry, medicalDataDue] = await Promise.all([
         invoke<AppSettings>('get_all_settings'),
-        isModelPromptDue(),
+        invoke<ModelStatus>('get_model_status'),
         invoke<boolean>('remote_mic_prompt_due'),
-        invoke<boolean>('is_telemetry_available'),
+        invoke<TelemetryQuestion>('get_telemetry_question'),
+        invoke<boolean>('medical_data_question_due'),
     ]);
-    return modelDue || remoteMicDue || (telemetryAvailable && !settings.telemetry_asked);
+    const due: [StartupStep, boolean][] = [
+        ['model', isModelMissing(modelStatus)],
+        ['remote-mic', remoteMicDue],
+        ['telemetry', telemetry.due],
+        ['medical-data', medicalDataDue],
+        ['update-channel', !settings.app_update_channel_asked],
+    ];
+    return {
+        steps: due.filter(([, isDue]) => isDue).map(([step]) => step),
+        offerTelemetryNeverAgain: telemetry.offer_never_again,
+    };
 };
+
+/** Whether the wizard opens this launch (the medical data offer then waits for the next one). */
+export const isStartupWizardDue = async (): Promise<boolean> => (await getDueSteps()).steps.length > 0;
