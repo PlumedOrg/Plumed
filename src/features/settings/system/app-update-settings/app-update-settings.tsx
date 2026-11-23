@@ -1,22 +1,13 @@
 import { RefreshCcw } from 'lucide-react';
 import { SettingsUI } from '@/components/settings-ui';
 import { Typography } from '@/components/typography';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/select';
 import { useTranslation } from '@/i18n';
-import { AppUpdateChannel } from '@/features/settings/settings.types';
-import { useAppUpdateChannel } from '@/features/update-checker/hooks/use-app-update-channel';
-
-const CHANNELS: { value: AppUpdateChannel; label: string }[] = [
-    { value: 'stable', label: 'Stable versions' },
-    { value: 'beta', label: 'Beta versions' },
-    { value: 'disabled', label: 'Disabled' },
-];
+import { AppUpdateChannelSelect } from '@/features/update-checker/app-update-channel-select/app-update-channel-select';
 
 // Plumed fork (written with Claude Code): which app releases the updater
 // offers (see AGENTS.FORK.md, auto-updater section).
 export const AppUpdateSettings = () => {
     const { t } = useTranslation();
-    const [channel, setChannel] = useAppUpdateChannel();
 
     return (
         <SettingsUI.Item>
@@ -31,18 +22,7 @@ export const AppUpdateSettings = () => {
                     )}
                 </Typography.Paragraph>
             </SettingsUI.Description>
-            <Select value={channel ?? undefined} onValueChange={(value) => void setChannel(value as AppUpdateChannel)}>
-                <SelectTrigger className="w-[180px]" data-testid="app-update-channel-select">
-                    <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                    {CHANNELS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                            {t(option.label)}
-                        </SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
+            <AppUpdateChannelSelect />
         </SettingsUI.Item>
     );
 };
