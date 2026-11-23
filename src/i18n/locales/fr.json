@@ -400,7 +400,6 @@
     "Scan this QR code with the phone camera.": "Scannez ce QR code avec l'appareil photo du téléphone.",
     "To switch to another phone, scan this QR code with it.": "Pour passer à un autre téléphone, scannez ce QR code avec lui.",
     "Pair another phone": "Appairer un autre téléphone",
-    "Experimental": "Expérimental",
     "Experimental: this feature is a pre-release. Expect bugs, and update Plumed when asked.": "Expérimental : cette fonctionnalité est une préversion. Attendez-vous à des bugs, et mettez Plumed à jour quand c'est demandé.",
     "Phone connected. Dictate on the phone: the text is pasted here.": "Téléphone connecté. Dictez sur le téléphone : le texte est collé ici.",
     "Relay server": "Serveur relais",
@@ -638,8 +637,6 @@
     "Downloaded from {{source}}.": "Téléchargé depuis {{source}}.",
     "Recommended": "Recommandé",
     "the proven model, needs about 2 GB of memory": "le modèle éprouvé, demande environ 2 Go de mémoire",
-    "still experimental, needs about 2 GB of memory": "encore expérimental, demande environ 2 Go de mémoire",
-    "still experimental, 1.7x smaller download, 20% less memory": "encore expérimental, téléchargement 1,7x plus petit, 20 % de mémoire en moins",
     "1.7x smaller download, 20% less memory, barely less accurate": "téléchargement 1,7x plus petit, 20 % de mémoire en moins, à peine moins précis",
     "2.3x smaller download, but nearly twice as many errors": "téléchargement 2,3x plus petit, mais presque deux fois plus d'erreurs",
     "No model downloaded": "Aucun modèle téléchargé",
@@ -690,5 +687,11 @@
     "What you say": "Ce que vous dites",
     "The text it is replaced by (several lines allowed)": "Le texte qui la remplace (plusieurs lignes possibles)",
     "Importing text template changes...": "Importation des modifications des textes types...",
-    "Late PhoneMic transcript: saved in the history, not pasted": "Transcription PhoneMic arrivée en retard : conservée dans l'historique, non collée"
+    "Late PhoneMic transcript: saved in the history, not pasted": "Transcription PhoneMic arrivée en retard : conservée dans l'historique, non collée",
+    "often much worse than v1 for now": "souvent bien moins bon que la v1 pour l'instant",
+    "(EXPERIMENTAL)": "(EXPÉRIMENTAL)",
+    "Experimental model": "Modèle expérimental",
+    "{{name}} is an experimental version: it often produces much worse results than UltiMed v1. Stick to UltiMed v1 until v2 is fixed or v3 is released.": "{{name}} est une version expérimentale : ses résultats sont souvent bien moins bons que ceux d'UltiMed v1. Restez sur UltiMed v1 en attendant que la v2 soit corrigée ou que la v3 sorte.",
+    "Choose it anyway": "Le choisir quand même",
+    "Stick to UltiMed v1": "Rester sur UltiMed v1"
 }

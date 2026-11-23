@@ -6,6 +6,7 @@ import { toast } from 'react-toastify';
 import { Button } from '@/components/button';
 import { Typography } from '@/components/typography';
 import { useTranslation } from '@/i18n';
+import { ExperimentalModelDialog } from '../experimental-model-dialog/experimental-model-dialog';
 import { useModelDownload } from '../hooks/use-model-download';
 import { downloadErrorMessage, formatBytes, progressLabel, sourceLabel } from '../model.helpers';
 import { ModelStatus, ModelVariantStatus } from '../types';
@@ -27,12 +28,22 @@ export const ModelChooser = ({ status, onStatus }: ModelChooserProps) => {
     const [chosen, setChosen] = useState(() => initialChoice(status));
     const [busy, setBusy] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState(false);
+    const [warnFor, setWarnFor] = useState<ModelVariantStatus | null>(null);
     const downloading = download.running || status.downloading != null;
     const variant = status.variants.find((v) => v.id === chosen);
 
-    const choose = (id: string) => {
+    const select = (id: string) => {
         setChosen(id);
         setConfirmDelete(false);
+    };
+
+    // Picking an experimental model asks first.
+    const choose = (v: ModelVariantStatus) => {
+        if (v.experimental && v.id !== chosen) {
+            setWarnFor(v);
+        } else {
+            select(v.id);
+        }
     };
 
     const whileBusy = async (job: () => Promise<void>) => {
@@ -155,6 +166,16 @@ export const ModelChooser = ({ status, onStatus }: ModelChooserProps) => {
 
     return (
         <div className="space-y-3" data-testid="model-chooser">
+            <ExperimentalModelDialog
+                name={warnFor?.name ?? null}
+                onKeep={() => setWarnFor(null)}
+                onChooseAnyway={() => {
+                    if (warnFor != null) {
+                        select(warnFor.id);
+                    }
+                    setWarnFor(null);
+                }}
+            />
             <div className="space-y-2" role="radiogroup">
                 {status.variants.map((v) => (
                     <button
@@ -163,7 +184,7 @@ export const ModelChooser = ({ status, onStatus }: ModelChooserProps) => {
                         role="radio"
                         aria-checked={v.id === chosen}
                         disabled={!v.available || downloading}
-                        onClick={() => choose(v.id)}
+                        onClick={() => choose(v)}
                         className={clsx(
                             'w-full rounded-md border px-3 py-2 text-left text-sm transition-colors',
                             v.id === chosen ? 'border-sky-400 bg-sky-500/10' : 'border-surface-border',
@@ -174,6 +195,7 @@ export const ModelChooser = ({ status, onStatus }: ModelChooserProps) => {
                         <div className="flex items-center justify-between gap-2">
                             <span className="font-medium" title={v.family}>
                                 {v.name}
+                                {v.experimental && ` ${t('(EXPERIMENTAL)')}`}
                                 {v.id === status.recommended && (
                                     <span className="ml-2 text-xs font-normal text-sky-400">{t('Recommended')}</span>
                                 )}

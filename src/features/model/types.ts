@@ -13,6 +13,8 @@ export interface ModelVariantStatus {
     size: number;
     /** False while the variant cannot run yet ("coming soon"). */
     available: boolean;
+    /** Listed last with "(EXPERIMENTAL)"; choosing it shows a warning. */
+    experimental: boolean;
     /** Where the installed copy came from, null when it is not installed. */
     installed: ModelSource | null;
     /** Bytes already on disk: a download to resume. */

@@ -25,6 +25,7 @@ pub struct VariantStatus {
     pub summary: &'static str,
     pub size: u64,
     pub available: bool,
+    pub experimental: bool,
     /// Installed with this source (cheap check).
     pub installed: Option<Source>,
     /// Bytes already on disk (a download to resume).
@@ -71,6 +72,7 @@ pub fn status(app: &AppHandle) -> ModelStatus {
             summary: v.summary,
             size: v.total_size(),
             available: v.available,
+            experimental: v.experimental,
             installed: root.as_deref().and_then(|r| store::installed_source(r, v)),
             downloaded: root.as_deref().map_or(0, |r| store::bytes_on_disk(r, v)),
         })

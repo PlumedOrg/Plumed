@@ -46,6 +46,9 @@ pub struct Variant {
     pub files: &'static [ModelFile],
     /// False while the engine cannot run it: shown as "coming soon".
     pub available: bool,
+    /// Listed last, labelled "(EXPERIMENTAL)", and choosing it shows a
+    /// warning; never recommended.
+    pub experimental: bool,
 }
 
 impl Variant {
@@ -111,8 +114,8 @@ const ULTRA_DECODER_INT8: ModelFile = ModelFile {
 };
 
 /// Every variant, in the order the UI lists them (the first available one
-/// is the default, see `recommended`). v1 comes first: v2 stays selectable but
-/// is still being evaluated against it. The v2 ids keep their original names
+/// is the default, see `recommended`). v1 comes first; v2 is experimental (it
+/// often does much worse than v1), so it is listed last and warned about. The v2 ids keep their original names
 /// ("ultra-int8", "ultra-w4a8") so existing installs keep their model. Every
 /// model uses the same medical data (rules mined from v2, see `MODEL_ID`).
 pub const VARIANTS: &[Variant] = &[
@@ -134,6 +137,7 @@ pub const VARIANTS: &[Variant] = &[
             CONFIG,
         ],
         available: true,
+        experimental: false,
     },
     Variant {
         id: "ultra-v1-w4a8",
@@ -153,12 +157,13 @@ pub const VARIANTS: &[Variant] = &[
             CONFIG,
         ],
         available: true,
+        experimental: false,
     },
     Variant {
         id: "ultra-int8",
         family: &ULTRA,
         name: "UltiMed v2 int8",
-        summary: "still experimental, needs about 2 GB of memory",
+        summary: "often much worse than v1 for now",
         files: &[
             ModelFile {
                 path: "int8/encoder-model.int8.onnx",
@@ -172,12 +177,13 @@ pub const VARIANTS: &[Variant] = &[
             CONFIG,
         ],
         available: true,
+        experimental: true,
     },
     Variant {
         id: "ultra-w4a8",
         family: &ULTRA,
         name: "UltiMed v2 w4a8",
-        summary: "still experimental, 1.7x smaller download, 20% less memory",
+        summary: "often much worse than v1 for now",
         files: &[
             ModelFile {
                 path: "w4a8/encoder-model.w4a8.onnx",
@@ -191,6 +197,7 @@ pub const VARIANTS: &[Variant] = &[
             CONFIG,
         ],
         available: true,
+        experimental: true,
     },
     // TODO: ONNX Runtime 1.31 runs the redux w2a8 encoder (1.23 refused its
     // 2-bit MatMulNBits), but it is kept off for its accuracy: on the 400
@@ -222,6 +229,7 @@ pub const VARIANTS: &[Variant] = &[
             CONFIG,
         ],
         available: false,
+        experimental: true,
     },
 ];
 
@@ -246,7 +254,7 @@ pub fn recommended(total_memory: Option<u64>) -> &'static Variant {
     match total_memory {
         Some(total) if total < LOW_MEMORY => VARIANTS
             .iter()
-            .filter(|v| v.available)
+            .filter(|v| v.available && !v.experimental)
             .min_by_key(|v| v.total_size())
             .unwrap_or(default),
         _ => default,
@@ -298,6 +306,10 @@ mod tests {
     fn the_first_variant_is_available_and_sizes_add_up() {
         assert!(VARIANTS[0].available);
         assert_eq!(VARIANTS[0].id, "ultra-v1-int8");
+        let first_experimental = VARIANTS.iter().position(|v| v.experimental).unwrap();
+        assert!(VARIANTS[first_experimental..]
+            .iter()
+            .all(|v| v.experimental));
         // int8: 668 MB, w4a8: 402 MB, for v1 and v2 alike
         assert_eq!(VARIANTS[0].total_size(), 667_868_883);
         assert_eq!(VARIANTS[1].total_size(), 401_792_773);

@@ -222,6 +222,7 @@ pub(crate) mod tests {
             summary: "",
             files: Box::leak(files.into_boxed_slice()),
             available: true,
+            experimental: false,
         }))
     }
 
