@@ -61,3 +61,5 @@ AGENTS.local.md
 # Plumed remote microphone relay: local deploy script and secrets
 /remote_microphone_server/deploy.sh
 /remote_microphone_server/.env
+
+PlumedOrg-repo
