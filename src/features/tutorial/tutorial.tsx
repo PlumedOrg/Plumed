@@ -14,6 +14,7 @@ import {
     SpokenCommand,
     TEMPLATE_EXAMPLE,
 } from './tutorial.data';
+import { commandId, useUsedCommands } from './tutorial-progress';
 import { TutorialTemplate } from './tutorial-template';
 
 interface SectionProps {
@@ -30,16 +31,31 @@ const Section = ({ title, intro, children }: SectionProps) => (
     </section>
 );
 
-const CommandTable = ({ commands }: { commands: SpokenCommand[] }) => (
-    <ul className="grid grid-cols-1 gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
-        {commands.map((command) => (
-            <li key={command.say} className="flex items-baseline justify-between gap-3">
-                <span>« {command.say} »</span>
-                <code className="rounded bg-muted px-1.5 py-0.5 text-xs">{command.writes}</code>
-            </li>
-        ))}
-    </ul>
-);
+/** Examples not dictated yet are purple, the ones already tried fade to grey. */
+const CommandTable = ({ commands }: { commands: SpokenCommand[] }) => {
+    const { t } = useTranslation();
+    const used = useUsedCommands();
+    return (
+        <ul className="grid grid-cols-1 gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
+            {commands.map((command) => {
+                const isUsed = used.has(commandId(command));
+                return (
+                    <li
+                        key={command.say}
+                        className="flex items-baseline justify-between gap-3"
+                        data-used={isUsed}
+                        title={isUsed ? t('Already dictated') : t('Not dictated yet')}
+                    >
+                        <span className={isUsed ? 'text-muted-foreground' : 'font-medium text-violet-400'}>
+                            « {command.say} »
+                        </span>
+                        <code className="rounded bg-muted px-1.5 py-0.5 text-xs">{command.writes}</code>
+                    </li>
+                );
+            })}
+        </ul>
+    );
+};
 
 // Plumed fork (written with Claude Code): a short guide to dictating well,
 // shown on first launch. The spoken commands are the ones the default formatting
@@ -75,6 +91,11 @@ export const Tutorial = () => {
                 </Typography.MainTitle>
                 <Typography.Paragraph>
                     {t('Five minutes to dictate well. You can come back to this page at any time.')}
+                </Typography.Paragraph>
+                <Typography.Paragraph>
+                    {t(
+                        'Try each example once in a dictation: the ones in purple are still to try, they turn grey once used.'
+                    )}
                 </Typography.Paragraph>
             </Page.Header>
 

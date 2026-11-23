@@ -51,6 +51,14 @@ export const SHORTHAND_COMMANDS: SpokenCommand[] = [
  */
 export const TEMPLATE_EXAMPLE: SpokenCommand = { say: "Insère l'examen clinique normal.", writes: '' };
 
+/** Every example the tutorial asks to try once. */
+export const ALL_EXAMPLES: SpokenCommand[] = [
+    ...LAYOUT_COMMANDS,
+    ...PUNCTUATION_COMMANDS,
+    ...SHORTHAND_COMMANDS,
+    TEMPLATE_EXAMPLE,
+];
+
 /** A word alone is ambiguous for the model, a sentence gives it context. */
 export const CONTEXT_EXAMPLE = {
     tooShort: 'venlafaxine',

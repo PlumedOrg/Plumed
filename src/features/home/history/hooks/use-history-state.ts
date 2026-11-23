@@ -3,7 +3,7 @@ import { listen } from '@tauri-apps/api/event';
 import { useState, useEffect } from 'react';
 import { HistoryStep } from '../history-steps/history-steps.helpers';
 
-interface HistoryEntry {
+export interface HistoryEntry {
     id: number;
     timestamp: number;
     text: string;

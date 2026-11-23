@@ -9,6 +9,7 @@ import { ConfigImportedListener } from './listeners/config-imported-listener';
 import { RemoteMicLateListener } from './listeners/remote-mic-late-listener';
 import { WaylandListener } from './listeners/wayland-listener';
 import { TrayMenuI18nListener } from './listeners/tray-menu-i18n-listener';
+import { TutorialProgressListener } from './listeners/tutorial-progress-listener';
 import { StartupWizard } from '@/features/onboarding/startup-wizard/startup-wizard';
 
 export const Layout = () => {
@@ -21,6 +22,7 @@ export const Layout = () => {
             <RemoteMicLateListener />
             <WaylandListener />
             <TrayMenuI18nListener />
+            <TutorialProgressListener />
             <StartupWizard />
             <AppSidebar />
             <SidebarInset
