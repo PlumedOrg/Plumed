@@ -198,7 +198,9 @@ jobs:
                   cp packaging/aur/PKGBUILD "$STAGING/"
                   cp "$(find src-tauri/target/release/bundle -name 'Plumed_amd64.deb')" "$STAGING/"
                   VERSION=$(node -p "require('./package.json').version")
-                  sed -i "s/@VERSION@/$VERSION/" "$STAGING/PKGBUILD"
+                  # pacman forbids hyphens in pkgver: 0.2.0-beta.1 becomes 0.2.0beta.1, which vercmp
+                  # still sorts before 0.2.0.
+                  sed -i "s/@VERSION@/${VERSION//-/}/" "$STAGING/PKGBUILD"
                   docker run --rm -v "$STAGING":/build archlinux:base-devel bash -c "useradd -m builder && chown -R builder /build && su builder -c 'cd /build && makepkg --noconfirm --nodeps' && chown -R $(id -u):$(id -g) /build"
                   mkdir -p src-tauri/target/release/bundle/pacman
                   mv "$STAGING"/plumed-*.pkg.tar.zst src-tauri/target/release/bundle/pacman/Plumed_amd64.pkg.tar.zst
