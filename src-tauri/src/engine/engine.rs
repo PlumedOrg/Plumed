@@ -1,5 +1,6 @@
 use ndarray::{Array, Array1, Array2, ArrayD, ArrayView1, ArrayViewD, Axis, IxDyn};
 use once_cell::sync::Lazy;
+use ort::environment::Environment;
 use ort::ep::CPU;
 use ort::inputs;
 use ort::session::builder::GraphOptimizationLevel;
@@ -9,6 +10,7 @@ use regex::Regex;
 
 use std::fs;
 use std::path::Path;
+use std::sync::OnceLock;
 
 use super::boost_tree::{BiasCandidate, BoostTree};
 use super::helpers::{load_tokenizer, tokenize_word_to_ids, word_variants};
@@ -173,6 +175,19 @@ pub(super) fn argmax_index(logits: &[f32]) -> usize {
         }
     }
     best
+}
+
+static ORT_ENVIRONMENT: OnceLock<Environment> = OnceLock::new();
+
+/// The one ONNX Runtime environment every session is built in, created on
+/// first use. Telemetry is turned off explicitly: Microsoft's builds enable
+/// it by default on Windows, and nothing may leave the machine.
+fn ort_environment() -> Result<&'static Environment, ParakeetError> {
+    if let Some(environment) = ORT_ENVIRONMENT.get() {
+        return Ok(environment);
+    }
+    let environment = ort::init().with_telemetry(false).build()?;
+    Ok(ORT_ENVIRONMENT.get_or_init(|| environment))
 }
 
 impl Drop for ParakeetModel {
@@ -353,7 +368,7 @@ impl ParakeetModel {
             regular_name
         };
 
-        let mut builder = Session::builder()?
+        let mut builder = Session::builder(ort_environment()?)?
             .with_config_entry("session.log_severity_level", "3")?
             .with_optimization_level(GraphOptimizationLevel::Level3)?
             .with_execution_providers(providers)?

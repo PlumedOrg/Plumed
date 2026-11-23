@@ -1,4 +1,5 @@
 use ndarray::Array3;
+use ort::session::builder::SessionBuilder;
 use ort::session::Session;
 use serde::{Deserialize, Serialize};
 use tokenizers::Tokenizer;
@@ -33,6 +34,14 @@ pub enum ParakeetError {
     OutputNotFound(String),
     #[error("Failed to get tensor shape for input: {0}")]
     TensorShape(String),
+}
+
+/// Session builder calls fail with an error that can give the builder back;
+/// the engine never retries, so it keeps only the message.
+impl From<ort::Error<SessionBuilder>> for ParakeetError {
+    fn from(error: ort::Error<SessionBuilder>) -> Self {
+        Self::Ort(error.into())
+    }
 }
 
 pub struct ParakeetModel {
