@@ -2,7 +2,7 @@
 
 ## regex-fixes/
 
-Drug-name and medical-term fix rules (45,110 regexes, release v2.0.2, mined from the errors of the UltiMed v2 model), applied by `src-tauri/src/medical/drug_rules.rs` in this order: `drug_fix_rules.jsonl` (4,145 rules), `dictionary_fix_rules.jsonl` (36,177), `parhaf_fix_rules.jsonl` (2,502), `parrot_fix_rules.jsonl` (138), `acronyms_fix_rules.jsonl` (47), then `manual_fix_rules.jsonl` (2,101, hand-written, last so its spelling conventions also respell what a learned rule wrote).
+Drug-name and medical-term fix rules (45,112 regexes, release v2.0.3, mined from the errors of the UltiMed v2 model), applied by `src-tauri/src/medical/drug_rules.rs` in this order: `drug_fix_rules.jsonl` (4,145 rules), `dictionary_fix_rules.jsonl` (36,177), `parhaf_fix_rules.jsonl` (2,502), `parrot_fix_rules.jsonl` (138), `acronyms_fix_rules.jsonl` (47), then `manual_fix_rules.jsonl` (2,103, hand-written, last so its spelling conventions also respell what a learned rule wrote).
 
 - Byte for byte copies of the `rules/` folder of https://github.com/UltiMed-Org/UltiMed-ASR-FR-v2-regex-fixes (plus its `confusion_groups.jsonl`, which is not a rule file: the decoder's second pass, `src-tauri/src/engine/confusion.rs`, re-scores on the audio the decoded words listed there, keeping only the 68 genuinely ambiguous groups of the 415 (v2.0.1 dropped the candidates that only differ by a silent plural or feminine ending)). The commit and SHA-256 of each file are in `regex-fixes/PROVENANCE`. Do not edit them here: users change rules from the app (their edits are stored on top, see below), and rule improvements go to the rules repo.
 - How the rules are built: https://github.com/UltiMed-Org/UltiMed-ASR-FR-v2-regex-fixes/tree/main/scripts
