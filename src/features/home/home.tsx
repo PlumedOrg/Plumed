@@ -1,6 +1,7 @@
 import { AudioVisualizer } from './audio-visualizer/audio-visualizer';
 import { History } from './history/history';
 import { Page } from '@/components/page';
+import { LocalPill } from './local-pill/local-pill';
 import { Statistics } from './statistics/statistics';
 import { WaylandCliOnboardingCard } from '../onboarding/wayland-cli-onboarding-card/wayland-cli-onboarding-card';
 import { WaylandClipboardFallbackCard } from '../onboarding/wayland-clipboard-fallback-card/wayland-clipboard-fallback-card';
@@ -18,6 +19,7 @@ export const Home = () => {
     return (
         <main className="space-y-4 relative">
             <Page.Header className="space-y-4">
+                <LocalPill />
                 <Statistics />
             </Page.Header>
             {isWayland && <WaylandCliOnboardingCard />}

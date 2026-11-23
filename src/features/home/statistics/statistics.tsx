@@ -1,19 +1,19 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/tooltip';
 import { Typography } from '@/components/typography';
-import { Gauge, HardDrive, Hourglass } from 'lucide-react';
+import { Gauge, Hourglass } from 'lucide-react';
 import { useGetStatistic } from './hooks/use-get-statistic';
-import { computeTypingMultiplier, formatData, formatResetMonths, formatTimeSaved } from './statistics.helpers';
+import { computeTypingMultiplier, formatResetMonths, formatTimeSaved } from './statistics.helpers';
 import { StatCard } from './stat-card/stat-card';
 import { useTranslation } from '@/i18n';
 
 export const Statistics = () => {
-    const { wpm, words, localAudioMb, timeSavedSeconds, nextResetTimestamp } = useGetStatistic();
+    const { wpm, words, timeSavedSeconds, nextResetTimestamp } = useGetStatistic();
     const { t, i18n } = useTranslation();
 
     const multiplier = computeTypingMultiplier(wpm);
 
     // Hide stats entirely until the user has actually dictated something.
-    if (wpm <= 0 && words <= 0 && localAudioMb <= 0 && timeSavedSeconds <= 0) {
+    if (wpm <= 0 && words <= 0 && timeSavedSeconds <= 0) {
         return null;
     }
 
@@ -55,28 +55,6 @@ export const Statistics = () => {
                         <br />
                         <br />
                         {t('A fast keyboard user usually types around 80 words per minute. You can speak much faster.')}
-                    </Typography.Paragraph>
-                </TooltipContent>
-            </Tooltip>
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <StatCard
-                        tabIndex={0}
-                        icon={HardDrive}
-                        value={formatData(localAudioMb, i18n.language, { MB: t('MB'), GB: t('GB'), TB: t('TB') })}
-                        label={t('Processed locally')}
-                    />
-                </TooltipTrigger>
-                <TooltipContent>
-                    <Typography.Paragraph className="text-white text-xs max-w-64">
-                        {t(
-                            'The total volume of audio Murmure has processed locally on your device since you started using it.'
-                        )}
-                        <br />
-                        <br />
-                        {t(
-                            'All audio files are deleted after processing, and your transcriptions stay in memory (RAM), never written to disk or sent to the cloud.'
-                        )}
                     </Typography.Paragraph>
                 </TooltipContent>
             </Tooltip>
