@@ -99,7 +99,7 @@ export const tabStepNumber = (tab: CorrectionsTab): number | null => {
  * read the same.
  */
 export const CORRECTIONS_TAB_LABELS: Record<CorrectionsTab, string> = {
-    explanation: 'Explanation',
+    explanation: 'Explanations',
     vocabulary: 'Medical vocabulary',
     'sound-alikes': 'Sound-alike words',
     dictionary: 'Personal dictionary',
