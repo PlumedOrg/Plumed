@@ -54,7 +54,11 @@
             "icons/icon.icns",
             "icons/icon.ico"
         ],
-        "resources": ["../resources/**/*"],
+        "resources": [
+            "../resources/tokenizer.json",
+            "../resources/audio/**/*",
+            "../resources/grammalecte/**/*"
+        ],
         "macOS": {
             "entitlements": "./Entitlements.plist"
         },
@@ -62,7 +66,9 @@
             "appimage": {
                 "files": {
                     "/usr/share/README.md": "../README.md",
-                    "/usr/resources": "../resources/"
+                    "/usr/resources/tokenizer.json": "../resources/tokenizer.json",
+                    "/usr/resources/audio": "../resources/audio/",
+                    "/usr/resources/grammalecte": "../resources/grammalecte/"
                 }
             },
             "deb": {
