@@ -135,7 +135,7 @@ export const RemoteMicSession = (props: RemoteMicSessionProps) => {
             <div className="flex flex-col items-center gap-4 p-6">
                 <Typography.Paragraph className="flex items-center gap-2 text-center text-yellow-300/90">
                     <FlaskConical className="w-4 h-4 shrink-0" />
-                    {t('Alpha: this feature is a pre-release. Expect bugs, and update Plumed when asked.')}
+                    {t('Experimental: this feature is a pre-release. Expect bugs, and update Plumed when asked.')}
                 </Typography.Paragraph>
                 <Body {...props} />
             </div>

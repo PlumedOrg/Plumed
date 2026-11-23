@@ -26,7 +26,7 @@ export const RemoteMic = () => {
                     colorScheme="standard"
                     titleTestId="remote-mic-title"
                     subtitle={t('Dictate from your phone, even on a different network, through an encrypted relay.')}
-                    badge={t('Alpha')}
+                    badge={t('Experimental')}
                 />
                 <ExtensionEnableAction
                     icon={RadioTower}
@@ -59,7 +59,7 @@ export const RemoteMic = () => {
                 title={title}
                 colorScheme="standard"
                 titleTestId="remote-mic-title"
-                badge={t('Alpha')}
+                badge={t('Experimental')}
                 toggle={{
                     checked: settings.enabled,
                     onCheckedChange: settings.setEnabled,
