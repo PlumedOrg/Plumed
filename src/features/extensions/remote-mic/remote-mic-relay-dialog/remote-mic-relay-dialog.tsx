@@ -117,7 +117,7 @@ export const RemoteMicRelayDialog = ({ open, onCancel, onConfirmed }: RemoteMicR
                     <TriangleAlert className="w-4 h-4 shrink-0 mt-0.5" />
                     <span>
                         {t(
-                            'The relay is not an HDS server (certified health data host). PhoneMic is an alpha feature: it may not be suitable for real patient data yet.'
+                            'The relay is not an HDS server (certified health data host). PhoneMic is an alpha feature: avoid sending sensitive content through it.'
                         )}{' '}
                         <ExternalLink href={HDS_INFO_URL}>{t('What is HDS?')}</ExternalLink>
                     </span>

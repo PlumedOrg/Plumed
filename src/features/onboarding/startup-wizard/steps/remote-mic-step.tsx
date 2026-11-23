@@ -47,7 +47,7 @@ export const RemoteMicStep = ({ onNext }: StepProps) => {
             >
                 <div className="flex gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-500">
                     <TriangleAlert className="w-4 h-4 shrink-0 mt-0.5" />
-                    <span>{t('PhoneMic is an alpha feature: it may not be suitable for real patient data yet.')}</span>
+                    <span>{t('PhoneMic is an alpha feature: avoid sending sensitive content through it.')}</span>
                 </div>
                 <p className="text-sm">
                     {t(

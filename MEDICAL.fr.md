@@ -52,7 +52,7 @@ Cet audio reste uniquement en mémoire vive, n'est jamais écrit sur le disque, 
 
 Désactivé par défaut : **PhoneMic** dans la barre latérale.
 
-Avec PhoneMic, le téléphone sert de micro, même s'il n'est pas sur le même réseau que l'ordinateur (4G, Wi-Fi invité de l'hôpital) :
+Avec PhoneMic, le téléphone sert de micro, même s'il n'est pas sur le même réseau que l'ordinateur (4G, Wi-Fi invité d'un établissement) :
 
 1. Cliquer sur **Connecter un téléphone** : un QR code s'affiche.
 2. Le scanner avec l'appareil photo du téléphone. La page PhoneMic de Plumed s'ouvre (en français, ou en anglais), sans rien installer.
@@ -61,7 +61,7 @@ Avec PhoneMic, le téléphone sert de micro, même s'il n'est pas sur le même r
 
 L'audio passe par un serveur relais (`https://turn.plumed.fr` par défaut, modifiable), mais il est chiffré de bout en bout entre le téléphone et Plumed : le relais ne peut pas l'écouter. La vérification du code empêche un relais malveillant de s'intercaler. Cette garantie suppose que le relais sert une page téléphone non modifiée (la page et son code de chiffrement viennent du relais) : n'utilisez qu'un relais de confiance, ou hébergez le vôtre. Le relais voit en revanche les adresses IP et la taille des paquets chiffrés. Le téléphone se reconnecte tout seul après une coupure réseau, mais recharger la page demande de scanner à nouveau le QR code. Une fois connecté, le bouton « Appairer un autre téléphone » réaffiche le QR code pour changer de téléphone.
 
-Seul le relais HTTPS est utilisé (pas de WebRTC, souvent bloqué sur les réseaux hospitaliers), et le proxy système est respecté.
+Seul le relais HTTPS est utilisé (pas de WebRTC, souvent bloqué sur les réseaux d'entreprise ou d'établissement), et le proxy système est respecté.
 
 ## Règles de dictée InterHop (installées par défaut)
 
