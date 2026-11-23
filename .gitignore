@@ -69,3 +69,6 @@ PlumedOrg-repo
 
 # Local deb build helper (builds, installs with dpkg, offers to delete the build dir)
 /build_locally.sh
+
+# Local secrets for build_locally.sh
+/.env
