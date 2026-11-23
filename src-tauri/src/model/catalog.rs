@@ -317,6 +317,31 @@ mod tests {
         assert_eq!(find("ultra-w4a8").unwrap().total_size(), 401_792_773);
     }
 
+    /// The dev fallback model (`scripts/fetch-ultimed-model.sh`) must be the
+    /// default variant, file for file, or dev builds test another model.
+    #[test]
+    fn the_fetch_script_pins_the_default_variant() {
+        let script = include_str!("../../../scripts/fetch-ultimed-model.sh");
+        let default = &VARIANTS[0];
+        let mut expected = vec![
+            format!("VARIANT=\"{}\"", default.id),
+            format!("REPO=\"{}\"", default.family.repo.repo),
+            format!("REVISION=\"{}\"", default.family.repo.revision),
+        ];
+        expected.extend(
+            default
+                .files
+                .iter()
+                .map(|f| format!("\"{} {}\"", f.path, f.sha256)),
+        );
+        for line in expected {
+            assert!(
+                script.contains(&line),
+                "fetch-ultimed-model.sh lacks {line}"
+            );
+        }
+    }
+
     #[test]
     fn the_default_is_recommended_with_enough_or_unknown_memory() {
         assert_eq!(recommended(None).id, VARIANTS[0].id);

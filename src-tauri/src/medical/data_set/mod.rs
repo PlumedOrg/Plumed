@@ -25,7 +25,8 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, OnceLock, PoisonError};
 use tauri::{AppHandle, Manager};
 
-/// The model the bundled rules fix the errors of (`scripts/fetch-ultimed-model.sh`).
+/// The model the bundled rules were mined from (UltiMed v2). Every variant,
+/// v1 included, uses them, see `model::catalog::VARIANTS`.
 /// A downloaded set for another model is refused.
 pub const MODEL_ID: &str = "ultimed-v2";
 /// Version of the bundled data, the same shape as a manifest version.

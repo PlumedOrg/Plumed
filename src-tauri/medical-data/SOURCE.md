@@ -67,7 +67,7 @@ cd .. && cargo test --lib phrase_list
 
 The rule files, the confusion groups and the phrase list can be updated without an app release (code in `src-tauri/src/medical/data_set/` and `src-tauri/src/medical/data_update.rs`, section written with Claude Code). The bundled files above stay the fallback.
 
-Version of the bundled data: `BUNDLED_VERSION` in `src-tauri/src/medical/data_set/mod.rs` (bump it when the bundled files change, so a downloaded set older than the bundled one is ignored). Model the rules are for: `MODEL_ID` in the same file (`ultimed-v2`, the model of `scripts/fetch-ultimed-model.sh`).
+Version of the bundled data: `BUNDLED_VERSION` in `src-tauri/src/medical/data_set/mod.rs` (bump it when the bundled files change, so a downloaded set older than the bundled one is ignored). Model the rules are for: `MODEL_ID` in the same file (`ultimed-v2`, the model the rules were mined from; the default v1 model uses the same rules).
 
 ### Release layout
 
