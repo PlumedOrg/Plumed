@@ -1,133 +1,133 @@
-# Privacy Policy (Plumed)
+# Politique de confidentialité (Plumed)
 
-**Last updated:** November 23, 2026
+**Dernière mise à jour :** 23 novembre 2026
 
-Plumed is a privacy-first, open-source speech-to-text desktop application. It is designed to work without an internet connection and to keep your speech data on your device.
+Plumed est une application de bureau de reconnaissance vocale libre, qui place la confidentialité au premier plan. Elle est conçue pour fonctionner sans connexion internet et pour garder vos données vocales sur votre appareil.
 
-## Summary
+## Résumé
 
-- Nothing is sent unless you opt in to **anonymous usage statistics** (off by default, see below).
-- Your audio and transcriptions are processed **locally** on your device.
-- Plumed stores only what it needs to operate (settings, custom words/rules). No transcription is written to disk by default.
-- On first launch, Plumed downloads the speech model you pick, from Hugging Face or, if Hugging Face cannot be reached, from the Plumed model relay (`models.plumed.fr`). This is a plain file download with no identifier; it happens once and the model is kept across updates.
-- On startup, Plumed checks for updates by downloading a small file from GitHub, or from the Plumed relay (`models.plumed.fr`) if GitHub cannot be reached; no identifier is sent. You can choose stable or beta versions, or turn the automatic check off, in Settings > System > Online. Downloading updates is opt-in.
-- On first launch, Plumed asks whether it may check for medical rules updates at each start. Only if you agree (you can change it in Settings > System > Online) does it ask GitHub, on startup, whether newer medical rules exist: a plain download of a small signed file, with no identifier. Nothing is contacted before you answer. The new rules are downloaded only when you click "Download". You can also download them yourself with your browser and install them with "Install a downloaded update", which makes no network request.
+- Rien n'est envoyé, sauf si vous acceptez les **statistiques d'utilisation anonymes** (désactivées par défaut, voir plus bas).
+- Votre audio et vos transcriptions sont traités **localement** sur votre appareil.
+- Plumed ne conserve que ce dont il a besoin pour fonctionner (réglages, mots et règles personnalisés). Aucune transcription n'est écrite sur le disque par défaut.
+- Au premier lancement, Plumed télécharge le modèle de reconnaissance vocale que vous choisissez, depuis Hugging Face ou, si Hugging Face est inaccessible, depuis le relais de modèles de Plumed (`models.plumed.fr`). Il s'agit d'un simple téléchargement de fichiers, sans identifiant ; il a lieu une seule fois et le modèle est conservé lors des mises à jour.
+- Au démarrage, Plumed vérifie les mises à jour en téléchargeant un petit fichier depuis GitHub, ou depuis le relais de Plumed (`models.plumed.fr`) si GitHub est inaccessible ; aucun identifiant n'est envoyé. Vous pouvez choisir les versions stables ou bêta, ou désactiver la vérification automatique, dans Paramètres > En ligne. Le téléchargement des mises à jour est soumis à votre accord.
+- Au premier lancement, Plumed demande s'il peut vérifier, à chaque démarrage, les mises à jour des règles médicales. Uniquement si vous acceptez (vous pouvez le modifier dans Paramètres > En ligne), il demande à GitHub, au démarrage, s'il existe de nouvelles règles médicales : un simple téléchargement d'un petit fichier signé, sans identifiant. Rien n'est contacté avant que vous ayez répondu. Les nouvelles règles ne sont téléchargées que lorsque vous cliquez sur « Télécharger ». Vous pouvez aussi les télécharger vous-même avec votre navigateur et les installer avec « Installer une mise à jour téléchargée », ce qui n'effectue aucune requête réseau.
 
-## What Plumed does not do
+## Ce que Plumed ne fait pas
 
-- It does not sell user data, and collects none unless you opt in to anonymous usage statistics.
-- It does not upload your recordings or transcriptions to a cloud service by default.
-- It never sends what you dictate, your audio or any text, even with usage statistics on.
+- Il ne vend aucune donnée d'utilisateur et n'en collecte aucune, sauf si vous acceptez les statistiques d'utilisation anonymes.
+- Il n'envoie pas vos enregistrements ni vos transcriptions vers un service cloud par défaut.
+- Il n'envoie jamais ce que vous dictez, votre audio ou un quelconque texte, même lorsque les statistiques d'utilisation sont activées.
 
-## Data stored on your device
+## Données stockées sur votre appareil
 
-Plumed stores the following locally in the app's data directory:
+Plumed stocke localement les éléments suivants dans le dossier de données de l'application :
 
-- **Settings** (shortcuts, display settings, language)
-- **Custom dictionary words**
-- **Formatting rules**
-- **Medical rules** (`medical_rules.json`, your edits to the drug and medical term corrections)
-- **Medical vocabulary changes** (`medical_phrases.json`, the phrases you turned off or added to the medical phrase list)
-- **Sound-alike word changes** (`medical_confusion_groups.json`, the groups you turned off or added)
-- **Grammar rule changes** (`grammar_rules.json`, the grammar rules you turned off or on)
-- **Text template changes** (`text_templates.json`, the text templates you added, edited, turned on or off)
-- **Application logs** (do not contain transcriptions by default)
-- **Usage statistics counters** (`telemetry.json`, only if you opted in, see below)
-- **Downloaded medical rules** (`medical-data/` folder, only if you chose to download a medical data update; no personal data)
-- **Speech models** (`models/` folder, the model files you downloaded and which one is in use; no personal data)
+- **Les réglages** (raccourcis, paramètres d'affichage, langue)
+- **Les mots du dictionnaire personnalisé**
+- **Les règles de mise en forme**
+- **Les règles médicales** (`medical_rules.json`, vos modifications des corrections des médicaments et des termes médicaux)
+- **Les modifications du vocabulaire médical** (`medical_phrases.json`, les expressions que vous avez désactivées ou ajoutées à la liste d'expressions médicales)
+- **Les modifications des mots qui se ressemblent** (`medical_confusion_groups.json`, les groupes que vous avez désactivés ou ajoutés)
+- **Les modifications des règles de grammaire** (`grammar_rules.json`, les règles de grammaire que vous avez désactivées ou activées)
+- **Les modifications des modèles de texte** (`text_templates.json`, les modèles de texte que vous avez ajoutés, modifiés, activés ou désactivés)
+- **Les journaux de l'application** (ils ne contiennent pas de transcriptions par défaut)
+- **Les compteurs des statistiques d'utilisation** (`telemetry.json`, uniquement si vous les avez acceptées, voir plus bas)
+- **Les règles médicales téléchargées** (dossier `medical-data/`, uniquement si vous avez choisi de télécharger une mise à jour des données médicales ; aucune donnée personnelle)
+- **Les modèles de reconnaissance vocale** (dossier `models/`, les fichiers de modèle que vous avez téléchargés et celui qui est utilisé ; aucune donnée personnelle)
 
-By default, **no transcription is persisted to disk**. Transcription history is kept in memory only and is cleared when the application closes. If you explicitly enable the "Persist history" option, the last 5 transcriptions will be saved on disk in the app's data directory. Each history entry also keeps the text after each processing step (to show on the home page what each correction step changed); these texts follow exactly the same rules: in memory only by default, on disk only with "Persist history", and only for those last 5 transcriptions.
+Par défaut, **aucune transcription n'est conservée sur le disque**. L'historique des transcriptions est conservé uniquement en mémoire et il est effacé à la fermeture de l'application. Si vous activez explicitement l'option « Persistance de l'historique », les 5 dernières transcriptions sont enregistrées sur le disque, dans le dossier de données de l'application. Chaque entrée de l'historique conserve aussi le texte obtenu après chaque étape de traitement (pour montrer sur la page d'accueil ce que chaque étape de correction a modifié) ; ces textes suivent exactement les mêmes règles : en mémoire uniquement par défaut, sur le disque uniquement avec « Persistance de l'historique », et uniquement pour ces 5 dernières transcriptions.
 
-This local data is not transmitted by default.
+Ces données locales ne sont pas transmises par défaut.
 
-## Grammar step
+## Étape de grammaire
 
-The grammar checker (Grammalecte, step 7 of the corrections) is embedded in Plumed and runs on your computer. The text it checks is never sent anywhere and is not stored by this step.
+Le correcteur grammatical (Grammalecte, étape 7 des corrections) est intégré à Plumed et s'exécute sur votre ordinateur. Le texte qu'il vérifie n'est jamais envoyé nulle part et cette étape ne le conserve pas.
 
 ## Microphone
 
-Plumed does not listen to your microphone outside of an active recording session.
+Plumed n'écoute pas votre microphone en dehors d'une session d'enregistrement active.
 
-During a recording, the audio is written to a temporary WAV file in a `plumed_recordings` folder that only your user account can read: on Linux in the session runtime folder (`$XDG_RUNTIME_DIR`, in memory, erased at logout) when there is a usable one, otherwise in Plumed's cache folder. The file is deleted after transcription, unless you turned on "Keep audio recordings", which keeps the last 5.
+Pendant un enregistrement, l'audio est écrit dans un fichier WAV temporaire, dans un dossier `plumed_recordings` que seul votre compte utilisateur peut lire : sous Linux, dans le dossier d'exécution de la session (`$XDG_RUNTIME_DIR`, en mémoire, effacé à la déconnexion) lorsqu'il y en a un d'utilisable, sinon dans le dossier de cache de Plumed. Le fichier est supprimé après la transcription, sauf si vous avez activé « Conserver les enregistrements audio », qui conserve les 5 derniers.
 
-## Context for short dictations
+## Contexte pour les dictées courtes
 
-Enabled by default. To recognize very short dictations better (under 2 seconds, or 3 words or fewer), Plumed keeps the last 10 seconds of recent dictation audio **in memory only** and transcribes the short dictation behind it. This audio is never written to disk, never leaves your computer, and is discarded 5 minutes after the last dictation, when Plumed closes, or when the option is turned off.
+Activé par défaut. Pour mieux reconnaître les dictées très courtes (moins de 2 secondes, ou 3 mots au plus), Plumed conserve les 10 dernières secondes de l'audio des dictées récentes **en mémoire uniquement** et transcrit la dictée courte à la suite de cet audio. Cet audio n'est jamais écrit sur le disque, ne quitte jamais votre ordinateur et est supprimé 5 minutes après la dernière dictée, à la fermeture de Plumed, ou lorsque l'option est désactivée.
 
 ## PhoneMic (alpha)
 
-This feature is an alpha pre-release: expect bugs.
+Cette fonctionnalité est une préversion alpha : attendez-vous à des bogues.
 
-PhoneMic (the remote microphone) lets a phone on any network act as a microphone, through a relay server (by default `https://turn.plumed.fr`, configurable). It is **disabled by default**, and nothing is sent until you click "Connect a phone".
+PhoneMic (le microphone distant) permet à un téléphone, sur n'importe quel réseau, de servir de microphone, par l'intermédiaire d'un serveur relais (par défaut `https://turn.plumed.fr`, configurable). Il est **désactivé par défaut**, et rien n'est envoyé tant que vous n'avez pas cliqué sur « Connecter un téléphone ».
 
-- The phone page and the relay are Plumed's own (source in `remote_microphone_server/`). Audio is **encrypted end to end** (ECDH P-256 and AES-256-GCM) between the phone and Plumed: the relay forwards packets it cannot decrypt. This assumes the relay serves an unmodified phone page: the page and its crypto code come from the relay, so a compromised relay could serve a page that leaks audio.
-- Before any audio is accepted, both screens show the same short code and you must confirm on the computer that it matches. This blocks a relay that would try to put itself in the middle.
-- The relay keeps everything in memory and logs no IP address or room id, but it still sees network metadata: IP addresses, timing and the size of the encrypted packets (so roughly how long each dictation is). Use only a relay you or your institution trust.
-- Audio is kept in memory until it is transcribed, then discarded. The session ends when you click "Disconnect" or close Plumed.
+- La page du téléphone et le relais sont propres à Plumed (code source dans `remote_microphone_server/`). L'audio est **chiffré de bout en bout** (ECDH P-256 et AES-256-GCM) entre le téléphone et Plumed : le relais transmet des paquets qu'il ne peut pas déchiffrer. Cela suppose que le relais serve une page de téléphone non modifiée : la page et son code de chiffrement proviennent du relais, donc un relais compromis pourrait servir une page qui divulgue l'audio.
+- Avant que tout audio soit accepté, les deux écrans affichent le même court code et vous devez confirmer sur l'ordinateur qu'il correspond. Cela empêche un relais de s'interposer.
+- Le relais conserve tout en mémoire et n'enregistre aucune adresse IP ni aucun identifiant de salon, mais il voit tout de même des métadonnées réseau : les adresses IP, l'horaire et la taille des paquets chiffrés (donc, approximativement, la durée de chaque dictée). N'utilisez qu'un relais auquel vous-même ou votre établissement faites confiance.
+- L'audio est conservé en mémoire jusqu'à sa transcription, puis supprimé. La session prend fin lorsque vous cliquez sur « Déconnecter » ou fermez Plumed.
 
-## Anonymous usage statistics (opt-in)
+## Statistiques d'utilisation anonymes (sur consentement)
 
-Plumed asks once, at startup, whether you want to share anonymous usage statistics. They are **off unless you say yes**, and you can change your answer at any time in Settings > System > Online. The "See exactly what is sent" button shows the exact data that would be sent.
+Plumed demande une fois, au démarrage, si vous souhaitez partager des statistiques d'utilisation anonymes. Elles sont **désactivées sauf si vous répondez oui**, et vous pouvez modifier votre réponse à tout moment dans Paramètres > En ligne. Le bouton « Voir ce qui serait envoyé » affiche les données exactes qui seraient envoyées.
 
-- **Purpose**: improve Plumed (know which versions, systems and features are used, and how often errors happen). Nothing else: no advertising, no profiling, no resale.
-- **Legal basis**: your consent (GDPR art. 6(1)(a)).
-- **What is sent**, at most once a day and only on days you use Plumed: app version, update channel (stable, beta or disabled), operating system and processor architecture, installer type, interface language, days since you turned the statistics on, the model name (which catalog variant is in use, for example `ultra-int8`), the number of dictations of the period with their average and spread of duration and length in characters, duration buckets (under 10 s, 10 to 30 s, 30 to 120 s, over 120 s), processing speed, error counts (model loading, microphone, paste), and which features are on (as yes/no or coarse ranges such as "1-10 rules"), including how many text templates are turned on (a range, `text_templates`: 0, 1-10, 11-50 or more), and whether you ended the built-in tutorial (`tutorial_completed`, yes/no).
-- **What is never sent**: what you dictate, audio, your rules or dictionary words, file paths, computer or user names, the time of each dictation, detailed hardware.
-- **Identifier**: a random identifier, unrelated to you or your computer, tells the days of the same installation apart. It is renewed every 13 months and never extended.
-- **Where and how long**: sent to a self-hosted [Umami](https://umami.is) instance run by the Plumed maintainer in the European Union, kept at most 25 months. Umami does not store IP addresses; any location it derives from the connection is no finer than country or city. The web server in front of it keeps a technical access log (date, requested address, IP address, browser identification) for troubleshooting and security, deleted automatically after 24 hours (legal basis: legitimate interest in keeping the service secure and working).
-- **On your computer**: the counters of the current period and the identifier are kept in `telemetry.json` in the app's data directory until they are sent.
-- **If you answer "Later"**: Plumed keeps on your computer, in `telemetry_ask.json`, how many times you declined, the date, and the number of launches and dictations since then (plain counters, never sent), only to ask again after at least 7 days, 10 dictations and 3 launches. The third time, "Never ask again" is offered. Any definitive answer deletes this file.
-- **Withdrawal**: turning the option off in the settings stops all sending and deletes `telemetry.json` (identifier and counters) immediately.
+- **Finalité** : améliorer Plumed (savoir quelles versions, quels systèmes et quelles fonctionnalités sont utilisés, et à quelle fréquence des erreurs surviennent). Rien d'autre : ni publicité, ni profilage, ni revente.
+- **Base légale** : votre consentement (RGPD, art. 6, paragraphe 1, point a).
+- **Ce qui est envoyé**, au plus une fois par jour et uniquement les jours où vous utilisez Plumed : la version de l'application, le canal de mise à jour (stable, bêta ou désactivé), le système d'exploitation et l'architecture du processeur, le type d'installateur, la langue de l'interface, le nombre de jours depuis l'activation des statistiques, le nom du modèle (la variante du catalogue utilisée, par exemple `ultra-int8`), le nombre de dictées de la période avec la moyenne et la dispersion de leur durée et de leur longueur en caractères, des tranches de durée (moins de 10 s, de 10 à 30 s, de 30 à 120 s, plus de 120 s), la vitesse de traitement, le nombre d'erreurs (chargement du modèle, microphone, collage), et les fonctionnalités activées (sous forme de oui/non ou de fourchettes grossières comme « 1-10 règles »), y compris le nombre de modèles de texte activés (une fourchette, `text_templates` : 0, 1-10, 11-50 ou plus), et si vous êtes allé au bout du tutoriel intégré (`tutorial_completed`, oui/non).
+- **Ce qui n'est jamais envoyé** : ce que vous dictez, l'audio, vos règles ou les mots de votre dictionnaire, les chemins de fichiers, les noms d'ordinateur ou d'utilisateur, l'heure de chaque dictée, le détail du matériel.
+- **Identifiant** : un identifiant aléatoire, sans lien avec vous ni avec votre ordinateur, permet de distinguer les jours d'une même installation. Il est renouvelé tous les 13 mois et jamais prolongé.
+- **Où et combien de temps** : envoyées à une instance [Umami](https://umami.is) auto-hébergée, exploitée par le mainteneur de Plumed dans l'Union européenne, et conservées au plus 25 mois. Umami ne stocke pas les adresses IP ; toute localisation qu'il déduit de la connexion n'est pas plus fine que le pays ou la ville. Le serveur web placé devant conserve un journal d'accès technique (date, adresse demandée, adresse IP, identification du navigateur) à des fins de dépannage et de sécurité, supprimé automatiquement après 24 heures (base légale : intérêt légitime à maintenir le service sûr et en état de fonctionner).
+- **Sur votre ordinateur** : les compteurs de la période en cours et l'identifiant sont conservés dans `telemetry.json`, dans le dossier de données de l'application, jusqu'à leur envoi.
+- **Si vous répondez « Plus tard »** : Plumed conserve sur votre ordinateur, dans `telemetry_ask.json`, le nombre de fois où vous avez refusé, la date, ainsi que le nombre de lancements et de dictées depuis (de simples compteurs, jamais envoyés), uniquement pour reposer la question au bout d'au moins 7 jours, 10 dictées et 3 lancements. La troisième fois, « Ne plus jamais demander » est proposé. Toute réponse définitive supprime ce fichier.
+- **Retrait du consentement** : désactiver l'option dans les réglages interrompt tout envoi et supprime immédiatement `telemetry.json` (identifiant et compteurs).
 
-Builds made without a statistics server configured (for example your own builds) never show the question and never send anything.
+Les versions compilées sans serveur de statistiques configuré (par exemple vos propres compilations) n'affichent jamais la question et n'envoient jamais rien.
 
-## Settings import/export
+## Import et export des réglages
 
-Plumed allows exporting and importing settings as `.murmure` files. These files may contain: system settings, shortcuts, formatting rules, and dictionary words.
+Plumed permet d'exporter et d'importer les réglages sous forme de fichiers `.murmure`. Ces fichiers peuvent contenir : les réglages système, les raccourcis, les règles de mise en forme et les mots du dictionnaire.
 
-## Network usage
+## Utilisation du réseau
 
-**This program will not transfer any information to other networked systems unless specifically requested by the user or the person installing or operating it.**
+**Ce programme ne transférera aucune information vers d'autres systèmes en réseau, sauf demande expresse de l'utilisateur ou de la personne qui l'installe ou l'exploite.**
 
-When you use network-related features, standard network metadata (such as your IP address) will necessarily be visible to the service you contact.
+Lorsque vous utilisez des fonctionnalités liées au réseau, des métadonnées réseau courantes (comme votre adresse IP) sont nécessairement visibles du service que vous contactez.
 
-Plumed may access the network only for:
+Plumed peut accéder au réseau uniquement pour :
 
-- **Downloading the speech model** (only when you click "Download" in the model dialog or in Settings > System > Model): the model files are fetched from Hugging Face, or else from the Plumed model relay (`models.plumed.fr`, run by the Plumed maintainer, which streams the same files from Hugging Face and logs neither IP addresses nor downloaded files). No identifier, cookie or usage data is sent. The files are checked against SHA-256 hashes built into the app.
-- **Checking for updates** (runs automatically on launch unless turned off in Settings > System > Online)
-- **Downloading and installing updates** (only when you choose to install an update)
-- **PhoneMic, the remote microphone** (only after you enable it and click "Connect a phone"; see above)
-- **Anonymous usage statistics** (only if you opted in; see above)
-- **Checking for medical data updates** (on launch, from GitHub, only after you agreed to it on first launch or with "check for medical data updates at startup"; no identifier, cookie or usage data is sent) and **downloading them** (only when you click "Download")
+- **Télécharger le modèle de reconnaissance vocale** (uniquement lorsque vous cliquez sur « Télécharger » dans la fenêtre du modèle ou dans Paramètres > Modèle) : les fichiers du modèle sont récupérés depuis Hugging Face, ou à défaut depuis le relais de modèles de Plumed (`models.plumed.fr`, exploité par le mainteneur de Plumed, qui relaie les mêmes fichiers depuis Hugging Face et n'enregistre ni les adresses IP ni les fichiers téléchargés). Aucun identifiant, cookie ou donnée d'utilisation n'est envoyé. Les fichiers sont vérifiés à l'aide d'empreintes SHA-256 intégrées à l'application.
+- **Vérifier les mises à jour** (s'exécute automatiquement au lancement, sauf si vous le désactivez dans Paramètres > En ligne)
+- **Télécharger et installer les mises à jour** (uniquement lorsque vous choisissez d'installer une mise à jour)
+- **PhoneMic, le microphone distant** (uniquement après que vous l'avez activé et cliqué sur « Connecter un téléphone » ; voir plus haut)
+- **Les statistiques d'utilisation anonymes** (uniquement si vous les avez acceptées ; voir plus haut)
+- **Vérifier les mises à jour des données médicales** (au lancement, depuis GitHub, uniquement après que vous l'avez accepté au premier lancement ou avec « Rechercher les mises à jour des règles médicales au démarrage » ; aucun identifiant, cookie ou donnée d'utilisation n'est envoyé) et **les télécharger** (uniquement lorsque vous cliquez sur « Télécharger »)
 
-The update checks do not include your audio or transcriptions.
+Les vérifications de mises à jour n'incluent ni votre audio ni vos transcriptions.
 
-Third-party policies: [GitHub Privacy Statement](https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement), [Hugging Face Privacy Policy](https://huggingface.co/privacy)
+Politiques de confidentialité des tiers : [Déclaration de confidentialité de GitHub](https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement), [Politique de confidentialité de Hugging Face](https://huggingface.co/privacy)
 
-## Clipboard access
+## Accès au presse-papiers
 
-To insert transcriptions into other applications, Plumed may:
+Pour insérer les transcriptions dans d'autres applications, Plumed peut :
 
-- temporarily write the transcription to the system clipboard,
-- simulate a paste action,
-- restore the previous clipboard content unless you enabled an option to keep the transcription in the clipboard.
+- écrire temporairement la transcription dans le presse-papiers du système,
+- simuler une action de collage,
+- restaurer le contenu précédent du presse-papiers, sauf si vous avez activé une option pour conserver la transcription dans le presse-papiers.
 
-Clipboard content is not transmitted by Plumed.
+Le contenu du presse-papiers n'est pas transmis par Plumed.
 
-## Security practices
+## Pratiques de sécurité
 
-We use static analysis tools such as **SonarQube** to help detect potential vulnerabilities and security issues. Automated analysis does not cover 100% of the code or all scenarios, and it is not a guarantee of security.
+Nous utilisons des outils d'analyse statique tels que **SonarQube** pour aider à détecter d'éventuelles vulnérabilités et problèmes de sécurité. L'analyse automatisée ne couvre pas 100 % du code ni tous les scénarios, et elle ne constitue pas une garantie de sécurité.
 
-## Open source
+## Logiciel libre
 
-Plumed is released under the GNU AGPL v3 License. The source code can be audited by anyone:
+Plumed est publié sous la licence GNU AGPL v3. Le code source peut être audité par tous :
 
 [https://github.com/PlumedOrg/Plumed](https://github.com/PlumedOrg/Plumed)
 
-Plumed is a fork of [Murmure](https://www.murmure.app/) (source: [Kieirra/murmure](https://github.com/Kieirra/murmure)), whose privacy policy this document is based on.
+Plumed est un fork de [Murmure](https://www.murmure.app/) (code source : [Kieirra/murmure](https://github.com/Kieirra/murmure)), dont la politique de confidentialité sert de base à ce document.
 
-## Disclaimer of warranty (legal)
+## Exclusion de garantie (mentions légales)
 
-**THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED.**
+**LE LOGICIEL EST FOURNI « TEL QUEL », SANS GARANTIE D'AUCUNE SORTE, EXPRESSE OU IMPLICITE.**
 
-To the maximum extent permitted by law, the authors and contributors shall not be liable for any claim, damages, or other liability arising from, out of, or in connection with the software or the use of the software.
+Dans toute la mesure permise par la loi, les auteurs et contributeurs ne sauraient être tenus responsables de toute réclamation, de tout dommage ou de toute autre responsabilité découlant du logiciel ou de son utilisation, ou s'y rapportant.
