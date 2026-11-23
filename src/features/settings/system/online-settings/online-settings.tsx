@@ -38,6 +38,11 @@ export const OnlineSettings = () => {
                             'App updates: at every start, Plumed downloads a small file from GitHub (latest.json) to see whether a newer version exists. This check cannot be turned off; an update is only installed when you click it.'
                         )}
                     </li>
+                    <li>
+                        {t(
+                            'Speech model: downloaded once, when you choose it (Model tab), from Hugging Face or else from the Plumed relay (models.plumed.fr). Like any website, they see your IP address, nothing else.'
+                        )}
+                    </li>
                     {medicalDataAvailable && (
                         <li>
                             {t(

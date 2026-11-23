@@ -8,6 +8,7 @@ import { RecordingErrorListener } from './listeners/recording-error-listener';
 import { ConfigImportedListener } from './listeners/config-imported-listener';
 import { WaylandListener } from './listeners/wayland-listener';
 import { TrayMenuI18nListener } from './listeners/tray-menu-i18n-listener';
+import { ModelPrompt } from '@/features/model/model-prompt/model-prompt';
 
 export const Layout = () => {
     const { pathname } = useLocation();
@@ -18,6 +19,7 @@ export const Layout = () => {
             <ConfigImportedListener />
             <WaylandListener />
             <TrayMenuI18nListener />
+            <ModelPrompt />
             <AppSidebar />
             <SidebarInset
                 className={clsx('bg-background', 'text-white', 'pr-8', 'pt-8', 'flex', 'items-center', 'pl-[17.2rem]')}
