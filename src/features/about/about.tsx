@@ -131,6 +131,11 @@ export const About = () => {
                     </p>
                 </motion.div>
 
+                {/* Plumed: the fork's section first, then the upstream Murmure support links. */}
+                <motion.div variants={sectionVariants} className="w-full">
+                    <ForkCredits />
+                </motion.div>
+
                 <motion.div variants={sectionVariants} className="w-full space-y-5">
                     <div className="text-center space-y-3">
                         <h2 className="text-xl font-semibold text-foreground tracking-tight">
@@ -190,10 +195,6 @@ export const About = () => {
                             );
                         })}
                     </div>
-                </motion.div>
-
-                <motion.div variants={sectionVariants} className="w-full">
-                    <ForkCredits />
                 </motion.div>
 
                 <motion.div variants={sectionVariants} className="flex flex-col items-center gap-2 pt-2">
