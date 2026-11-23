@@ -41,7 +41,7 @@ export const ExportSection = () => {
                 <Info className="h-3.5 w-3.5 shrink-0" />
                 <span>
                     {t(
-                        'For the medical vocabulary, the sound-alike words, the residual errors and the grammar rules, only your changes are exported, not the provided lists. Online settings (PhoneMic, usage statistics, medical rules updates) are never exported.'
+                        'For the medical vocabulary, the sound-alike words, the residual errors, the grammar rules and the text templates, only your changes are exported, not the provided lists. Online settings (PhoneMic, usage statistics, medical rules updates) are never exported.'
                     )}
                 </span>
             </div>

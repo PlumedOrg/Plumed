@@ -164,6 +164,7 @@ export const applySingleCategory = async (
         case 'medical_confusion_groups':
         case 'medical_rules':
         case 'grammar_rules':
+        case 'text_templates':
             await applyMedicalCategory(categoryKey, categories, strategies[categoryKey] ?? 'replace');
             break;
     }

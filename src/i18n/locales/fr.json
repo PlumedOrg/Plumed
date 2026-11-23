@@ -183,7 +183,7 @@
     "Importing sound-alike word changes...": "Importation des modifications des mots qui se ressemblent...",
     "Importing residual error changes...": "Importation des modifications des erreurs résiduelles...",
     "Options of the Clean-up and standardization tab": "Options de l'onglet Nettoyage et uniformisation",
-    "For the medical vocabulary, the sound-alike words, the residual errors and the grammar rules, only your changes are exported, not the provided lists. Online settings (PhoneMic, usage statistics, medical rules updates) are never exported.": "Pour le vocabulaire médical, les mots qui se ressemblent, les erreurs résiduelles et les règles de grammaire, seules vos modifications sont exportées, pas les listes fournies. Les réglages en ligne (PhoneMic, statistiques d'utilisation, mises à jour des règles médicales) ne sont jamais exportés.",
+    "For the medical vocabulary, the sound-alike words, the residual errors, the grammar rules and the text templates, only your changes are exported, not the provided lists. Online settings (PhoneMic, usage statistics, medical rules updates) are never exported.": "Pour le vocabulaire médical, les mots qui se ressemblent, les erreurs résiduelles, les règles de grammaire et les textes types, seules vos modifications sont exportées, pas les listes fournies. Les réglages en ligne (PhoneMic, statistiques d'utilisation, mises à jour des règles médicales) ne sont jamais exportés.",
     "In {{path}}": "Dans {{path}}",
     "Info": "Info",
     "Insert the transcription automatically at the cursor. When off, use the \"Paste last transcript\" shortcut to insert it.": "Insère automatiquement la transcription au niveau du curseur. Si désactivée, utilisez le raccourci « Coller la dernière transcription » pour l'insérer.",
@@ -678,5 +678,14 @@
     "Beta versions": "Versions bêta",
     "Disabled": "Désactivées",
     "Beta versions get new features first and may have more bugs. When disabled, Plumed never checks by itself; a button in the sidebar checks on demand.": "Les versions bêta reçoivent les nouveautés en premier et peuvent contenir plus de bugs. Désactivées, Plumed ne vérifie jamais de lui-même ; un bouton dans la barre latérale vérifie à la demande.",
-    "Failed to save the app updates setting": "Impossible d'enregistrer le réglage des mises à jour"
+    "Failed to save the app updates setting": "Impossible d'enregistrer le réglage des mises à jour",
+    "Edit": "Modifier",
+    "Text templates": "Textes types",
+    "Templates": "Modèles",
+    "A text template replaces a spoken phrase by a longer text, which can have several lines, for example \"Insère l'examen clinique normal.\" becomes a complete normal clinical exam. Templates are applied at the start of step 6, before your formatting rules, and match like the other spoken commands (capitals and final punctuation do not matter). The example is off until you turn it on.": "Un texte type remplace une phrase dite à voix haute par un texte plus long, pouvant comporter plusieurs lignes : par exemple « Insère l'examen clinique normal. » devient un examen clinique normal complet. Les textes types sont appliqués au début de l'étape 6, avant vos règles de mise en forme, et se reconnaissent comme les autres commandes vocales (majuscules et ponctuation finale sans importance). L'exemple est désactivé tant que vous ne l'activez pas.",
+    "Your added templates are deleted and the list is back to its original state, with the example turned off. This cannot be undone.": "Vos textes types ajoutés sont supprimés et la liste revient à son état d'origine, avec l'exemple désactivé. Cette action est irréversible.",
+    "Search a phrase or a text": "Rechercher une phrase ou un texte",
+    "What you say": "Ce que vous dites",
+    "The text it is replaced by (several lines allowed)": "Le texte qui la remplace (plusieurs lignes possibles)",
+    "Importing text template changes...": "Importation des modifications des textes types..."
 }

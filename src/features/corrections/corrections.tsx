@@ -22,6 +22,7 @@ import { GrammarTab } from './grammar-tab/grammar-tab';
 import { MedicalVocabulary } from './medical-vocabulary/medical-vocabulary';
 import { ModelCorrections } from './model-corrections/model-corrections';
 import { SoundAlikeWords } from './sound-alike-words/sound-alike-words';
+import { TextTemplates } from './text-templates/text-templates';
 
 // Plumed fork (written with Claude Code): one page for everything that changes
 // the transcribed text, one tab per list. The URL hash selects the tab, so
@@ -71,6 +72,7 @@ export const Corrections = () => {
                 {activeTab === 'model-corrections' && <ModelCorrections />}
                 {activeTab === 'formatting' && <FormattingTab />}
                 {activeTab === 'grammar' && <GrammarTab />}
+                {activeTab === 'templates' && <TextTemplates />}
             </Tabs>
         </main>
     );

@@ -2,7 +2,11 @@ import { pickTabFromHash } from '@/components/tabs.helpers';
 
 export const CORRECTIONS_PATH = '/corrections';
 
-/** One tab per list, in the order the pipeline uses them, after the explanation. */
+/**
+ * One tab per list, in the order the pipeline uses them, after the explanation.
+ * Text templates come last and are not a numbered step: they run at the start
+ * of step 6 (Formatting).
+ */
 export type CorrectionsTab =
     | 'explanation'
     | 'vocabulary'
@@ -11,7 +15,8 @@ export type CorrectionsTab =
     | 'clean-up'
     | 'model-corrections'
     | 'formatting'
-    | 'grammar';
+    | 'grammar'
+    | 'templates';
 
 /** Where a button of the Explanation tab leads. */
 export interface CorrectionsTarget {
@@ -107,6 +112,7 @@ export const CORRECTIONS_TAB_LABELS: Record<CorrectionsTab, string> = {
     'model-corrections': 'Residual errors',
     formatting: 'Formatting',
     grammar: 'Grammar',
+    templates: 'Text templates',
 };
 
 type Translate = (key: string, options?: Record<string, string | number>) => string;
@@ -160,6 +166,7 @@ export const CORRECTIONS_TABS: CorrectionsTab[] = [
     'model-corrections',
     'formatting',
     'grammar',
+    'templates',
 ];
 
 /**

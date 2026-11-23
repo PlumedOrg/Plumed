@@ -1,10 +1,16 @@
 /** A list exported and imported in its native format (Rust `medical::ListFile`). */
-export type ListFile = 'rules' | 'phrases' | 'confusion_groups' | 'grammar';
+export type ListFile = 'rules' | 'phrases' | 'confusion_groups' | 'grammar' | 'templates';
 
 /** A heard form and the words it may stand for (Rust `ConfusionGroup`). */
 export interface ConfusionGroup {
     heard: string;
     candidates: string[];
+}
+
+/** A spoken trigger phrase and the, possibly multi-line, text it expands to (Rust `TextTemplate`). */
+export interface TextTemplate {
+    trigger: string;
+    text: string;
 }
 
 /** The user's changes to a bundled list (Rust `ListOverlay`). */

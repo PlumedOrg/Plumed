@@ -1,7 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
-import { AudioLines, ListChecks, SpellCheck, Stethoscope } from 'lucide-react';
+import { AudioLines, ClipboardList, ListChecks, SpellCheck, Stethoscope } from 'lucide-react';
 import { CORRECTIONS_TAB_LABELS } from '@/features/corrections/corrections.helpers';
-import { ConfusionGroup, ListOverlay } from '@/features/corrections/corrections.types';
+import { ConfusionGroup, ListOverlay, TextTemplate } from '@/features/corrections/corrections.types';
 import { MedicalRuleEdit } from '@/features/personalize/medical-rules/types';
 import type { CategoryDefinition, CategorySelection, ImportStrategy } from '../import-export.types';
 
@@ -18,6 +18,7 @@ export const MEDICAL_CATEGORY_KEYS = [
     'medical_confusion_groups',
     'medical_rules',
     'grammar_rules',
+    'text_templates',
 ] as const;
 
 export type MedicalCategoryKey = (typeof MEDICAL_CATEGORY_KEYS)[number];
@@ -29,6 +30,7 @@ export interface MedicalChanges {
     medical_rules?: MedicalRuleEdit[];
     /** Ids of the default grammar rules turned off and of the other rules turned on. */
     grammar_rules?: ListOverlay<string>;
+    text_templates?: ListOverlay<TextTemplate>;
 }
 
 export const isMedicalCategory = (key: string): key is MedicalCategoryKey =>
@@ -64,6 +66,13 @@ export const MEDICAL_CATEGORY_DEFINITIONS: CategoryDefinition[] = [
         supportsMerge: true,
         subItems: [],
     },
+    {
+        key: 'text_templates',
+        label: CORRECTIONS_TAB_LABELS.templates,
+        icon: ClipboardList,
+        supportsMerge: true,
+        subItems: [],
+    },
 ];
 
 /** Progress line of the import modal (English keys of `fr.json`). */
@@ -72,6 +81,7 @@ export const MEDICAL_IMPORT_STEP_LABELS: Record<MedicalCategoryKey, string> = {
     medical_confusion_groups: 'Importing sound-alike word changes...',
     medical_rules: 'Importing residual error changes...',
     grammar_rules: 'Importing grammar rule changes...',
+    text_templates: 'Importing text template changes...',
 };
 
 /** Every medical category selected, the export default. */
@@ -97,6 +107,9 @@ export const pickMedicalChanges = (changes: MedicalChanges, keys: readonly strin
     if (keys.includes('grammar_rules') && changes.grammar_rules != null) {
         picked.grammar_rules = changes.grammar_rules;
     }
+    if (keys.includes('text_templates') && changes.text_templates != null) {
+        picked.text_templates = changes.text_templates;
+    }
     return picked;
 };
 
@@ -116,6 +129,9 @@ export const medicalCounters = (changes: MedicalChanges): Partial<Record<Medical
     }
     if (changes.grammar_rules != null) {
         counters.grammar_rules = overlaySize(changes.grammar_rules);
+    }
+    if (changes.text_templates != null) {
+        counters.text_templates = overlaySize(changes.text_templates);
     }
     return counters;
 };

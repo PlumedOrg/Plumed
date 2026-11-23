@@ -9,6 +9,7 @@ const FILE_FORMATS: Record<ListFile, { extension: string; defaultName: string }>
     phrases: { extension: 'txt', defaultName: 'plumed-medical-vocabulary.txt' },
     confusion_groups: { extension: 'jsonl', defaultName: 'plumed-sound-alike-words.jsonl' },
     grammar: { extension: 'txt', defaultName: 'plumed-grammar-rules.txt' },
+    templates: { extension: 'jsonl', defaultName: 'plumed-text-templates.jsonl' },
 };
 
 /** Export and import of a medical list in its native format, through the file dialogs. */

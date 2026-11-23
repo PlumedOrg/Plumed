@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { Trash2 } from 'lucide-react';
+import { Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/button';
 import { Input } from '@/components/input';
 import { SettingsUI } from '@/components/settings-ui';
 import { Switch } from '@/components/switch';
 import { useTranslation } from '@/i18n';
 import { useDebouncedInvoke } from '@/features/personalize/medical-rules/hooks/use-debounced-invoke';
-import { ListOverlay, ListPage } from '../corrections.types';
+import { EntryView, ListOverlay, ListPage } from '../corrections.types';
 import { PAGE_SIZE, Pagination } from '../pagination/pagination';
 import { removeEntry, setEntryEnabled } from './overlay-list.helpers';
 
@@ -19,6 +19,8 @@ interface OverlayListProps<T> {
     searchPlaceholder: string;
     title: string;
     testId: string;
+    /** Makes the entries added by the user editable: called with the entry the user wants to change. */
+    onEdit?: (view: EntryView<T>) => void;
     /** The form to add an entry, under the list. */
     children: React.ReactNode;
 }
@@ -32,6 +34,7 @@ export const OverlayList = <T,>({
     searchPlaceholder,
     title,
     testId,
+    onEdit,
     children,
 }: OverlayListProps<T>) => {
     const { t } = useTranslation();
@@ -79,14 +82,26 @@ export const OverlayList = <T,>({
                                     aria-label={t('Enabled')}
                                 />
                             ) : (
-                                <Button
-                                    variant="subtle"
-                                    size="icon-sm"
-                                    aria-label={t('Delete')}
-                                    onClick={() => saveOverlay(removeEntry(overlay, view))}
-                                >
-                                    <Trash2 />
-                                </Button>
+                                <>
+                                    {onEdit != null && (
+                                        <Button
+                                            variant="subtle"
+                                            size="icon-sm"
+                                            aria-label={t('Edit')}
+                                            onClick={() => onEdit(view)}
+                                        >
+                                            <Pencil />
+                                        </Button>
+                                    )}
+                                    <Button
+                                        variant="subtle"
+                                        size="icon-sm"
+                                        aria-label={t('Delete')}
+                                        onClick={() => saveOverlay(removeEntry(overlay, view))}
+                                    >
+                                        <Trash2 />
+                                    </Button>
+                                </>
                             )}
                         </div>
                     ))}
