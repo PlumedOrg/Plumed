@@ -136,11 +136,13 @@ pub const VARIANTS: &[Variant] = &[
         ],
         available: true,
     },
-    // TODO: the redux w2a8 encoder needs 2-bit MatMulNBits, which ONNX
-    // Runtime 1.23 (the one Plumed ships) refuses ("Only 4b and 8b
-    // quantization is supported"). Enable it once Plumed ships an ONNX
-    // Runtime that runs it, or once the repository publishes an int8 or
-    // w4a8 encoder.
+    // TODO: ONNX Runtime 1.31 runs the redux w2a8 encoder (1.23 refused its
+    // 2-bit MatMulNBits), but it is kept off for its accuracy: on the 400
+    // clip benchmark its WER is 5.04 %, against 2.87 % for Ultra w4a8, for
+    // only 220 MB less peak RAM (1.47 GB against 1.69 GB) and a 108 MB
+    // smaller download, and it is not faster. Enable it if a later redux
+    // revision comes close to w4a8 (the low RAM recommendation would pick
+    // it, being the lightest).
     Variant {
         id: "redux-w2a8",
         family: &REDUX,
