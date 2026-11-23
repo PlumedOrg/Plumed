@@ -44,7 +44,7 @@ export const MedicalDataStep = ({ onNext }: StepProps) => {
             <ul className="list-disc pl-5 text-sm space-y-1">
                 <li>{t('Nothing is downloaded without asking you first.')}</li>
                 <li>{t('Nothing about you is sent: no identifier, no cookie, no usage data.')}</li>
-                <li>{t('You can change this choice in Settings > System > Online.')}</li>
+                <li>{t('You can change this choice in Settings > Online.')}</li>
             </ul>
         </WizardStep>
     );

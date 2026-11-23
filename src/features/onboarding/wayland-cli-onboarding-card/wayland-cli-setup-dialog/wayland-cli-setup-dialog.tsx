@@ -84,7 +84,7 @@ export const WaylandCliSetupDialog = ({ open, onClose }: WaylandCliSetupDialogPr
                 </ol>
 
                 <DialogFooter className="items-center sm:justify-between">
-                    <InternalLink to="/settings/system" hash="shortcuts" onClick={onClose} className="text-sm">
+                    <InternalLink to="/settings" hash="shortcuts" onClick={onClose} className="text-sm">
                         {t('See other commands →')}
                     </InternalLink>
                     <DialogClose asChild>

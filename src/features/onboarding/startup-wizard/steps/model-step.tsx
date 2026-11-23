@@ -29,7 +29,7 @@ export const ModelStep = ({ onNext }: StepProps) => {
             {status !== null && <ModelChooser status={status} onStatus={setStatus} />}
             <p className="text-xs text-muted-foreground">
                 {t(
-                    'The download happens once and is kept across updates. It continues in the background while you answer the next questions. You can change the model later in Settings > System > Model.'
+                    'The download happens once and is kept across updates. It continues in the background while you answer the next questions. You can change the model later in Settings > Model.'
                 )}
             </p>
         </WizardStep>

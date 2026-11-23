@@ -4,7 +4,7 @@ import { useTranslation } from '@/i18n';
 import { useModelStatus } from '../hooks/use-model-status';
 import { ModelChooser } from '../model-chooser/model-chooser';
 
-// Plumed fork (written with Claude Code): Settings > System > Model, the
+// Plumed fork (written with Claude Code): Settings > Model, the
 // same catalog as the first launch dialog.
 export const ModelSettings = () => {
     const { t } = useTranslation();

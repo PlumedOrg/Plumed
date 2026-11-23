@@ -18,7 +18,7 @@ const CheckFailureBody = ({ error }: CheckFailureBodyProps) => {
             <p>{t('Plumed could not check for medical rules updates ({{error}}).', { error })}</p>
             <p className="text-xs">
                 {t(
-                    'Your network may block Plumed but allow your browser: open the release page, download the files, then install them in Settings > System > Online with "Install a downloaded update".'
+                    'Your network may block Plumed but allow your browser: open the release page, download the files, then install them in Settings > Online with "Install a downloaded update".'
                 )}
             </p>
             <ExternalLink href={PLUMED_MEDICAL_DATA_RELEASE_URL}>

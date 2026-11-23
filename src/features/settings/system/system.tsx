@@ -20,17 +20,18 @@ import { KeepRecordingsSettings } from './keep-recordings-settings/keep-recordin
 import { ShortDictationContextSettings } from './short-dictation-context-settings/short-dictation-context-settings';
 import { BlockCliImportSettings } from './block-cli-import-settings/block-cli-import-settings';
 import { OnlineSettings } from './online-settings/online-settings';
-import { Brain, Globe, Keyboard, Monitor, Settings, Wrench } from 'lucide-react';
+import { ArrowDownUp, Brain, Globe, Keyboard, Monitor, Settings, Wrench } from 'lucide-react';
+import { ImportExport } from '@/features/settings/import-export/import-export';
 import { ModelSettings } from '@/features/model/model-settings/model-settings';
 import { useLocation, useNavigate } from '@tanstack/react-router';
 import { Tabs } from '@/components/tabs';
 import { pickTabFromHash } from '@/components/tabs.helpers';
 import { Shortcuts } from '@/features/settings/shortcuts/shortcuts';
 
-// Plumed fork (written with Claude Code): the sections are tabs, and the
-// keyboard shortcuts are the last one. "Model" picks the speech model.
-// "Online" holds every setting that reaches the network. The URL hash selects the tab.
-const SYSTEM_TABS = ['general', 'model', 'overlay', 'advanced', 'online', 'shortcuts'] as const;
+// Plumed fork (written with Claude Code): the Settings page (once "System"), its
+// sections are tabs. "Model" picks the speech model. "Online" holds every setting
+// that reaches the network. Import / export is the last tab. The URL hash selects the tab.
+const SYSTEM_TABS = ['general', 'shortcuts', 'online', 'advanced', 'model', 'overlay', 'import-export'] as const;
 type SystemTab = (typeof SYSTEM_TABS)[number];
 
 export const System = () => {
@@ -38,12 +39,12 @@ export const System = () => {
     const { hash } = useLocation();
     const navigate = useNavigate();
     const activeTab = pickTabFromHash(hash, SYSTEM_TABS, 'general');
-    const selectTab = (tab: SystemTab) => void navigate({ to: '/settings/system', hash: tab, replace: true });
+    const selectTab = (tab: SystemTab) => void navigate({ to: '/settings', hash: tab, replace: true });
     return (
         <main>
             <div className="space-y-8">
                 <Page.Header>
-                    <Typography.MainTitle data-testid="system-title">{t('System')}</Typography.MainTitle>
+                    <Typography.MainTitle data-testid="settings-title">{t('Settings')}</Typography.MainTitle>
                     <Typography.Paragraph className="text-muted-foreground">
                         {t("Adjust system preferences to control Murmure's behavior at startup and more.")}
                     </Typography.Paragraph>
@@ -54,11 +55,12 @@ export const System = () => {
                     onValueChange={selectTab}
                     tabs={[
                         { value: 'general', label: t('General'), icon: Settings },
+                        { value: 'shortcuts', label: t('Shortcuts'), icon: Keyboard },
+                        { value: 'online', label: t('Online'), icon: Globe },
+                        { value: 'advanced', label: t('Advanced'), icon: Wrench },
                         { value: 'model', label: t('Model'), icon: Brain },
                         { value: 'overlay', label: t('Overlay'), icon: Monitor },
-                        { value: 'advanced', label: t('Advanced'), icon: Wrench },
-                        { value: 'online', label: t('Online'), icon: Globe },
-                        { value: 'shortcuts', label: t('Shortcuts'), icon: Keyboard },
+                        { value: 'import-export', label: t('Import / Export'), icon: ArrowDownUp },
                     ]}
                 >
                     {activeTab === 'general' && (
@@ -109,6 +111,7 @@ export const System = () => {
                     )}
                     {activeTab === 'online' && <OnlineSettings />}
                     {activeTab === 'shortcuts' && <Shortcuts />}
+                    {activeTab === 'import-export' && <ImportExport />}
                 </Tabs>
             </div>
         </main>

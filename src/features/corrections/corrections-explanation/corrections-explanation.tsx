@@ -217,11 +217,11 @@ export const CorrectionsExplanation = ({ onOpen }: CorrectionsExplanationProps) 
                                 'When a signed update is offered online, Plumed asks before downloading it. Your own changes are kept.'
                             )}{' '}
                             <InternalLink
-                                to="/settings/system"
+                                to="/settings"
                                 hash="online"
                                 data-testid="corrections-medical-data-settings-link"
                             >
-                                {t('Manage medical rules updates in Settings > System > Online')}
+                                {t('Manage medical rules updates in Settings > Online')}
                             </InternalLink>
                         </Typography.Paragraph>
                     )}

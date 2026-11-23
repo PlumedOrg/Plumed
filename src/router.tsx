@@ -4,7 +4,6 @@ import { Layout } from './features/layout/layout';
 import { About } from './features/about/about';
 import { Corrections } from './features/corrections/corrections';
 import { System } from './features/settings/system/system';
-import { ImportExport } from './features/settings/import-export/import-export';
 import { RemoteMic } from './features/extensions/remote-mic/remote-mic';
 import { Tutorial } from './features/tutorial/tutorial';
 
@@ -18,11 +17,11 @@ const indexRoute = createRoute({
     component: Home,
 });
 
-// Plumed: the shortcuts moved into a tab of the System page
+// Plumed: the shortcuts moved into a tab of the Settings page
 const settingsShortcutsRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/settings/shortcuts',
-    component: () => <Navigate to="/settings/system" hash="shortcuts" />,
+    component: () => <Navigate to="/settings" hash="shortcuts" />,
 });
 
 const correctionsRoute = createRoute({
@@ -44,16 +43,17 @@ const personalizeFormattingRulesRoute = createRoute({
     component: () => <Navigate to="/corrections" hash="formatting" />,
 });
 
-const settingsSystemRoute = createRoute({
+const settingsRoute = createRoute({
     getParentRoute: () => rootRoute,
-    path: '/settings/system',
+    path: '/settings',
     component: System,
 });
 
-const settingsIndexRoute = createRoute({
+// Plumed: the old System page path
+const settingsSystemRoute = createRoute({
     getParentRoute: () => rootRoute,
-    path: '/settings',
-    component: () => <Navigate to="/settings/system" />,
+    path: '/settings/system',
+    component: () => <Navigate to="/settings" />,
 });
 
 const personalizeIndexRoute = createRoute({
@@ -74,10 +74,11 @@ const extensionsIndexRoute = createRoute({
     component: () => <Navigate to="/extensions/remote-mic" />,
 });
 
+// Plumed: import / export became the last tab of the Settings page
 const settingsImportExportRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/settings/import-export',
-    component: ImportExport,
+    component: () => <Navigate to="/settings" hash="import-export" />,
 });
 
 const aboutRoute = createRoute({
@@ -95,7 +96,7 @@ const tutorialRoute = createRoute({
 const routeTree = rootRoute.addChildren([
     indexRoute,
     tutorialRoute,
-    settingsIndexRoute,
+    settingsRoute,
     settingsShortcutsRoute,
     settingsSystemRoute,
     settingsImportExportRoute,
