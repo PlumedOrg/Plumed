@@ -34,14 +34,18 @@ files="$files dictation_rules.csv"
 tag="$(git -C "$repo" describe --tags --exact-match 2>/dev/null || true)"
 [ -n "$tag" ] || { echo "ERROR: check out a release tag of the rules repo first" >&2; exit 1; }
 [ -f "$repo/SHA256SUMS" ] || { echo "ERROR: $repo/SHA256SUMS not found" >&2; exit 1; }
+# Every file is checked before anything is written, so a bad tag leaves the
+# bundled data as it was.
+for f in $files; do
+    expected="$(grep " rules/$f\$" "$repo/SHA256SUMS" | cut -d' ' -f1)"
+    actual="$(sha256sum "$src/$f" | cut -d' ' -f1)"
+    [ -n "$expected" ] && [ "$expected" = "$actual" ] || { echo "ERROR: rules/$f does not match SHA256SUMS" >&2; exit 1; }
+done
 mkdir -p "$dst"
 # Drop files of an older layout (v1 had term_fix_rules.jsonl).
 rm -f "$dst"/*_fix_rules.jsonl
 echo "# tag $tag" > "$dst/PROVENANCE"
 for f in $files; do
-    expected="$(grep " rules/$f\$" "$repo/SHA256SUMS" | cut -d' ' -f1)"
-    actual="$(sha256sum "$src/$f" | cut -d' ' -f1)"
-    [ -n "$expected" ] && [ "$expected" = "$actual" ] || { echo "ERROR: rules/$f does not match SHA256SUMS" >&2; exit 1; }
     cp "$src/$f" "$dst/$f"
     commit="$(git -C "$repo" log -1 --format=%H -- "rules/$f" 2>/dev/null || echo unknown)"
     if [ -n "$(git -C "$repo" status --porcelain -- "rules/$f" 2>/dev/null)" ]; then
