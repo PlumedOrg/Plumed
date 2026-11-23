@@ -1,7 +1,6 @@
 import { AudioVisualizer } from './audio-visualizer/audio-visualizer';
 import { History } from './history/history';
 import { Page } from '@/components/page';
-import { LocalPill } from './local-pill/local-pill';
 import { Statistics } from './statistics/statistics';
 import { WaylandCliOnboardingCard } from '../onboarding/wayland-cli-onboarding-card/wayland-cli-onboarding-card';
 import { WaylandClipboardFallbackCard } from '../onboarding/wayland-clipboard-fallback-card/wayland-clipboard-fallback-card';
@@ -9,7 +8,6 @@ import { useIsWayland } from '@/components/hooks/use-linux-session-type';
 import { RecordLabel } from '@/components/record-label';
 import { MicLabel } from './mic-label/mic-label';
 import { MicDisconnectedBanner } from './mic-disconnected-banner/mic-disconnected-banner';
-import { PrivacyNotice } from './privacy-notice/privacy-notice';
 import { MedicalDataPrompt } from '../onboarding/medical-data-prompt/medical-data-prompt';
 import { MedicalDataCheckFailureNotice } from '../medical-data/medical-data-check-failure-notice/medical-data-check-failure-notice';
 
@@ -19,7 +17,6 @@ export const Home = () => {
     return (
         <main className="space-y-4 relative">
             <Page.Header className="space-y-4">
-                <LocalPill />
                 <Statistics />
             </Page.Header>
             {isWayland && <WaylandCliOnboardingCard />}
@@ -34,7 +31,6 @@ export const Home = () => {
                         <MicLabel />
                         <RecordLabel />
                     </div>
-                    <PrivacyNotice />
                 </div>
 
                 {isWayland && <WaylandClipboardFallbackCard />}

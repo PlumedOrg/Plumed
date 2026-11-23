@@ -5,20 +5,36 @@ import { useGetStatistic } from './hooks/use-get-statistic';
 import { computeTypingMultiplier, formatResetMonths, formatTimeSaved } from './statistics.helpers';
 import { StatCard } from './stat-card/stat-card';
 import { useTranslation } from '@/i18n';
+import { LocalPill } from '../local-pill/local-pill';
 
 export const Statistics = () => {
     const { wpm, words, timeSavedSeconds, nextResetTimestamp } = useGetStatistic();
-    const { t, i18n } = useTranslation();
 
-    const multiplier = computeTypingMultiplier(wpm);
-
-    // Hide stats entirely until the user has actually dictated something.
-    if (wpm <= 0 && words <= 0 && timeSavedSeconds <= 0) {
-        return null;
-    }
+    // Plumed: the local card always shows; the stats wait for a first dictation.
+    const hasDictated = wpm > 0 || words > 0 || timeSavedSeconds > 0;
 
     return (
         <div className="flex gap-3">
+            <LocalPill />
+            {hasDictated && (
+                <DictationStats wpm={wpm} timeSavedSeconds={timeSavedSeconds} nextResetTimestamp={nextResetTimestamp} />
+            )}
+        </div>
+    );
+};
+
+interface DictationStatsProps {
+    wpm: number;
+    timeSavedSeconds: number;
+    nextResetTimestamp: number | null;
+}
+
+const DictationStats = ({ wpm, timeSavedSeconds, nextResetTimestamp }: DictationStatsProps) => {
+    const { t, i18n } = useTranslation();
+    const multiplier = computeTypingMultiplier(wpm);
+
+    return (
+        <>
             <Tooltip>
                 <TooltipTrigger asChild>
                     <StatCard
@@ -58,6 +74,6 @@ export const Statistics = () => {
                     </Typography.Paragraph>
                 </TooltipContent>
             </Tooltip>
-        </div>
+        </>
     );
 };
