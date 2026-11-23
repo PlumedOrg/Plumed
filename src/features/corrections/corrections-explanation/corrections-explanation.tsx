@@ -20,6 +20,8 @@ import {
     pipelineStepTitle,
     stepNumber,
 } from '../corrections.helpers';
+import { HistorySteps } from '@/features/home/history/history-steps/history-steps';
+import { EXAMPLE_STEPS } from './example-steps';
 import { PipelineStep, Step, StepAction, StepStatus } from './pipeline-step/pipeline-step';
 
 interface CorrectionsExplanationProps {
@@ -196,6 +198,16 @@ export const CorrectionsExplanation = ({ onOpen }: CorrectionsExplanationProps) 
                     </React.Fragment>
                 ))}
             </div>
+
+            <SettingsUI.Container className="space-y-2 p-4" data-testid="corrections-example">
+                <Typography.Title>{t('Example')}</Typography.Title>
+                <Typography.Paragraph>
+                    {t(
+                        'A dictated sentence as each step corrects it, shown like the details of a dictation on the Home page: removed in red, added in green. An illustration, not one of your dictations.'
+                    )}
+                </Typography.Paragraph>
+                <HistorySteps steps={EXAMPLE_STEPS} />
+            </SettingsUI.Container>
 
             {dataStatus != null && (
                 <SettingsUI.Container className="space-y-2 p-4" data-testid="corrections-medical-data">
