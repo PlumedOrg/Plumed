@@ -62,7 +62,7 @@ struct RawGroup {
 }
 
 impl RawGroup {
-    /// The realistic working set (about 140 of the 905 v2 groups): a second
+    /// The realistic working set (68 of the 415 v2.0.2 groups): a second
     /// candidate seen at least twice, and a heard form wrong at least as often
     /// as right. The others are single-target (the regexes handle them) or
     /// a heard form that is almost always right. A group without statistics

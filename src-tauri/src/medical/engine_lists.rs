@@ -206,8 +206,10 @@ mod tests {
     #[test]
     fn bundled_confusion_groups_keep_the_ambiguous_ones() {
         let groups = ConfusionGroups::parse(data_set::BUNDLED_CONFUSION_GROUPS);
+        // 68 of the 415 groups of v2.0.2 (v2.0.1 dropped the silent
+        // plural and feminine candidates, which were never ambiguous).
         assert!(
-            (100..300).contains(&groups.len()),
+            (40..300).contains(&groups.len()),
             "{} groups",
             groups.len()
         );
