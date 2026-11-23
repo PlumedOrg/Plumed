@@ -257,10 +257,17 @@ fn percent(done: u64, total: u64) -> u8 {
     (done.saturating_mul(100) / total).min(100) as u8
 }
 
+/// The user's choice, from the startup wizard or the settings: it also
+/// counts as answering the wizard question.
+fn apply_channel_choice(settings: &mut crate::settings::AppSettings, channel: UpdateChannel) {
+    settings.app_update_channel = channel;
+    settings.app_update_channel_asked = true;
+}
+
 /// Saves the channel and tells the frontend.
 pub fn set_channel(app: &AppHandle, channel: UpdateChannel) -> Result<(), String> {
     let mut settings = crate::settings::load_settings(app);
-    settings.app_update_channel = channel;
+    apply_channel_choice(&mut settings, channel);
     crate::settings::save_settings(app, &settings)?;
     if let Err(e) = app.emit(CHANNEL_EVENT, channel) {
         log::warn!("Failed to announce the update channel: {e}");
@@ -283,6 +290,15 @@ mod tests {
             let json = serde_json::to_string(&channel).unwrap();
             assert_eq!(json, format!("\"{}\"", channel.as_str()));
         }
+    }
+
+    #[test]
+    fn choosing_a_channel_marks_the_question_answered() {
+        let mut settings = AppSettings::default();
+        assert!(!settings.app_update_channel_asked);
+        apply_channel_choice(&mut settings, UpdateChannel::Stable);
+        assert!(settings.app_update_channel_asked);
+        assert_eq!(settings.app_update_channel, UpdateChannel::Stable);
     }
 
     const RELAY: &str = "https://relay.test/";

@@ -8,9 +8,11 @@
 
 mod counters;
 mod payload;
+mod reask;
 mod state;
 
 pub use counters::ErrorKind;
+pub use reask::Question;
 
 use crate::formatting_rules::BuiltInOptions;
 use crate::settings::AppSettings;
@@ -100,6 +102,7 @@ fn feature_flags(app: &AppHandle, settings: &AppSettings) -> FeatureFlags {
         confusion_rescoring: built_in.confusion_rescoring,
         phrase_boosting: built_in.phrase_boosting,
         grammar: built_in.grammar,
+        tutorial_completed: settings.tutorial_completed,
     }
 }
 
@@ -142,7 +145,11 @@ fn request(
 /// Counts a finished transcription (`processing` is the time from the end
 /// of the recording to the final text). Does nothing unless enabled.
 pub fn record_transcription(app: &AppHandle, audio_secs: f64, text: &str, processing: Duration) {
-    if text.trim().is_empty() || !is_enabled(app) {
+    if text.trim().is_empty() {
+        return;
+    }
+    if !is_enabled(app) {
+        reask::count_transcription(app);
         return;
     }
     let chars = text.chars().count();
@@ -228,9 +235,35 @@ pub fn preview(app: &AppHandle) -> Result<String, String> {
     serde_json::to_string_pretty(&body).map_err(|e| e.to_string())
 }
 
+/// Whether the startup wizard asks the question now, and whether this ask
+/// offers "Ne plus jamais demander". Never due once answered, for good.
+pub fn question(app: &AppHandle) -> Result<reask::Question, String> {
+    let answered = crate::settings::load_settings(app).telemetry_asked;
+    let state = reask::load(app)?;
+    let due = is_available() && !answered && state.due(today());
+    Ok(reask::Question {
+        due,
+        offer_never_again: state.offers_never_again(),
+    })
+}
+
+/// "Plus tard": the question comes back after 7 days, 10 dictations and 3
+/// launches (see `reask`). Nothing is enabled and the question stays
+/// unanswered.
+pub fn decline_for_now(app: &AppHandle) -> Result<(), String> {
+    reask::decline(app, today())
+}
+
+/// Counts a launch towards the next ask (see `reask`).
+pub fn count_launch(app: &AppHandle) {
+    reask::count_launch(app);
+}
+
 /// Saves the user's answer. Turning telemetry off deletes the id and the
-/// counters; turning it on starts the "days since install" count.
+/// counters; turning it on starts the "days since install" count. Either
+/// way the question is answered for good, so its re-ask counters go.
 pub fn set_enabled(app: &AppHandle, enabled: bool) -> Result<(), String> {
+    reask::delete(app)?;
     let enabled = enabled && is_available();
     let mut settings = crate::settings::load_settings(app);
     settings.telemetry_enabled = enabled;

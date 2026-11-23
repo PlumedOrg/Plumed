@@ -38,6 +38,9 @@ export interface SystemSettings {
     medical_data_skipped_version: string;
     medical_data_update_asked: boolean;
     app_update_channel: AppUpdateChannel;
+    app_update_channel_asked: boolean;
+    tutorial_opened: boolean;
+    tutorial_completed: boolean;
 }
 
 export interface ShortcutSettings {

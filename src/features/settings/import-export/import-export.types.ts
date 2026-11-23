@@ -22,6 +22,9 @@ export type ExportedSystemSettings = Omit<
     | 'medical_data_skipped_version'
     | 'medical_data_update_asked'
     | 'app_update_channel'
+    | 'app_update_channel_asked'
+    | 'tutorial_opened'
+    | 'tutorial_completed'
 >;
 
 export interface MurmureExportData {

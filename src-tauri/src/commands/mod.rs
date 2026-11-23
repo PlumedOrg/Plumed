@@ -16,6 +16,7 @@ pub mod settings;
 pub mod shortcuts;
 pub mod stats;
 pub mod telemetry;
+pub mod tutorial;
 
 pub use app_update::*;
 pub use clipboard::*;
@@ -35,3 +36,4 @@ pub use settings::*;
 pub use shortcuts::*;
 pub use stats::*;
 pub use telemetry::*;
+pub use tutorial::*;

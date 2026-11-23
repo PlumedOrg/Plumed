@@ -84,6 +84,15 @@ pub struct AppSettings {
     // Plumed fork: which app releases the updater follows (see `app_update`).
     // Never exported, so a settings file cannot change it.
     pub app_update_channel: crate::app_update::UpdateChannel,
+    // Plumed fork: `app_update_channel_asked` records that the user chose a
+    // channel (startup wizard or Settings > Online). Never exported.
+    pub app_update_channel_asked: bool,
+    // Plumed fork: the Tutorial page. `tutorial_opened` makes it the landing
+    // page on the first launch only; `tutorial_completed` is set by "J'ai
+    // terminé le tutoriel" and is the one boolean the opt-in usage statistics
+    // carry. Never exported.
+    pub tutorial_opened: bool,
+    pub tutorial_completed: bool,
 }
 
 /// Plumed: new installs type the text (Direct), which needs no clipboard and
@@ -186,6 +195,9 @@ impl Default for AppSettings {
             medical_data_skipped_version: String::new(),
             medical_data_update_asked: false,
             app_update_channel: Default::default(),
+            app_update_channel_asked: false,
+            tutorial_opened: false,
+            tutorial_completed: false,
         }
     }
 }
@@ -225,6 +237,14 @@ mod tests {
         )
         .unwrap();
         assert_eq!(parsed.sound_volume, 42);
+    }
+
+    #[test]
+    fn settings_saved_before_the_wizard_and_tutorial_load_as_not_answered() {
+        let parsed: AppSettings = serde_json::from_str(r#"{"sound_volume":42}"#).unwrap();
+        assert!(!parsed.app_update_channel_asked);
+        assert!(!parsed.tutorial_opened);
+        assert!(!parsed.tutorial_completed);
     }
 
     #[test]

@@ -316,6 +316,9 @@ pub fn run() {
             // Plumed: parse the medical rules now, not on the first transcription
             crate::medical::init(app.handle());
 
+            // Before the startup wizard can ask anything this launch.
+            telemetry::count_launch(app.handle());
+
             let startup_handle = app.handle().clone();
             std::thread::spawn(move || {
                 // Open `/dev/uinput` before the model loads, holding the
@@ -505,7 +508,11 @@ pub fn run() {
             is_telemetry_available,
             get_telemetry_preview,
             set_telemetry_enabled,
+            get_telemetry_question,
+            postpone_telemetry_question,
             set_app_update_channel,
+            mark_tutorial_opened,
+            set_tutorial_completed,
             check_app_update,
             install_app_update,
             get_recordings_dir,

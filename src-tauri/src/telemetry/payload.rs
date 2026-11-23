@@ -32,6 +32,8 @@ pub struct FeatureFlags {
     pub confusion_rescoring: bool,
     pub phrase_boosting: bool,
     pub grammar: bool,
+    /// The user ended the Tutorial page ("J'ai terminé le tutoriel").
+    pub tutorial_completed: bool,
 }
 
 /// Coarse bucket of a count, `bounds` being the inclusive upper bounds:
@@ -109,6 +111,7 @@ pub fn event_data(
         "confusion_rescoring": flags.confusion_rescoring,
         "phrase_boosting": flags.phrase_boosting,
         "grammar": flags.grammar,
+        "tutorial_completed": flags.tutorial_completed,
     });
     let mut map = match data {
         Value::Object(map) => map,
@@ -193,6 +196,7 @@ mod tests {
             confusion_rescoring: true,
             phrase_boosting: true,
             grammar: true,
+            tutorial_completed: true,
         }
     }
 
@@ -253,6 +257,7 @@ mod tests {
             "confusion_rescoring",
             "phrase_boosting",
             "grammar",
+            "tutorial_completed",
         ];
         expected.sort_unstable();
         assert_eq!(keys, expected);
