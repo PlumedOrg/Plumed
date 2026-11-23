@@ -9,7 +9,6 @@ import { useTranslation } from '@/i18n';
 import { useFormattingRules } from '@/features/personalize/formatting-rules/hooks/use-formatting-rules';
 import { useRemoveHesitations } from '@/features/personalize/formatting-rules/hooks/use-remove-hesitations';
 import { RULES_ANCHORS, TextStepId, cleanUpOptionTiming, pipelineStepTitle, stepNumber } from '../corrections.helpers';
-import { StepBadge } from '../step-badge/step-badge';
 
 interface CleanUpTabProps {
     /** Id of the block to scroll to once loaded (see `RULES_ANCHORS`). */
@@ -34,13 +33,12 @@ export const CleanUpTab = ({ anchor }: CleanUpTabProps) => {
         return <div className="text-muted-foreground">{t('Loading...')}</div>;
     }
 
-    // "4 Short text correction (applied after step 5)": every block is part of
-    // step 4, the options that run later say when.
+    // "Short text correction (applied after step 5)": every block is part of
+    // step 4 (the tab is), the options that run later say when.
     const stepHeading = (id: TextStepId) => {
         const timing = cleanUpOptionTiming(id, t);
         return (
             <Typography.Title className="flex items-center gap-2">
-                <StepBadge step={stepNumber(id)} />
                 {pipelineStepTitle(id, t)}
                 {timing !== null && <span className="text-xs font-normal text-muted-foreground">({timing})</span>}
             </Typography.Title>
