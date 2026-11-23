@@ -6,6 +6,7 @@ import { Bounce, ToastContainer } from 'react-toastify';
 import { AccessibilityListener } from './listeners/accessibility-listener';
 import { RecordingErrorListener } from './listeners/recording-error-listener';
 import { ConfigImportedListener } from './listeners/config-imported-listener';
+import { RemoteMicLateListener } from './listeners/remote-mic-late-listener';
 import { WaylandListener } from './listeners/wayland-listener';
 import { TrayMenuI18nListener } from './listeners/tray-menu-i18n-listener';
 import { StartupWizard } from '@/features/onboarding/startup-wizard/startup-wizard';
@@ -17,6 +18,7 @@ export const Layout = () => {
             <AccessibilityListener />
             <RecordingErrorListener />
             <ConfigImportedListener />
+            <RemoteMicLateListener />
             <WaylandListener />
             <TrayMenuI18nListener />
             <StartupWizard />

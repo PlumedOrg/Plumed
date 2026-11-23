@@ -34,6 +34,16 @@ const QUEUE_LEN: usize = 4;
 /// A recording still queued after this long is dropped: by then the user has
 /// moved on, and pasting it would land in whatever window has the focus now.
 const MAX_QUEUE_AGE: Duration = Duration::from_secs(60);
+/// A transcript ready more than this after the phone's `END` reached the
+/// desktop is not pasted: the user has probably moved on to another window
+/// or field, and the text would land there. Measured from the reception of
+/// `END` (`Queued::at`, the only timestamp we have: the phone sends none),
+/// so it covers the queue wait and the transcription, not the relay delay.
+/// 20 s leaves room for transcribing a long recording (about 0.2 s per
+/// second of audio) while staying well under the 60 s queue limit.
+const MAX_PASTE_DELAY: Duration = Duration::from_secs(20);
+/// Event telling the interface a transcript was kept out of the paste.
+const LATE_EVENT: &str = "remote-mic-late-transcript";
 pub const STATE_EVENT: &str = "remote-mic-state";
 #[derive(Serialize, Clone, Copy, Debug, PartialEq, Default)]
 #[serde(rename_all = "lowercase")]
@@ -492,6 +502,12 @@ impl RecordingQueue {
     }
 }
 
+/// Whether a transcript is still worth pasting, `delay` after the end of the
+/// recording reached the desktop.
+fn paste_is_timely(delay: Duration) -> bool {
+    delay <= MAX_PASTE_DELAY
+}
+
 impl Queued {
     fn is_current(&self, generation: u64, now: Instant) -> bool {
         self.generation == generation && now.duration_since(self.at) <= MAX_QUEUE_AGE
@@ -509,10 +525,18 @@ fn spawn_transcriber(app: AppHandle) -> RecordingQueue {
             }
             let app = app.clone();
             let Queued {
-                pcm, sample_rate, ..
+                pcm,
+                sample_rate,
+                at,
+                ..
             } = item;
             let _ = tauri::async_runtime::spawn_blocking(move || {
                 match transcribe_pcm(&app, pcm, sample_rate) {
+                    Ok(text) if !text.is_empty() && !paste_is_timely(at.elapsed()) => {
+                        // Already in the history (`transcribe_pcm`), just not pasted
+                        info!("Remote mic: transcript too late, not pasted");
+                        let _ = app.emit(LATE_EVENT, ());
+                    }
                     Ok(text) if !text.is_empty() => {
                         if let Err(e) = crate::clipboard::paste(&text, &app) {
                             warn!("Remote mic: paste failed: {}", e);
@@ -581,6 +605,15 @@ mod tests {
         let (queue, _rx, _) = RecordingQueue::new();
         let step = handle_frames(&mut pairing, hellos, &queue).unwrap();
         assert_eq!(step.send.len(), 1);
+    }
+
+    #[test]
+    fn a_late_transcript_is_not_pasted() {
+        assert!(paste_is_timely(Duration::ZERO));
+        assert!(paste_is_timely(MAX_PASTE_DELAY));
+        assert!(!paste_is_timely(MAX_PASTE_DELAY + Duration::from_millis(1)));
+        assert!(!paste_is_timely(MAX_QUEUE_AGE));
+        assert!(MAX_PASTE_DELAY < MAX_QUEUE_AGE);
     }
 
     #[test]

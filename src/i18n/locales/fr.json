@@ -687,5 +687,6 @@
     "Search a phrase or a text": "Rechercher une phrase ou un texte",
     "What you say": "Ce que vous dites",
     "The text it is replaced by (several lines allowed)": "Le texte qui la remplace (plusieurs lignes possibles)",
-    "Importing text template changes...": "Importation des modifications des textes types..."
+    "Importing text template changes...": "Importation des modifications des textes types...",
+    "Late PhoneMic transcript: saved in the history, not pasted": "Transcription PhoneMic arrivée en retard : conservée dans l'historique, non collée"
 }
