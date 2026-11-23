@@ -16,6 +16,9 @@ use std::collections::{HashMap, HashSet};
 pub trait OverlayEntry: Clone + PartialEq + Serialize + DeserializeOwned {
     /// The list this is an entry of.
     const LIST: MedicalList;
+    /// Whether bundled entries start turned off: until the user saves a change,
+    /// the overlay is [`ListOverlay::initial`] instead of empty.
+    const OFF_BY_DEFAULT: bool = false;
     /// Identifies the entry: disabling a key turns off every bundled entry with it.
     fn key(&self) -> String;
     /// `Ok(None)` for a line that is not an entry (blank, directive, group
@@ -184,6 +187,19 @@ fn bundled_entries<T: OverlayEntry>(bundled: &str) -> impl Iterator<Item = T> + 
 }
 
 impl<T: OverlayEntry> ListOverlay<T> {
+    /// The overlay before the user changed anything: every bundled entry
+    /// turned off when the list is [`OverlayEntry::OFF_BY_DEFAULT`], else no change.
+    pub fn initial(bundled: &str) -> Self {
+        let disabled = match T::OFF_BY_DEFAULT {
+            true => bundled_entries::<T>(bundled).map(|e| e.key()).collect(),
+            false => Vec::new(),
+        };
+        Self {
+            disabled,
+            added: Vec::new(),
+        }
+    }
+
     fn disabled_set(&self) -> HashSet<&str> {
         self.disabled.iter().map(String::as_str).collect()
     }

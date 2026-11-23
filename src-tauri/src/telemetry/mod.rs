@@ -96,6 +96,11 @@ fn feature_flags(app: &AppHandle, settings: &AppSettings) -> FeatureFlags {
     FeatureFlags {
         user_rules: count_bucket(rule_count, &[(10, "1-10"), (50, "11-50")], ">50"),
         medical_rules_edited: crate::medical::get_edits(app).is_ok_and(|e| !e.is_empty()),
+        text_templates: count_bucket(
+            crate::medical::text_templates::enabled_count(app),
+            &[(10, "1-10"), (50, "11-50")],
+            ">50",
+        ),
         dictionary_words: count_bucket(dictionary_size, &[(10, "1-10"), (100, "11-100")], ">100"),
         record_mode: known_value(&settings.record_mode, &["push_to_talk", "toggle_to_talk"]),
         remote_mic: settings.remote_mic_enabled,

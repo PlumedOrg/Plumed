@@ -19,6 +19,8 @@ use tauri::{AppHandle, Manager};
 pub enum MedicalList {
     Phrases,
     ConfusionGroups,
+    /// Not an engine list: spoken text templates, applied by the formatter.
+    Templates,
 }
 
 impl MedicalList {
@@ -27,6 +29,7 @@ impl MedicalList {
         match self {
             MedicalList::Phrases => &data.phrase_list,
             MedicalList::ConfusionGroups => &data.confusion_groups,
+            MedicalList::Templates => super::text_templates::BUNDLED,
         }
     }
 
@@ -35,6 +38,7 @@ impl MedicalList {
         match self {
             MedicalList::Phrases => &store::PHRASE_OVERLAY,
             MedicalList::ConfusionGroups => &store::CONFUSION_OVERLAY,
+            MedicalList::Templates => &store::TEXT_TEMPLATES,
         }
     }
 }
@@ -116,6 +120,9 @@ pub fn rearm(app: &AppHandle) {
 
 /// Re-arms one list after the user changed it.
 pub fn rearm_list(app: &AppHandle, list: MedicalList) {
+    if list == MedicalList::Templates {
+        return super::text_templates::activate(app);
+    }
     let options = options(app);
     let data = data_set::current();
     with_loaded_engine(app, |engine| {

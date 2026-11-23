@@ -72,7 +72,8 @@ pub fn apply_formatting_traced(
     };
     trace.record(PipelineStep::ShortText, &result);
 
-    // 2. Apply custom rules (find/replace with punctuation handling)
+    // 2. Plumed: spoken text templates, then custom rules (find/replace with punctuation handling)
+    result = crate::medical::apply_text_templates(result);
     for rule in &settings.rules {
         if rule.enabled && !rule.trigger.is_empty() {
             result = apply_custom_rule(&result, &rule.trigger, &rule.replacement, &rule.match_mode);
@@ -189,7 +190,7 @@ fn cached_regex(pattern: &str) -> Option<Regex> {
 /// - Exact:  Simple string replace (e.g., "*" -> "")
 /// - Smart:  Replace with surrounding punctuation handling (case-insensitive)
 /// - Regex:  User-provided regex pattern with capture group support ($1, $2...)
-pub(super) fn apply_custom_rule(
+pub(crate) fn apply_custom_rule(
     text: &str,
     trigger: &str,
     replacement: &str,

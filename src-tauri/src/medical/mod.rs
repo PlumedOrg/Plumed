@@ -15,6 +15,7 @@ pub mod engine_lists;
 mod interhop;
 pub mod list_overlay;
 pub(crate) mod store;
+pub mod text_templates;
 
 pub use changes::MedicalChanges;
 use drug_rules::DrugRules;
@@ -26,6 +27,7 @@ use log::warn;
 use serde::Deserialize;
 use std::sync::{Arc, RwLock};
 use tauri::AppHandle;
+use text_templates::TextTemplate;
 
 use crate::engine::confusion::ConfusionGroup;
 
@@ -65,7 +67,10 @@ fn load_edits(app: &AppHandle) -> Vec<RuleEdit> {
 pub fn init(app: &AppHandle) {
     data_set::init(app);
     let app = app.clone();
-    std::thread::spawn(move || activate(&load_edits(&app)));
+    std::thread::spawn(move || {
+        activate(&load_edits(&app));
+        text_templates::activate(&app);
+    });
 }
 
 /// After the data set changed: activates the saved edits on the new rules
@@ -76,6 +81,11 @@ fn reactivate(app: &AppHandle) -> usize {
     activate(&edits);
     engine_lists::rearm(app);
     data_set::current().rules.orphaned(&edits).len()
+}
+
+/// Expands the spoken text templates (Corrections > Text templates).
+pub fn apply_text_templates(text: String) -> String {
+    text_templates::apply(text)
 }
 
 /// Fixes drug names and medical terms that speech recognition mishears.
@@ -122,8 +132,13 @@ pub fn search(query: &str, limit: usize) -> Vec<RuleView> {
 }
 
 /// The user's changes to the list of entry type `T`.
+/// Before anything was saved, the list's [`ListOverlay::initial`].
 pub fn get_overlay<T: OverlayEntry>(app: &AppHandle) -> Result<ListOverlay<T>, String> {
-    store::load(app, T::LIST.store_file())
+    let file = T::LIST.store_file();
+    match T::OFF_BY_DEFAULT && !store::exists(app, file)? {
+        true => Ok(ListOverlay::initial(T::LIST.bundled(&data_set::current()))),
+        false => store::load(app, file),
+    }
 }
 
 /// Validates, saves and arms the changes. Nothing is saved if one is invalid.
@@ -161,6 +176,7 @@ pub fn overlaid_list(app: &AppHandle, list: MedicalList, data: &data_set::Active
     match list {
         MedicalList::Phrases => overlaid::<Phrase>(app, data),
         MedicalList::ConfusionGroups => overlaid::<ConfusionGroup>(app, data),
+        MedicalList::Templates => overlaid::<TextTemplate>(app, data),
     }
 }
 
@@ -173,6 +189,7 @@ pub enum ListFile {
     ConfusionGroups,
     /// The grammar rules turned on (`crate::grammar`), one id per line.
     Grammar,
+    Templates,
 }
 
 /// The list's content in use (data set plus the user's changes).
@@ -182,6 +199,7 @@ pub fn export_list(app: &AppHandle, list: ListFile) -> Result<String, String> {
         ListFile::Rules => Ok(data.rules.export_jsonl(&get_edits(app)?)),
         ListFile::Phrases => Ok(overlaid_list(app, MedicalList::Phrases, &data)),
         ListFile::ConfusionGroups => Ok(overlaid_list(app, MedicalList::ConfusionGroups, &data)),
+        ListFile::Templates => Ok(overlaid_list(app, MedicalList::Templates, &data)),
         ListFile::Grammar => crate::grammar::export_list(app),
     }
 }
@@ -218,6 +236,7 @@ pub fn import_list(app: &AppHandle, list: ListFile, content: &str) -> Result<(),
         }
         ListFile::Phrases => import_overlay::<Phrase>(app, content),
         ListFile::ConfusionGroups => import_overlay::<ConfusionGroup>(app, content),
+        ListFile::Templates => import_overlay::<TextTemplate>(app, content),
         ListFile::Grammar => crate::grammar::import_list(app, content),
     }
 }

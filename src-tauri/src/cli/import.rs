@@ -40,6 +40,7 @@ fn category_display_name(key: &str) -> &str {
         "medical_confusion_groups" => "Sound-alike words (your changes)",
         "medical_rules" => "Residual errors (your changes)",
         "grammar_rules" => "Grammar (your changes)",
+        "text_templates" => "Text templates (your changes)",
         _ => key,
     }
 }
@@ -419,6 +420,13 @@ mod tests {
             grammar_rules: Some(ListOverlay {
                 disabled: vec!["g2__locutions_invariables".to_string()],
                 added: vec!["g3__gn_les_2m".to_string()],
+            }),
+            text_templates: Some(ListOverlay {
+                disabled: Vec::new(),
+                added: vec![crate::medical::text_templates::TextTemplate {
+                    trigger: "mon texte".to_string(),
+                    text: "ligne 1\nligne 2".to_string(),
+                }],
             }),
         };
         let mut categories = serde_json::to_value(&changes).unwrap();

@@ -35,6 +35,13 @@ pub const CONFUSION_OVERLAY: StoreFile = StoreFile {
     what: "confusion group changes",
 };
 
+/// Changes to the text templates ([`super::text_templates::TextTemplate`]).
+pub const TEXT_TEMPLATES: StoreFile = StoreFile {
+    name: "text_templates.json",
+    key: "overlay",
+    what: "text template changes",
+};
+
 /// Changes to the grammar step's rules ([`crate::grammar::rules::GrammarOverlay`]).
 pub const GRAMMAR_OVERLAY: StoreFile = StoreFile {
     name: "grammar_rules.json",
@@ -51,6 +58,12 @@ pub fn load<T: DeserializeOwned + Default>(app: &AppHandle, file: &StoreFile) ->
         }
         None => Ok(T::default()),
     }
+}
+
+/// Whether something was ever saved in `file`.
+pub fn exists(app: &AppHandle, file: &StoreFile) -> Result<bool, String> {
+    let store = app.store(file.name).map_err(|e| e.to_string())?;
+    Ok(store.get(file.key).is_some())
 }
 
 pub fn save<T: Serialize + ?Sized>(

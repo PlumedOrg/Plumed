@@ -1,6 +1,7 @@
 use crate::engine::confusion::ConfusionGroup;
 use crate::formatting_rules::types::FormattingRule;
 use crate::medical::list_overlay::{ListOverlay, ListPage, Phrase};
+use crate::medical::text_templates::TextTemplate;
 use crate::medical::{self, ListFile, MedicalChanges, RuleEdit, RuleView};
 use tauri::{command, AppHandle};
 
@@ -91,6 +92,36 @@ pub async fn search_confusion_groups(
     limit: usize,
 ) -> Result<ListPage<ConfusionGroup>, String> {
     medical::search_list(&app, &query, offset, limit)
+}
+
+#[command]
+pub fn get_text_template_overlay(app: AppHandle) -> Result<ListOverlay<TextTemplate>, String> {
+    medical::get_overlay(&app)
+}
+
+#[command]
+pub fn set_text_template_overlay(
+    app: AppHandle,
+    overlay: ListOverlay<TextTemplate>,
+) -> Result<(), String> {
+    medical::set_overlay(&app, overlay)
+}
+
+#[command]
+pub fn search_text_templates(
+    app: AppHandle,
+    query: String,
+    offset: usize,
+    limit: usize,
+) -> Result<ListPage<TextTemplate>, String> {
+    medical::search_list(&app, &query, offset, limit)
+}
+
+/// The overlay "Back to the original list" restores: the bundled templates
+/// turned off, none of the user's.
+#[command]
+pub fn get_initial_text_template_overlay() -> ListOverlay<TextTemplate> {
+    medical::text_templates::initial_overlay()
 }
 
 /// Writes the list in use (with the user's changes) to `file_path`.

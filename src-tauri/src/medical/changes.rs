@@ -2,7 +2,8 @@
 //! the settings export (`.murmure` file) carries them: one category per list,
 //! `medical_phrases` (Medical vocabulary tab), `medical_confusion_groups`
 //! (Sound-alike words tab), `medical_rules` (Residual errors tab) and
-//! `grammar_rules` (Grammar tab, the rules turned off and on). Only the
+//! `grammar_rules` (Grammar tab, the rules turned off and on) and
+//! `text_templates` (Text templates tab). Only the
 //! changes travel, never the bundled lists (the phrase list alone has ~77,000
 //! entries), so a file stays small and applies on top of whatever medical
 //! data the importing computer uses, like the per-tab files do.
@@ -14,6 +15,7 @@
 //! feature or change a relay URL. Written with Claude Code.
 
 use super::list_overlay::{ListOverlay, OverlayEntry, Phrase};
+use super::text_templates::TextTemplate;
 use super::RuleEdit;
 use crate::engine::confusion::ConfusionGroup;
 use crate::grammar::rules::GrammarOverlay;
@@ -34,6 +36,8 @@ pub struct MedicalChanges {
     pub medical_rules: Option<Vec<RuleEdit>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub grammar_rules: Option<GrammarOverlay>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub text_templates: Option<ListOverlay<TextTemplate>>,
 }
 
 impl MedicalChanges {
@@ -48,6 +52,7 @@ impl MedicalChanges {
             ),
             ("medical_rules", self.medical_rules.is_some()),
             ("grammar_rules", self.grammar_rules.is_some()),
+            ("text_templates", self.text_templates.is_some()),
         ]
         .into_iter()
         .filter_map(|(key, present)| present.then_some(key))
@@ -120,6 +125,9 @@ fn resolve(
                     added: merged(current.added, overlay.added, String::clone),
                 }
             }),
+            text_templates: imported
+                .text_templates
+                .map(|overlay| merged_overlay(current.text_templates.unwrap_or_default(), overlay)),
         },
     };
     if let Some(overlay) = &resolved.medical_phrases {
@@ -134,6 +142,9 @@ fn resolve(
     if let Some(overlay) = &resolved.grammar_rules {
         crate::grammar::rules::validate_overlay(overlay, &crate::grammar::rules::DATA.rules)?;
     }
+    if let Some(overlay) = &resolved.text_templates {
+        overlay.validate()?;
+    }
     Ok(resolved)
 }
 
@@ -144,6 +155,7 @@ pub fn current(app: &AppHandle) -> Result<MedicalChanges, String> {
         medical_confusion_groups: Some(super::get_overlay(app)?),
         medical_rules: Some(super::get_edits(app)?),
         grammar_rules: Some(crate::grammar::get_overlay(app)?),
+        text_templates: Some(super::get_overlay(app)?),
     })
 }
 
@@ -168,6 +180,9 @@ pub fn import(app: &AppHandle, imported: MedicalChanges, merge: bool) -> Result<
     if let Some(overlay) = resolved.grammar_rules {
         crate::grammar::set_overlay(app, overlay)?;
     }
+    if let Some(overlay) = resolved.text_templates {
+        super::set_overlay(app, overlay)?;
+    }
     Ok(())
 }
 
@@ -180,6 +195,38 @@ mod tests {
             disabled: disabled.iter().map(|k| k.to_string()).collect(),
             added: added.iter().map(|p| Phrase(p.to_string())).collect(),
         }
+    }
+
+    fn templates(disabled: &[&str], added: &[(&str, &str)]) -> ListOverlay<TextTemplate> {
+        ListOverlay {
+            disabled: disabled.iter().map(|k| k.to_string()).collect(),
+            added: added
+                .iter()
+                .map(|(trigger, text)| TextTemplate {
+                    trigger: trigger.to_string(),
+                    text: text.to_string(),
+                })
+                .collect(),
+        }
+    }
+
+    #[test]
+    fn an_invalid_template_refuses_the_whole_import() {
+        let imported = MedicalChanges {
+            medical_phrases: Some(phrases(&[], &["cetuximab"])),
+            text_templates: Some(templates(&[], &[("", "x")])),
+            ..Default::default()
+        };
+        assert!(resolve(MedicalChanges::default(), imported, false).is_err());
+    }
+
+    #[test]
+    fn text_templates_are_a_category() {
+        let changes = MedicalChanges {
+            text_templates: Some(templates(&[], &[])),
+            ..Default::default()
+        };
+        assert_eq!(changes.categories(), vec!["text_templates"]);
     }
 
     fn edit(original: Option<&str>, core: &str, replacement: &str) -> RuleEdit {
@@ -231,6 +278,10 @@ mod tests {
                 edit(None, "dolipran", "Doliprane"),
             ]),
             grammar_rules: None,
+            text_templates: Some(templates(
+                &["insere l'examen clinique normal."],
+                &[("a", "x")],
+            )),
         };
         let changed_group = group("ituximab", &["rituximab", "cetuximab", "infliximab"]);
         let imported = MedicalChanges {
@@ -248,8 +299,16 @@ mod tests {
                 edit(None, "levotirox", "Levothyrox"),
             ]),
             grammar_rules: None,
+            text_templates: Some(templates(&[], &[("a", "y"), ("b", "z")])),
         };
         let resolved = resolve(current, imported, true).unwrap();
+        assert_eq!(
+            resolved.text_templates,
+            Some(templates(
+                &["insere l'examen clinique normal."],
+                &[("a", "y"), ("b", "z")]
+            ))
+        );
         assert_eq!(
             resolved.medical_phrases,
             Some(phrases(

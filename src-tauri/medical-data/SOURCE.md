@@ -110,3 +110,7 @@ Installed sets live in `medical-data/<version>/` in the app data folder (files +
 `scripts/publish-medical-data.sh <version> "<notes>"` builds the manifest from the files currently in this folder, signs it and uploads everything (see the comment at its top, including how to create the key pair).
 
 Set up with Claude Code.
+
+## text-templates/templates.jsonl
+
+Bundled text templates (Corrections > Text templates tab, written with Claude Code): one JSON object per line with a spoken `trigger` and the `text` it expands to (line breaks as `\n`). The bundled example, a normal clinical examination, is written by hand, system by system, and is turned off by default (the user turns it on in the tab). Not part of the online data updates: it ships with the app.
