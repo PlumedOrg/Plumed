@@ -20,7 +20,7 @@ Vos modifications des listes médicales sont enregistrées à part, une liste pa
 
 ## Ce qui passe par Internet
 
-**Paramètres > Système > En ligne** liste tout ce qui passe par le réseau : la vérification des mises à jour de l'application (à chaque démarrage, impossible à désactiver, rien n'est installé sans votre clic), la vérification des mises à jour des données médicales et les statistiques d'utilisation anonymes (désactivées sauf si vous avez accepté, réglables dans cet onglet), et PhoneMic (seulement si vous l'activez). Ces réglages ne font jamais partie de l'export des paramètres.
+**Paramètres > Système > En ligne** liste tout ce qui passe par le réseau : la vérification des mises à jour de l'application (à chaque démarrage, impossible à désactiver, rien n'est installé sans votre clic), le téléchargement du modèle de reconnaissance vocale (une seule fois, quand vous le choisissez, depuis Hugging Face ou à défaut depuis le relais Plumed `models.plumed.fr` ; il est conservé lors des mises à jour et se gère dans **Paramètres > Système > Modèle**), la vérification des mises à jour des données médicales et les statistiques d'utilisation anonymes (désactivées sauf si vous avez accepté, réglables dans cet onglet), et PhoneMic (seulement si vous l'activez). Ces réglages ne font jamais partie de l'export des paramètres.
 
 ## Correction des noms de médicaments et des termes médicaux
 

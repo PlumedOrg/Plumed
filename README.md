@@ -17,6 +17,10 @@ En attendant que Plumed soit prêt, utilisez ParakeetWeb.
 
 Plumed est réalisé par [Olivier Cornelis](https://olicorne.org/fr), psychiatre et développeur.
 
+## Installation
+
+Le modèle de reconnaissance vocale n'est pas inclus dans l'installateur : au premier lancement, Plumed propose de choisir un modèle (UltiMed v2 Ultra int8, 668 Mo, ou sa version w4a8 plus légère, 402 Mo) et le télécharge une seule fois, depuis Hugging Face ou, si Hugging Face est bloqué, depuis le relais Plumed (`models.plumed.fr`). Le modèle est vérifié puis conservé lors des mises à jour ; il se change dans **Paramètres > Système > Modèle**.
+
 ## Confidentialité
 
 Tout fonctionne sur votre ordinateur : l'audio et les transcriptions ne sont jamais envoyés sur internet. Rien n'est envoyé, sauf si vous acceptez de partager des statistiques d'utilisation anonymes (des totaux agrégés, jamais de texte ni d'audio, désactivables à tout moment dans les réglages) : voir la [politique de confidentialité](PRIVACY_POLICY.md).

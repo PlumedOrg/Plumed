@@ -9,6 +9,7 @@ Plumed is a privacy-first, open-source speech-to-text desktop application. It is
 - Nothing is sent unless you opt in to **anonymous usage statistics** (off by default, see below).
 - Your audio and transcriptions are processed **locally** on your device.
 - Plumed stores only what it needs to operate (settings, custom words/rules). No transcription is written to disk by default.
+- On first launch, Plumed downloads the speech model you pick, from Hugging Face or, if Hugging Face cannot be reached, from the Plumed model relay (`models.plumed.fr`). This is a plain file download with no identifier; it happens once and the model is kept across updates.
 - On startup, Plumed checks for updates by contacting the configured updater endpoint (currently hosted on GitHub). Downloading updates is opt-in.
 - On first launch, Plumed asks whether it may check for medical rules updates at each start. Only if you agree (you can change it in Settings > System > Online) does it ask GitHub, on startup, whether newer medical rules exist: a plain download of a small signed file, with no identifier. Nothing is contacted before you answer. The new rules are downloaded only when you click "Download". You can also download them yourself with your browser and install them with "Install a downloaded update", which makes no network request.
 
@@ -32,6 +33,7 @@ Plumed stores the following locally in the app's data directory:
 - **Application logs** (do not contain transcriptions by default)
 - **Usage statistics counters** (`telemetry.json`, only if you opted in, see below)
 - **Downloaded medical rules** (`medical-data/` folder, only if you chose to download a medical data update; no personal data)
+- **Speech models** (`models/` folder, the model files you downloaded and which one is in use; no personal data)
 
 By default, **no transcription is persisted to disk**. Transcription history is kept in memory only and is cleared when the application closes. If you explicitly enable the "Persist history" option, the last 5 transcriptions will be saved on disk in the app's data directory. Each history entry also keeps the text after each processing step (to show on the home page what each correction step changed); these texts follow exactly the same rules: in memory only by default, on disk only with "Persist history", and only for those last 5 transcriptions.
 
@@ -68,7 +70,7 @@ Plumed asks once, at startup, whether you want to share anonymous usage statisti
 
 - **Purpose**: improve Plumed (know which versions, systems and features are used, and how often errors happen). Nothing else: no advertising, no profiling, no resale.
 - **Legal basis**: your consent (GDPR art. 6(1)(a)).
-- **What is sent**, at most once a day and only on days you use Plumed: app version, operating system and processor architecture, installer type, interface language, days since you turned the statistics on, the model name, the number of dictations of the period with their average and spread of duration and length in characters, duration buckets (under 10 s, 10 to 30 s, 30 to 120 s, over 120 s), processing speed, error counts (model loading, microphone, paste), and which features are on (as yes/no or coarse ranges such as "1-10 rules").
+- **What is sent**, at most once a day and only on days you use Plumed: app version, operating system and processor architecture, installer type, interface language, days since you turned the statistics on, the model name (which catalog variant is in use, for example `ultra-int8`), the number of dictations of the period with their average and spread of duration and length in characters, duration buckets (under 10 s, 10 to 30 s, 30 to 120 s, over 120 s), processing speed, error counts (model loading, microphone, paste), and which features are on (as yes/no or coarse ranges such as "1-10 rules").
 - **What is never sent**: what you dictate, audio, patient data, your rules or dictionary words, file paths, computer or user names, the time of each dictation, detailed hardware.
 - **Identifier**: a random identifier, unrelated to you or your computer, tells the days of the same installation apart. It is renewed every 13 months and never extended.
 - **Where and how long**: sent to a self-hosted [Umami](https://umami.is) instance run by the Plumed maintainer in the European Union, kept at most 25 months. Umami does not store IP addresses; any location it derives from the connection is no finer than country or city. The web server in front of it keeps a technical access log (date, requested address, IP address, browser identification) for troubleshooting and security, deleted automatically after 24 hours (legal basis: legitimate interest in keeping the service secure and working).
@@ -89,6 +91,7 @@ When you use network-related features, standard network metadata (such as your I
 
 Plumed may access the network only for:
 
+- **Downloading the speech model** (only when you click "Download" in the model dialog or in Settings > System > Model): the model files are fetched from Hugging Face, or else from the Plumed model relay (`models.plumed.fr`, run by the Plumed maintainer, which streams the same files from Hugging Face and logs neither IP addresses nor downloaded files). No identifier, cookie or usage data is sent. The files are checked against SHA-256 hashes built into the app.
 - **Checking for updates** (runs automatically on launch; currently not disableable in-app)
 - **Downloading and installing updates** (only when you choose to install an update)
 - **PhoneMic, the remote microphone** (only after you enable it and click "Connect a phone"; see above)
@@ -97,7 +100,7 @@ Plumed may access the network only for:
 
 The update checks do not include your audio or transcriptions.
 
-Third-party policy (GitHub): [GitHub Privacy Statement](https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement)
+Third-party policies: [GitHub Privacy Statement](https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement), [Hugging Face Privacy Policy](https://huggingface.co/privacy)
 
 ## Clipboard access
 
