@@ -36,7 +36,7 @@ use tauri::{DeviceEventFilter, Manager};
 use tauri_plugin_autostart::ManagerExt;
 use tauri_plugin_log::{Target, TargetKind, TimezoneStrategy};
 
-fn show_main_window(app: &tauri::AppHandle) {
+pub(crate) fn show_main_window(app: &tauri::AppHandle) {
     if let Some(main_window) = app.get_webview_window("main") {
         // Wayland compositors flag hidden-to-tray windows as minimised;
         // `show()` alone leaves the webview frozen (Handy pattern).
@@ -338,15 +338,17 @@ pub fn run() {
                     }
                 }
 
+                // Plumed fork: without a downloaded model the rest still runs.
                 match preload_engine(&startup_handle) {
-                    Ok(_) => {
-                        info!("Transcription engine initialized and ready");
-                        crate::grammar::warm_up(&startup_handle);
-                        telemetry::send_if_due(&startup_handle);
-                        crate::medical::data_update::check_at_startup(&startup_handle);
+                    Ok(_) => info!("Transcription engine initialized and ready"),
+                    Err(e) => {
+                        info!("Transcription engine will be loaded on first use: {}", e);
+                        crate::model::manager::check_after_load_failure(&startup_handle);
                     }
-                    Err(e) => info!("Transcription engine will be loaded on first use: {}", e),
                 }
+                crate::grammar::warm_up(&startup_handle);
+                telemetry::send_if_due(&startup_handle);
+                crate::medical::data_update::check_at_startup(&startup_handle);
             });
 
             setup_tray(app.handle())?;
@@ -400,6 +402,12 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             is_model_available,
             get_model_path,
+            get_model_status,
+            download_model,
+            cancel_model_download,
+            set_active_model,
+            delete_model,
+            verify_model,
             read_murmure_file,
             write_murmure_file,
             get_all_settings,

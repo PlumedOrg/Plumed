@@ -13,6 +13,14 @@ use std::sync::Arc;
 use tauri::{AppHandle, Emitter, Manager};
 
 pub fn record_audio(app: &AppHandle) {
+    // Plumed fork: the model is downloaded on first launch, say so instead
+    // of failing at the end of the dictation.
+    if !app.state::<Arc<Model>>().is_available() {
+        warn!("Recording refused: no speech model downloaded");
+        crate::show_main_window(app);
+        let _ = app.emit("model-missing", ());
+        return;
+    }
     let state = app.state::<AudioState>();
     let my_gen = state.begin_session();
     state.set_session_active(true);
@@ -314,6 +322,11 @@ pub fn write_last_transcription(app: &AppHandle, transcription: &str) -> Result<
 
     debug!("Last transcription written ({} bytes)", transcription.len());
     Ok(())
+}
+
+/// Drops the loaded engine (Plumed fork: the model in use changed).
+pub fn unload_engine(app: &AppHandle) {
+    *app.state::<AudioState>().engine.lock() = None;
 }
 
 pub fn preload_engine(app: &AppHandle) -> Result<()> {

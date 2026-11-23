@@ -16,6 +16,7 @@ pub struct Environment {
     pub arch: &'static str,
     pub install_kind: Option<String>,
     pub language: String,
+    /// The speech model in use: a catalog variant id, `dev` or `none`.
     pub model: &'static str,
 }
 
@@ -174,7 +175,7 @@ mod tests {
             arch: "x86_64",
             install_kind: Some("deb".to_string()),
             language: "fr".to_string(),
-            model: "parakeet-tdt-0.6b-v3-int8",
+            model: "ultra-int8",
         }
     }
 

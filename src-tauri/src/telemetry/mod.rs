@@ -73,7 +73,9 @@ fn environment(app: &AppHandle, settings: &AppSettings) -> Environment {
         arch: std::env::consts::ARCH,
         install_kind: tauri::utils::platform::bundle_type().map(|kind| kind.to_string()),
         language: known_value(&settings.language, &["default", "en", "fr"]).to_string(),
-        model: crate::model::MODEL_FILENAME,
+        model: app
+            .state::<std::sync::Arc<crate::model::Model>>()
+            .telemetry_id(),
     }
 }
 
