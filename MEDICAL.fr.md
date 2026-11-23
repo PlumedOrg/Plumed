@@ -10,7 +10,7 @@ Fonctionnalités propres au fork Plumed, absentes de Murmure.
 - **3 Dictionnaire personnel** : vos mots, favorisés pendant la reconnaissance puis écrits avec votre orthographe.
 - **4 Nettoyage et uniformisation** : les options préinstallées (hésitations, mots répétés, correction de texte court, espace avant ? et !, nombres en chiffres, espace finale). La correction de texte court s'applique en fait après l'étape 5 et la mise en forme préinstallée après l'étape 6, ce qui est indiqué à côté d'elles.
 - **5 Erreurs résiduelles** : les règles qui corrigent les erreurs fréquentes du modèle (« veine lafaxine » devient « venlafaxine »).
-- **6 Formatage** : vos propres règles de mise en forme (au départ les règles de dictée d'UltiMed, reprises d'InterHop).
+- **6 Formatage** : vos propres règles de mise en forme (au départ les règles de dictée d'UltiMed).
 - **7 Grammaire** : le correcteur grammatical Grammalecte, qui n'applique que les corrections sûres des règles activées.
 - **8 Textes types** : une phrase dite est remplacée par un texte plus long, éventuellement sur plusieurs lignes (« Insère l'examen clinique normal. » donne un examen clinique normal complet). Appliqué en dernier, après la grammaire, pour que le texte soit inséré tel quel, avec la même tolérance que les autres commandes vocales. Les textes fournis peuvent être lus et modifiés (la version modifiée devient la vôtre et l'originale est désactivée). L'exemple fourni est désactivé tant que vous ne l'activez pas ; vous pouvez ajouter, modifier et supprimer vos propres textes.
 
@@ -66,15 +66,6 @@ Seul le relais HTTPS est utilisé (pas de WebRTC, souvent bloqué sur les résea
 
 ## Règles de dictée (installées par défaut)
 
-Une nouvelle installation de Plumed contient 45 règles de dictée médicale (unités, constantes, ponctuation et mise en page dictées) : la liste `dictation_rules.csv` d'[UltiMed-ASR-FR-v2-regex-fixes](https://github.com/UltiMed-Org/UltiMed-ASR-FR-v2-regex-fixes), reprise des règles de dictée que l'association [InterHop](https://interhop.org/) maintient pour Murmure ([framagit.org/interhop/murmure-regex](https://framagit.org/interhop/murmure-regex)). Par exemple « tension 120 80 » devient « TA : 120/80 » et « 3 fois par jour » devient « 3/j ».
+Une nouvelle installation de Plumed contient 44 règles de dictée médicale (unités, constantes, ponctuation et mise en page dictées) : la liste `dictation_rules.csv` d'[UltiMed-ASR-FR-v2-regex-fixes](https://github.com/UltiMed-Org/UltiMed-ASR-FR-v2-regex-fixes). Par exemple « tension 120 80 » devient « TA : 120/80 » et « 3 fois par jour » devient « 3/j ».
 
 Elles se trouvent dans **Paramètres > Corrections > Formatage**, comme règles personnalisées ordinaires : vous pouvez les modifier, les désactiver ou les supprimer, et ajouter les vôtres. Elles s'appliquent après la correction des médicaments. **Revenir à la liste d'origine** remet exactement ces règles.
-
-Vous pouvez aussi importer l'ensemble complet des règles d'InterHop, qui en contient davantage (par exemple des modèles d'examen déclenchés par « ajoute la commande ... ») :
-
-1. Télécharger [`config.murmure`](https://framagit.org/interhop/murmure-regex/-/raw/main/config.murmure).
-2. Dans **Paramètres > Importer / Exporter**, importer ce fichier avec la stratégie **Fusionner**, pour garder vos propres règles (**Remplacer** les supprime). Les règles déjà présentes sont mises à jour, pas dupliquées.
-
-En ligne de commande : `plumed import config.murmure --strategy merge`. Sur un poste verrouillé, l'option **Paramètres > Avancé > Bloquer l'import en ligne de commande** refuse cette commande.
-
-Attention : l'import, quelle que soit la stratégie, applique aussi les options préinstallées d'InterHop (espace avant ? et !, conversion des nombres en chiffres en français, etc.). La correction des médicaments reste activée.
