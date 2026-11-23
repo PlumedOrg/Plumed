@@ -54,9 +54,9 @@ Pendant un enregistrement, l'audio est écrit dans un fichier WAV temporaire, da
 
 Activé par défaut. Pour mieux reconnaître les dictées très courtes (moins de 2 secondes, ou 3 mots au plus), Plumed conserve les 10 dernières secondes de l'audio des dictées récentes **en mémoire uniquement** et transcrit la dictée courte à la suite de cet audio. Cet audio n'est jamais écrit sur le disque, ne quitte jamais votre ordinateur et est supprimé 5 minutes après la dernière dictée, à la fermeture de Plumed, ou lorsque l'option est désactivée.
 
-## PhoneMic (alpha)
+## PhoneMic (expérimental)
 
-Cette fonctionnalité est une préversion alpha : attendez-vous à des bogues.
+Cette fonctionnalité est une fonctionnalité expérimentale : attendez-vous à des bogues.
 
 PhoneMic (le microphone distant) permet à un téléphone, sur n'importe quel réseau, de servir de microphone, par l'intermédiaire d'un serveur relais (par défaut `https://turn.plumed.fr`, configurable). Il est **désactivé par défaut**, et rien n'est envoyé tant que vous n'avez pas cliqué sur « Connecter un téléphone ».
 
