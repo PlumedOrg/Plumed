@@ -4,8 +4,6 @@ export const CORRECTIONS_PATH = '/corrections';
 
 /**
  * One tab per list, in the order the pipeline uses them, after the explanation.
- * Text templates come last and are not a numbered step: they run at the start
- * of step 6 (Formatting).
  */
 export type CorrectionsTab =
     | 'explanation'
@@ -35,7 +33,7 @@ export const RULES_ANCHORS = {
 /**
  * The steps of the Explanation flow, in the order the code runs them
  * (`audio/pipeline.rs`, then `formatting_rules/formatter.rs`, then
- * `grammar/`), one per list tab. Ids after recognition match the Rust `history::PipelineStep` the
+ * `grammar/`, then `medical/text_templates.rs`), one per list tab. Ids after recognition match the Rust `history::PipelineStep` the
  * history keeps.
  */
 export type PipelineStepId =
@@ -45,7 +43,8 @@ export type PipelineStepId =
     | 'clean_up'
     | 'model_corrections'
     | 'formatting_rules'
-    | 'grammar';
+    | 'grammar'
+    | 'templates';
 
 /**
  * Options of the Clean-up tab that the code runs later than step 4. They are
@@ -66,6 +65,7 @@ export const PIPELINE_STEPS: { id: PipelineStepId; tab: CorrectionsTab }[] = [
     { id: 'model_corrections', tab: 'model-corrections' },
     { id: 'formatting_rules', tab: 'formatting' },
     { id: 'grammar', tab: 'grammar' },
+    { id: 'templates', tab: 'templates' },
 ];
 
 /**
@@ -138,6 +138,8 @@ export const pipelineStepTitle = (id: TextStepId, t: Translate): string => {
             return t('Pre-installed formatting');
         case 'grammar':
             return t('Fix the grammar');
+        case 'templates':
+            return t('Insert your text templates');
     }
 };
 

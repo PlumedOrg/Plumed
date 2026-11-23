@@ -20,7 +20,7 @@ const TemplateEntry = ({ template }: { template: TextTemplate }) => (
     </div>
 );
 
-/** "Text templates" tab: a spoken phrase replaced by a longer text. Not a numbered step, runs at the start of step 6. */
+/** "Text templates" tab (step 8, last): a spoken phrase replaced by a longer text. */
 export const TextTemplates = () => {
     const { t } = useTranslation();
     const { overlay, saveOverlay, reload } = useListOverlay<TextTemplate>(
@@ -64,7 +64,7 @@ export const TextTemplates = () => {
             <ListHeader
                 title={t('Text templates')}
                 description={t(
-                    'A text template replaces a spoken phrase by a longer text, for example "Insère l\'examen clinique normal." becomes a complete normal clinical exam. Templates are applied at the start of step 6, before your formatting rules, and match like the other spoken commands (capitals and final punctuation do not matter). The example is off until you turn it on.'
+                    'A text template replaces a spoken phrase by a longer text, for example "Insère l\'examen clinique normal." becomes a complete normal clinical exam. Templates are step 8, applied last, after the grammar, so their text is inserted exactly as written. They match like the other spoken commands (capitals and final punctuation do not matter). The example is off until you turn it on.'
                 )}
                 summary={countTemplateChanges(overlay, initial)}
                 resetDescription={t(

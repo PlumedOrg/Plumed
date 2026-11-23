@@ -200,8 +200,12 @@ fn apply_formatting_rules(app: &AppHandle, text: String, trace: &mut StepTrace) 
     match formatting_rules::load(app) {
         Ok(settings) => {
             let text = formatting_rules::apply_formatting_traced(text, &settings, trace);
-            // Plumed: 7. grammar, last, so it sees the final spelling
-            crate::grammar::apply_traced(app, text, settings.built_in.grammar, trace)
+            // Plumed: 7. grammar, so it sees the final spelling
+            let text = crate::grammar::apply_traced(app, text, settings.built_in.grammar, trace);
+            // Plumed: 8. text templates, last, so their text is inserted as written
+            let text = crate::medical::apply_text_templates(text);
+            trace.record(PipelineStep::Templates, &text);
+            text
         }
         Err(e) => {
             warn!("Failed to load formatting rules: {}. Skipping.", e);

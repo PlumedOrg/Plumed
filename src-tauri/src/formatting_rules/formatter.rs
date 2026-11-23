@@ -72,8 +72,7 @@ pub fn apply_formatting_traced(
     };
     trace.record(PipelineStep::ShortText, &result);
 
-    // 2. Plumed: spoken text templates, then custom rules (find/replace with punctuation handling)
-    result = crate::medical::apply_text_templates(result);
+    // 2. Custom rules (find/replace with punctuation handling)
     for rule in &settings.rules {
         if rule.enabled && !rule.trigger.is_empty() {
             result = apply_custom_rule(&result, &rule.trigger, &rule.replacement, &rule.match_mode);

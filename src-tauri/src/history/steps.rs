@@ -22,6 +22,7 @@ pub enum PipelineStep {
     FormattingRules,
     BuiltInFormatting,
     Grammar,
+    Templates,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -148,5 +149,11 @@ mod tests {
             json,
             r#"{"step_id":"built_in_formatting","text_after":"x"}"#
         );
+    }
+
+    #[test]
+    fn templates_step_has_the_frontend_id() {
+        let json = serde_json::to_string(&step(PipelineStep::Templates, "x")).unwrap();
+        assert_eq!(json, r#"{"step_id":"templates","text_after":"x"}"#);
     }
 }

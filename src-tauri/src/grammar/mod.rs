@@ -1,4 +1,4 @@
-//! Plumed fork, step 7 "Grammaire" (Grammar), the last step of a dictation: Grammalecte
+//! Plumed fork, step 7 "Grammaire" (Grammar), the last correction step of a dictation: Grammalecte
 //! 2.3.0 (French grammar checker, GPL v3+, https://grammalecte.net) checks the final text
 //! and only the fixes of the chosen rules with exactly one suggestion are applied, with
 //! masks around misleading contexts. By default the 8 rules selected on the UltiMed

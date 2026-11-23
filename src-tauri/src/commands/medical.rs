@@ -117,6 +117,12 @@ pub fn search_text_templates(
     medical::search_list(&app, &query, offset, limit)
 }
 
+/// How many text templates are on (the step 8 card of the Explanation tab).
+#[command]
+pub fn get_enabled_text_template_count(app: AppHandle) -> usize {
+    medical::text_templates::enabled_count(&app)
+}
+
 /// The overlay "Back to the original list" restores: the bundled templates
 /// turned off, none of the user's.
 #[command]

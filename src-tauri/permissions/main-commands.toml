@@ -78,6 +78,7 @@ permissions = [
     "allow-set-text-template-overlay",
     "allow-search-text-templates",
     "allow-get-initial-text-template-overlay",
+    "allow-get-enabled-text-template-count",
     "allow-export-medical-list",
     "allow-import-medical-list",
     "allow-get-medical-changes",

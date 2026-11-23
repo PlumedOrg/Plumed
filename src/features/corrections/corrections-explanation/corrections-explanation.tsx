@@ -40,11 +40,15 @@ export const CorrectionsExplanation = ({ onOpen }: CorrectionsExplanationProps) 
     const { edits } = useMedicalRules();
     const { status: dataStatus } = useMedicalDataStatus();
     const [dictionaryCount, setDictionaryCount] = useState(0);
+    const [templateCount, setTemplateCount] = useState(0);
 
     useEffect(() => {
         invoke<string[]>('get_dictionary')
             .then((words) => setDictionaryCount(words.length))
             .catch((error: unknown) => console.error('Failed to load the personal dictionary:', error));
+        invoke<number>('get_enabled_text_template_count')
+            .then(setTemplateCount)
+            .catch((error: unknown) => console.error('get_enabled_text_template_count failed:', error));
     }, []);
 
     if (isLoading) {
@@ -172,12 +176,26 @@ export const CorrectionsExplanation = ({ onOpen }: CorrectionsExplanationProps) 
         grammar: {
             stage: onText,
             description: t(
-                'Last, the Grammalecte grammar checker reads the final text. Plumed applies a fix only when the rule is on and there is a single possible fix; ages, doses, acronyms and names are hidden from the checker so it does not take them for errors.'
+                'The Grammalecte grammar checker then reads the corrected text. Plumed applies a fix only when the rule is on and there is a single possible fix; ages, doses, acronyms and names are hidden from the checker so it does not take them for errors.'
             ),
             examples: [{ before: 'La patiente de 63 ans est fatigué.', after: 'La patiente de 63 ans est fatiguée.' }],
             note: t('Without the hiding, "ans" would be taken as the subject and "fatigué" left as it is.'),
             statuses: [onOff(options.grammar)],
             actions: [openTab('grammar', t('Open the grammar rules'), 'corrections-open-grammar')],
+        },
+        templates: {
+            stage: onText,
+            description: t(
+                'Last, a spoken phrase is replaced by a longer text written in advance. It comes after the grammar, so the text is inserted exactly as you wrote it.'
+            ),
+            examples: [{ before: "Insère l'examen clinique normal.", after: t('A complete normal clinical exam') }],
+            statuses: [
+                {
+                    label: t('{{count}} text template(s) on', { count: templateCount }),
+                    active: templateCount > 0,
+                },
+            ],
+            actions: [openTab('templates', t('Open the text templates'), 'corrections-open-templates')],
         },
     };
     const steps: Step[] = PIPELINE_STEPS.map(({ id }) => ({ title: pipelineStepTitle(id, t), ...content[id] }));

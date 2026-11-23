@@ -7,7 +7,7 @@
 //! `text_templates.json`. The bundled examples start turned off
 //! ([`OverlayEntry::OFF_BY_DEFAULT`]). Expansion reuses the formatting rules
 //! engine in smart mode (case-insensitive, surrounding punctuation handled), and
-//! runs at the start of step 6, before the user's formatting rules.
+//! runs last, as step 8 after the grammar, so the text is inserted as written.
 
 use super::drug_rules::fold;
 use super::engine_lists::MedicalList;

@@ -478,6 +478,7 @@ pub fn run() {
             set_text_template_overlay,
             search_text_templates,
             get_initial_text_template_overlay,
+            get_enabled_text_template_count,
             export_medical_list,
             import_medical_list,
             get_medical_changes,
