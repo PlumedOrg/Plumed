@@ -33,7 +33,7 @@ Le modèle de reconnaissance vocale n'est pas inclus dans l'installateur : au pr
 ## Fonctionnalités
 
 - **Dictée par raccourci clavier** dans n'importe quelle application, avec aperçu en cours de dictée.
-- **Pipeline de correction en 8 étapes**, détaillé dans l'onglet Explication de **Paramètres > Corrections** : vocabulaire médical (amplification d'environ 77 000 expressions pendant la reconnaissance), mots qui se ressemblent (départage par réécoute du passage), dictionnaire personnel, nettoyage et uniformisation, erreurs résiduelles du modèle (règles pour les médicaments et termes médicaux), règles de mise en forme (dont les règles de dictée d'InterHop), grammaire (Grammalecte) et textes types. Voir [MEDICAL.fr.md](MEDICAL.fr.md).
+- **Pipeline de correction en 8 étapes**, détaillé dans l'onglet Explication de **Paramètres > Corrections** : vocabulaire médical (amplification d'environ 77 000 expressions pendant la reconnaissance), mots qui se ressemblent (départage par réécoute du passage), dictionnaire personnel, nettoyage et uniformisation, erreurs résiduelles du modèle (règles pour les médicaments et termes médicaux), règles de mise en forme (dont les règles de dictée d'UltiMed, reprises d'InterHop), grammaire (Grammalecte) et textes types. Voir [MEDICAL.fr.md](MEDICAL.fr.md).
 - **Textes types** : une phrase dite est remplacée par un texte plus long (désactivés par défaut).
 - **Contexte pour les dictées courtes** : une dictée très brève est mieux reconnue grâce à la fin de la précédente.
 - **PhoneMic** (expérimental, désactivé par défaut) : utiliser le téléphone comme micro, via un relais HTTPS chiffré de bout en bout.

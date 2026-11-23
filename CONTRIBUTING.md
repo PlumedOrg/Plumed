@@ -29,7 +29,7 @@ Our guiding principles:
 
 ### Prerequisites
 
-- Fetch the UltiMed medical Parakeet model with `scripts/fetch-ultimed-model.sh` (it lands in `resources/parakeet-tdt-0.6b-v3-int8`)
+- Fetch the default speech model (UltiMed v1 Ultra int8) with `scripts/fetch-ultimed-model.sh` (it lands in `resources/parakeet-tdt-0.6b-v3-int8`, which development builds use while no model has been downloaded in the app)
 - Install all required dependencies for Tauri: [https://v2.tauri.app/start/prerequisites/](https://v2.tauri.app/start/prerequisites/)
 
 ### Start Plumed
@@ -138,14 +138,14 @@ Notes:
 ### Backend
 
 - `lib.rs` : Tauri app builder; initializes plugins, state, commands, shortcuts, overlay, and tray
-- `commands.rs` : Tauri commands exposed to the frontend (single communication layer)
-- `audio.rs` : Recording/transcription pipeline: capture audio, write WAV, run Parakeet, update history, clipboard, and paste into the active field
-- `history.rs` : Stores and manages the last 5 transcriptions (persistent) and emits updates
-- `dictionary.rs` : Dictionary pipeline: decode-time phrase boosting plus a confidence-gated spelling post-correction
-- `model.rs` : Resolves bundled Parakeet model path and checks availability
-- `overlay.rs` : Creates and manages the recording overlay (show/hide/position)
-- `settings.rs` : Loads and saves app settings (shortcuts, overlay) to JSON
-- `tray_icon.rs` : Creates the system tray and handles menu/click events
-- `clipboard.rs` : Clipboard integration and simulated paste; restores previous clipboard content
+- `commands/` : Tauri commands exposed to the frontend (single communication layer)
+- `audio/` : Recording/transcription pipeline: capture audio, write WAV, run Parakeet, apply the correction steps (`audio/pipeline.rs`), update history, clipboard, and paste into the active field
+- `history/` : Stores and manages the last 5 transcriptions (in memory, on disk only with history persistence) with the text after each correction step, and emits updates
+- `dictionary/` : Dictionary pipeline: decode-time phrase boosting plus a confidence-gated spelling post-correction
+- `model/` : Speech model catalog, download (SHA-256 checked) and storage in the app data folder, and which model is active
+- `overlay/` : Creates and manages the recording overlay (show/hide/position)
+- `settings/` : Loads and saves app settings (shortcuts, overlay) to JSON
+- `overlay/tray.rs` : Creates the system tray and handles menu/click events
+- `clipboard/` : Clipboard integration and simulated paste; restores previous clipboard content
 - `shortcuts/` : Global keyboard shortcuts (push-to-talk, last transcript, suspend), with per-OS backends
 - `engine/` : CPU transcription engine and Parakeet runtime bindings (adapted from open source)
