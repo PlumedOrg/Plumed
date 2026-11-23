@@ -2,7 +2,7 @@
 
 > **Alpha:** PhoneMic (the remote microphone) is a pre-release feature, expect bugs and breaking protocol changes between Plumed versions.
 
-This directory holds everything that runs on the server side of the Plumed remote microphone: a small Rust (axum) HTTPS relay that also serves the phone page. It was written with Claude Code.
+This directory holds everything that runs on the server side of Plumed: the remote microphone relay, a small Rust (axum) HTTPS relay that also serves the phone page, and, as a second independent service, the [model relay](#model-relay) that streams the speech models from Hugging Face. It was written with Claude Code.
 
 How it works:
 
@@ -20,7 +20,9 @@ Transport is plain HTTPS long-polling (no WebSocket, no WebRTC, no TURN server),
 | `server/src/` | The relay (rooms, rate limiter, HTTP API, embedded phone page) |
 | `server/static/` | The phone page (plain ES modules, no build step): French by default, English toggle |
 | `server/static-tests/` | Node tests of the phone JS (wire, crypto against the shared vectors, VAD) |
-| `Dockerfile`, `docker-compose.yml`, `env.example` | Deployment |
+| `server/src/serve.rs` | Serving helpers shared by both binaries (environment, client IP behind the proxy, shutdown, `--healthcheck`) |
+| `models/` | The model relay `plumed-models` (see [Model relay](#model-relay)) |
+| `Dockerfile`, `docker-compose.yml`, `env.example` | Deployment of both services (Dockerfile targets `relay` and `models`) |
 
 The phone's `wire.js` and `crypto.js` mirror the Rust code (`protocol/src/lib.rs`, `src-tauri/src/remote_mic/crypto.rs`). This duplication across languages is unavoidable, so both sides are pinned by `protocol/test-vectors.json`: change them together.
 
@@ -58,7 +60,30 @@ Any request can also get `429` when its client already has 4 requests in flight 
 | `PLUMED_RELAY_ROOMS_PER_IP` | `100` | Rooms open at the same time for one client IP (IPv6: per /64), which also sets its share of requests in flight (4 per room). A hospital behind one NAT address shares it |
 | `PLUMED_RELAY_ROOMS_PER_IP_PER_HOUR` | `300` | Room creations per client IP per hour |
 
-The last two can be set in `.env` (copy `env.example`), `docker-compose.yml` passes them to the container.
+The last three can be set in `.env` (copy `env.example`), `docker-compose.yml` passes them to the container.
+
+## Model relay
+
+Plumed does not bundle its speech model: on first launch the app downloads the model the user picks from Hugging Face. Hospital networks often block huggingface.co but let plumed.fr through, so the app falls back to `plumed-models`, a second, independent service of this directory: a Rust port of ParakeetWeb's HuggingFace relay (`signaling/hf-relay.js`), written with Claude Code.
+
+- `GET` / `HEAD /models/<owner>/<name>/<path>?revision=<commit>` answers the file of that repository at that commit (the scheme lives in `protocol/src/models.rs`, `relay_path`, used by the app too). `GET /healthz` answers `ok`.
+- It streams from huggingface.co without writing to disk and without buffering beyond the stream's backpressure window (constant memory, the cost is bandwidth only). `Range`, `If-Range` and `If-None-Match` are forwarded; `Content-Length`, `Content-Range`, `Accept-Ranges` and `ETag` come back, so the app resumes an interrupted download. `HEAD` stops at the hub (`X-Linked-Size`, `X-Linked-Etag`) and never touches the CDN.
+- Never an open proxy: only the allowlisted `repo@revision` pairs are served, anything else is a `404` without contacting the hub; every path segment must be `[A-Za-z0-9._-]+` (no `..`, no percent-encoding); redirects are followed by hand, at most 5, and each hop must be https on `huggingface.co`, `*.huggingface.co` or `*.hf.co`, otherwise `502`.
+- The optional `HF_TOKEN` is sent to huggingface.co only, never to its CDN.
+- Concurrent file streams are capped for everyone and per client IP (`503` with `Retry-After: 5`). Upstream headers must arrive within 30 s (`504`), a body that sends nothing for 60 s is cut. Client IPs are never logged; errors log the repository and file only.
+
+The allowlist defaults to `MODEL_REPOS` in `protocol/src/models.rs`, the same list the app's catalog is built on (one source of truth): to offer a new model or revision, update that list and the catalog (`src-tauri/src/model/catalog.rs`), then redeploy. Keep the old revision in the list while released apps still download it.
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `PLUMED_MODELS_BIND` | `0.0.0.0:5175` | Listen address (set by `docker-compose.yml`) |
+| `PLUMED_MODELS_TRUST_PROXY` | `false` | Same as `PLUMED_RELAY_TRUST_PROXY`, `docker-compose.yml` sets it to `true` |
+| `PLUMED_MODELS_REPOS` | the app's repositories | Comma-separated `owner/name@revision` pairs served; a malformed entry stops the boot |
+| `PLUMED_MODELS_MAX_STREAMS` | `32` | File streams at the same time |
+| `PLUMED_MODELS_STREAMS_PER_IP` | `8` | File streams at the same time per client IP (IPv6: per /64) |
+| `HF_TOKEN` | empty | Hugging Face token, only needed if the hub rate-limits the server |
+
+All but the bind address can be set in `.env`, `docker-compose.yml` passes them to the container.
 
 ## Develop
 
@@ -66,7 +91,10 @@ The last two can be set in `.env` (copy `env.example`), `docker-compose.yml` pas
 cargo test                                  # protocol + relay (build output goes to ../plumed_build_ignore_backups/)
 node --test server/static-tests/*.test.mjs  # phone page
 cargo run -p plumed-relay                   # http://localhost:5174
+cargo run -p plumed-models                  # http://localhost:5175 (model relay)
 ```
+
+`cargo test` also runs the model relay against a fake Hugging Face (hub redirecting to a CDN) over real sockets (`models/tests/relay.rs`).
 
 Browsers only give the microphone to secure origins, so testing on a real phone needs HTTPS (for example a reverse proxy with a certificate).
 
@@ -80,8 +108,18 @@ turn.plumed.fr {
 }
 ```
 
-Keep Caddy's access log off (it is off unless a `log` directive is set): it would record client IPs and room ids, which the relay itself never logs.
+The model relay needs its own block. `flush_interval -1` sends each chunk as it arrives (no buffering of a 650 MB file), and there must be no `encode` directive on it: compression would drop `Content-Length` and break `Range` resumption:
 
-Then on the server, in a copy of this directory: `cp env.example .env && sudo docker compose up -d --build`. The container is read-only, unprivileged (distroless, non-root, no capabilities) and checks its own health with `plumed-relay --healthcheck`.
+```
+models.plumed.fr {
+    reverse_proxy 127.0.0.1:5175 {
+        flush_interval -1
+    }
+}
+```
 
-Maintainers deploy with a local, gitignored `deploy.sh` that rsyncs this directory to the VPS and rebuilds the container.
+Keep Caddy's access log off on both (it is off unless a `log` directive is set): it would record client IPs and room ids or downloaded files, which the relays themselves never log.
+
+Then on the server, in a copy of this directory: `cp env.example .env && sudo docker compose up -d --build`. Both containers are read-only, unprivileged (distroless, non-root, no capabilities) and check their own health with `plumed-relay --healthcheck` and `plumed-models --healthcheck`.
+
+Maintainers deploy with a local, gitignored `deploy.sh` that rsyncs this directory to the VPS, builds both images, swaps both containers and checks `https://turn.plumed.fr/healthz` and `https://models.plumed.fr/healthz`.
