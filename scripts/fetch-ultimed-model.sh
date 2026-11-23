@@ -1,18 +1,23 @@
 #!/usr/bin/env bash
-# Plumed fork: fetch the UltiMed fine-tuned Parakeet model (int8 ONNX) into
-# resources/parakeet-tdt-0.6b-v3-int8/, the folder the app loads its model from
-# (MODEL_FILENAME in src-tauri/src/model/model.rs). The folder keeps upstream's name so
-# no Rust code changes, even though it now holds UltiMed instead of the stock model.
+# Plumed fork: fetch the UltiMed v2 Ultra int8 speech model into
+# resources/parakeet-tdt-0.6b-v3-int8/. The app does not bundle it any more: it
+# downloads its model on first launch (src-tauri/src/model/). Development builds
+# (`pnpm tauri dev`, debug `cargo test`) fall back to this folder, and
+# engine::beam's ignored test reads it, so a dev checkout works offline.
 #
 # Model: https://huggingface.co/Olicorne/parakeet-tdt-0.6b-v3-ultra-UltiMed-v2-onnx
-# (UltiMed v2, French medical fine-tune of Parakeet TDT 0.6B v3, same vocabulary and file layout).
+# (UltiMed v2, French medical fine-tune of Parakeet TDT 0.6B v3).
 #
 # Usage:
-#   scripts/fetch-ultimed-model.sh                   # download from Hugging Face (used by CI)
-#   scripts/fetch-ultimed-model.sh path/to/clone     # copy from a local clone of the model repo
+#   scripts/fetch-ultimed-model.sh                        # download from Hugging Face
+#   scripts/fetch-ultimed-model.sh path/to/clone          # copy from a local clone of the model repo
+#   scripts/fetch-ultimed-model.sh --models-dir DIR       # also install it as the app's
+#                                                         # downloaded model (CI smoke test)
 #
-# Every file is checked against the SHA-256 below. To move to a new model revision, update
-# REVISION and the hashes together.
+# Every file is checked against the SHA-256 below. REVISION and the hashes
+# repeat the ultra-int8 entry of src-tauri/src/model/catalog.rs: update both
+# together. --models-dir writes the folder name, model.json and active.json the
+# way src-tauri/src/model/store.rs does.
 #
 # Set up with Claude Code.
 set -euo pipefail
@@ -38,7 +43,12 @@ sha256() {
     fi
 }
 
-LOCAL_CLONE="${1:-}"
+MODELS_DIR=""
+LOCAL_CLONE=""
+case "${1:-}" in
+    --models-dir) MODELS_DIR="${2:?--models-dir needs a folder}" ;;
+    *) LOCAL_CLONE="${1:-}" ;;
+esac
 mkdir -p "$DEST"
 
 for entry in "${FILES[@]}"; do
@@ -61,3 +71,12 @@ for entry in "${FILES[@]}"; do
 done
 
 ls -al "$DEST"
+
+if [ -n "$MODELS_DIR" ]; then
+    installed="$MODELS_DIR/ultra-int8-${REVISION:0:12}"
+    mkdir -p "$installed"
+    cp "$DEST"/* "$installed/"
+    printf '{"variant":"ultra-int8","revision":"%s","source":"hugging_face"}' "$REVISION" > "$installed/model.json"
+    printf '{"variant":"ultra-int8"}' > "$MODELS_DIR/active.json"
+    echo "Installed as the app's model in $installed"
+fi

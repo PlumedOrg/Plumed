@@ -49,10 +49,6 @@ jobs:
                     libgtk-3-dev \
                     unzip
 
-            - name: Download & extract ONNX model (Linux)
-              shell: bash
-              run: bash scripts/fetch-ultimed-model.sh
-
             - name: Download Grammalecte (grammar step)
               shell: bash
               run: bash scripts/fetch-grammalecte.sh
@@ -63,6 +59,7 @@ jobs:
             - name: Build (AppImage)
               env:
                   PLUMED_TELEMETRY_WEBSITE_ID: ${{ secrets.PLUMED_TELEMETRY_WEBSITE_ID }}
+                  PLUMED_MODEL_RELAY_URL: ${{ vars.PLUMED_MODEL_RELAY_URL }}
                   PLUMED_RULES_PUBKEY: ${{ secrets.PLUMED_RULES_PUBKEY }}
               run: pnpm tauri build --bundles appimage
 

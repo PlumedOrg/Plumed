@@ -56,11 +56,6 @@ jobs:
               run: npm install -g pnpm@10.19.0 --ignore-scripts
               shell: pwsh
 
-            - name: Download & extract ONNX model (Windows)
-              if: ${{ inputs.dry == false }}
-              shell: bash
-              run: bash scripts/fetch-ultimed-model.sh
-
             - name: Download Grammalecte (grammar step)
               if: ${{ inputs.dry == false }}
               shell: bash
@@ -73,6 +68,7 @@ jobs:
             - name: Build
               env:
                   PLUMED_TELEMETRY_WEBSITE_ID: ${{ secrets.PLUMED_TELEMETRY_WEBSITE_ID }}
+                  PLUMED_MODEL_RELAY_URL: ${{ vars.PLUMED_MODEL_RELAY_URL }}
                   PLUMED_RULES_PUBKEY: ${{ secrets.PLUMED_RULES_PUBKEY }}
               run: pnpm tauri build ${{ inputs.dry && '--no-bundle' || '' }}
               shell: pwsh

@@ -40,10 +40,6 @@ jobs:
                     file \
                     libssl-dev
 
-            - name: Download & extract ONNX model (Linux)
-              shell: bash
-              run: bash scripts/fetch-ultimed-model.sh
-
             - name: Download Grammalecte (grammar step)
               shell: bash
               run: bash scripts/fetch-grammalecte.sh

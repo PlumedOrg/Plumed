@@ -170,9 +170,11 @@ jobs:
                   fi
                   echo "::notice::No AVX-VNNI instruction in the $symbols avx2 symbols of $ORT_DYLIB_PATH"
 
-            - name: Download & extract ONNX model (macOS)
+            # The app downloads its model on first launch; the smoke test below
+            # needs one already installed in the app data folder.
+            - name: Install the speech model for the smoke test (macOS)
               shell: bash
-              run: bash scripts/fetch-ultimed-model.sh
+              run: bash scripts/fetch-ultimed-model.sh --models-dir "$HOME/Library/Application Support/org.olicorne.plumed/models"
 
             - name: Download Grammalecte (grammar step)
               shell: bash
@@ -231,6 +233,7 @@ jobs:
             - name: Build Intel DMG
               env:
                   PLUMED_TELEMETRY_WEBSITE_ID: ${{ secrets.PLUMED_TELEMETRY_WEBSITE_ID }}
+                  PLUMED_MODEL_RELAY_URL: ${{ vars.PLUMED_MODEL_RELAY_URL }}
                   PLUMED_RULES_PUBKEY: ${{ secrets.PLUMED_RULES_PUBKEY }}
               run: |
                   arch -x86_64 pnpm tauri build --target x86_64-apple-darwin --bundles dmg,app \

@@ -633,8 +633,9 @@ mod tests {
     }
 
     /// Beam vs greedy on a real clip (the bundled French smoke sample unless
-    /// PLUMED_BEAM_WAV names another 16 kHz mono wav), with the bundled model
-    /// unless PLUMED_MODEL_DIR names another:
+    /// PLUMED_BEAM_WAV names another 16 kHz mono wav), with the model
+    /// `scripts/fetch-ultimed-model.sh` puts in resources/ unless
+    /// PLUMED_MODEL_DIR names another:
     /// `cargo test --release --lib engine::beam -- --ignored --nocapture`
     #[test]
     #[ignore]
