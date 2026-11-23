@@ -167,7 +167,7 @@ export const CorrectionsExplanation = ({ onOpen }: CorrectionsExplanationProps) 
         formatting_rules: {
             stage: onText,
             description: t(
-                'Your own find and replace rules, applied from top to bottom. A fresh install starts with the medical dictation rules of InterHop.'
+                'Your own find and replace rules, applied from top to bottom. A fresh install starts with the medical dictation rules of UltiMed.'
             ),
             examples: [{ before: 'tension 120 80', after: 'TA : 120/80' }],
             statuses: [{ label: t('{{count}} rule(s) on', { count: enabledRules }), active: enabledRules > 0 }],

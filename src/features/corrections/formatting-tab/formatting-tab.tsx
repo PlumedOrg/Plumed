@@ -7,7 +7,7 @@ import { FormattingRule } from '@/features/personalize/formatting-rules/types';
 import { useFormattingRulesFile } from '../hooks/use-formatting-rules-file';
 import { ListHeader } from '../list-header/list-header';
 
-/** "Formatting" tab: the user's rules, seeded with InterHop's. */
+/** "Formatting" tab: the user's rules, seeded with UltiMed's dictation rules. */
 export const FormattingTab = () => {
     const { t } = useTranslation();
     const formatting = useFormattingRules();
@@ -28,11 +28,11 @@ export const FormattingTab = () => {
             <ListHeader
                 title={t('Your formatting rules')}
                 description={t(
-                    'Your own find and replace rules, applied from top to bottom. A fresh install starts with the medical dictation rules of InterHop, which you can edit, turn off or delete.'
+                    'Your own find and replace rules, applied from top to bottom. A fresh install starts with the medical dictation rules of UltiMed, which you can edit, turn off or delete.'
                 )}
                 summary={t('{{count}} rule(s)', { count: settings.rules.length })}
                 resetDescription={t(
-                    'Your formatting rules are replaced by the InterHop rules a fresh install starts with. The options stay as they are. This cannot be undone.'
+                    'Your formatting rules are replaced by the UltiMed dictation rules a fresh install starts with. The options stay as they are. This cannot be undone.'
                 )}
                 onReset={resetRules}
                 onExport={exportRules}
