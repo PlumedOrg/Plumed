@@ -85,7 +85,7 @@ libloading = "0.8"
 # a raw *mut GtkWindow pointer passed to the dlopen'd symbols. These
 # crates are already transitively present via tauri.
 gtk = "0.18"
-glib = "0.18"
+glib = "0.20"
 # Rust binding to libxkbcommon, used to compile a keymap for the active
 # layout and build a char -> (evdev_keycode, needs_shift) table for the
 # Direct paste mode. libxkbcommon is ubiquitous on Wayland systems so
