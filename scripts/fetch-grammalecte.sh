@@ -48,12 +48,12 @@ fi
 # bash 3 compatible (macOS): no mapfile
 FILES=()
 while read -r kind path; do
+    path="${path%$'\r'}" # the Windows runner checks the list out with CRLF line endings
     case "$kind" in
         js | data) FILES+=("$path") ;;
     esac
 done < "$FILE_LIST"
-# Extract the whole package, then copy only the listed files: passing the names to unzip fails on
-# the Windows runner ("filename not matched"), since unzip treats them as patterns.
+# Extract the whole package, then copy only the listed files.
 mkdir -p "$WORK/x"
 if command -v unzip > /dev/null; then
     unzip -q -o "$XPI" -d "$WORK/x"
