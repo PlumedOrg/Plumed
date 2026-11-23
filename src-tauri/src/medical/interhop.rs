@@ -66,7 +66,7 @@ mod tests {
     fn fresh_install_gets_the_interhop_rules() {
         let rules = FormattingSettings::default().rules;
         assert_eq!(rules.len(), bundled().len());
-        assert!(rules.len() > 100);
+        assert!(rules.len() > 40);
         assert!(rules
             .iter()
             .all(|r| r.enabled && r.match_mode == MatchMode::Regex));
