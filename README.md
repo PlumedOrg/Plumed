@@ -20,7 +20,7 @@ Plumed est réalisé par [Olivier Cornelis](https://olicorne.org/fr), interne en
 
 ## Statut
 
-Version bêta, actuellement `0.2.0-beta.1`. Des bugs sont possibles. Les versions sont sur la [page des releases](https://github.com/PlumedOrg/Plumed/releases) ; la mise à jour automatique propose un canal stable et un canal bêta (**Paramètres > En ligne**).
+Version bêta, actuellement `0.2.0-beta.2`. Des bugs sont possibles. Les versions sont sur la [page des releases](https://github.com/PlumedOrg/Plumed/releases) ; la mise à jour automatique propose un canal stable et un canal bêta (**Paramètres > En ligne**).
 
 ## Installation
 
