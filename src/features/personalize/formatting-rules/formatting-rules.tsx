@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Input } from '@/components/input';
 import { Typography } from '@/components/typography';
 import { useTranslation } from '@/i18n';
 import { useFormattingRules } from './hooks/use-formatting-rules';
@@ -25,6 +26,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import { FormattingRule } from './types';
+import { filterFormattingRules } from './formatting-rules.helpers';
 import { useUserRulesCollapsed } from '@/features/corrections/hooks/use-user-rules-collapsed';
 
 interface SortableRuleCardProps {
@@ -64,6 +66,7 @@ export const FormattingRules = ({ formatting }: FormattingRulesProps) => {
     const { settings, isLoading, addRule, updateRule, deleteRule, duplicateRule, reorderRules } = formatting;
     const [collapsed, setCollapsed] = useUserRulesCollapsed();
     const [activeId, setActiveId] = useState<string | null>(null);
+    const [query, setQuery] = useState('');
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -87,6 +90,8 @@ export const FormattingRules = ({ formatting }: FormattingRulesProps) => {
     };
 
     const activeRule = (activeId != null && settings.rules.find((rule) => rule.id === activeId)) || undefined;
+
+    const visibleRules = filterFormattingRules(settings.rules, query);
 
     if (isLoading) {
         return <div className="text-muted-foreground">{t('Loading...')}</div>;
@@ -114,6 +119,17 @@ export const FormattingRules = ({ formatting }: FormattingRulesProps) => {
                         )}
                     </Typography.Paragraph>
                     {settings.rules.length > 0 && (
+                        <Input
+                            value={query}
+                            onChange={(e) => setQuery(e.target.value)}
+                            placeholder={t('Search a rule, e.g. mg')}
+                            data-testid="formatting-rules-search"
+                        />
+                    )}
+                    {settings.rules.length > 0 && visibleRules.length === 0 && (
+                        <p className="text-sm text-muted-foreground">{t('No results')}</p>
+                    )}
+                    {visibleRules.length > 0 && (
                         <DndContext
                             sensors={sensors}
                             collisionDetection={closestCenter}
@@ -122,11 +138,11 @@ export const FormattingRules = ({ formatting }: FormattingRulesProps) => {
                             modifiers={[restrictToVerticalAxis]}
                         >
                             <SortableContext
-                                items={settings.rules.map((rule) => rule.id)}
+                                items={visibleRules.map((rule) => rule.id)}
                                 strategy={verticalListSortingStrategy}
                             >
                                 <div className="space-y-3">
-                                    {settings.rules.map((rule) => (
+                                    {visibleRules.map((rule) => (
                                         <SortableRuleCard
                                             key={rule.id}
                                             rule={rule}
