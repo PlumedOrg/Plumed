@@ -1,11 +1,9 @@
-import { useLayoutEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
 import { Check, Copy, X } from 'lucide-react';
 import { i18n } from '@/i18n';
-import { computeTextMaxHeightPx, LINE_HEIGHT_RATIO } from '../streaming-text/streaming-text.helpers';
+import { OneLineText } from '@/components/one-line-text';
+import { LINE_HEIGHT_RATIO } from '../streaming-text/streaming-text.helpers';
 import { buildResultPanelGradient, RESULT_PANEL_SEGMENT_MASK } from './result-panel.helpers';
-
-const SCROLL_END_TOLERANCE_PX = 1;
 
 interface ResultPanelProps {
     text: string;
@@ -34,24 +32,6 @@ export const ResultPanel = ({
     onResume,
     onClose,
 }: ResultPanelProps) => {
-    const scrollRef = useRef<HTMLDivElement>(null);
-    const [hasContentBelow, setHasContentBelow] = useState(false);
-
-    useLayoutEffect(() => {
-        const container = scrollRef.current;
-        if (container == null) return;
-
-        const syncContentBelow = () =>
-            setHasContentBelow(
-                container.scrollTop + container.clientHeight < container.scrollHeight - SCROLL_END_TOLERANCE_PX
-            );
-
-        container.scrollTop = 0;
-        syncContentBelow();
-        container.addEventListener('scroll', syncContentBelow, { passive: true });
-        return () => container.removeEventListener('scroll', syncContentBelow);
-    }, [text, textWidth, fontSize, maxLines]);
-
     return (
         <div
             data-interactive
@@ -73,7 +53,6 @@ export const ResultPanel = ({
                 type="button"
                 aria-label={i18n.t('Copy')}
                 onClick={onCopy}
-                onWheel={(event) => scrollRef.current?.scrollBy({ top: event.deltaY })}
                 className="absolute inset-0 z-10 cursor-pointer"
             />
 
@@ -107,21 +86,18 @@ export const ResultPanel = ({
                 <X size={10} strokeWidth={2.5} />
             </button>
 
-            <div className="relative">
-                <div
-                    ref={scrollRef}
-                    className="no-scrollbar overflow-y-auto font-sans text-white"
-                    style={{
-                        fontSize: `${fontSize}px`,
-                        lineHeight: LINE_HEIGHT_RATIO,
-                        maxHeight: `${computeTextMaxHeightPx(maxLines, fontSize)}px`,
-                    }}
-                >
-                    {text}
-                </div>
-                {hasContentBelow && (
-                    <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-3 bg-gradient-to-t from-black to-transparent" />
-                )}
+            {/* Plumed: line breaks as ↵ and an ellipsis past maxLines; Copy gives the whole text. */}
+            <div
+                className="overflow-hidden font-sans text-white"
+                style={{
+                    fontSize: `${fontSize}px`,
+                    lineHeight: LINE_HEIGHT_RATIO,
+                    display: '-webkit-box',
+                    WebkitBoxOrient: 'vertical',
+                    WebkitLineClamp: maxLines,
+                }}
+            >
+                <OneLineText text={text} />
             </div>
 
             <div
