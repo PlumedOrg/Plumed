@@ -39,7 +39,7 @@ pub struct Variant {
     pub id: &'static str,
     pub family: &'static Family,
     pub name: &'static str,
-    /// A few English words on accuracy and speed (translated in the UI).
+    /// A few English words on what it saves and costs (translated in the UI).
     pub summary: &'static str,
     pub files: &'static [ModelFile],
     /// False while the engine cannot run it: shown as "coming soon".
@@ -102,7 +102,7 @@ pub const VARIANTS: &[Variant] = &[
         id: "ultra-int8",
         family: &ULTRA,
         name: "Ultra int8",
-        summary: "the most accurate",
+        summary: "the most accurate, needs about 2 GB of memory",
         files: &[
             ModelFile {
                 path: "int8/encoder-model.int8.onnx",
@@ -121,7 +121,7 @@ pub const VARIANTS: &[Variant] = &[
         id: "ultra-w4a8",
         family: &ULTRA,
         name: "Ultra w4a8",
-        summary: "about half the size, barely less accurate",
+        summary: "1.7x smaller download, 20% less memory, barely less accurate",
         files: &[
             ModelFile {
                 path: "w4a8/encoder-model.w4a8.onnx",
@@ -147,7 +147,7 @@ pub const VARIANTS: &[Variant] = &[
         id: "redux-w2a8",
         family: &REDUX,
         name: "Redux w2a8",
-        summary: "experimental, smallest",
+        summary: "2.3x smaller download, but nearly twice as many errors",
         files: &[
             ModelFile {
                 path: "w2a8/encoder-model.w2a8.onnx",
