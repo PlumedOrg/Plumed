@@ -19,7 +19,7 @@ interface OverlayListProps<T> {
     searchPlaceholder: string;
     title: string;
     testId: string;
-    /** Makes the entries added by the user editable: called with the entry the user wants to change. */
+    /** Makes the entries editable, bundled ones included: called with the entry the user wants to change. */
     onEdit?: (view: EntryView<T>) => void;
     /** The form to add an entry, under the list. */
     children: React.ReactNode;
@@ -73,6 +73,16 @@ export const OverlayList = <T,>({
                                     {t('No longer in the medical rules')}
                                 </span>
                             )}
+                            {onEdit != null && view.origin !== 'orphaned' && (
+                                <Button
+                                    variant="subtle"
+                                    size="icon-sm"
+                                    aria-label={t('Edit')}
+                                    onClick={() => onEdit(view)}
+                                >
+                                    <Pencil />
+                                </Button>
+                            )}
                             {view.origin === 'bundled' ? (
                                 <Switch
                                     checked={view.enabled}
@@ -82,26 +92,14 @@ export const OverlayList = <T,>({
                                     aria-label={t('Enabled')}
                                 />
                             ) : (
-                                <>
-                                    {onEdit != null && (
-                                        <Button
-                                            variant="subtle"
-                                            size="icon-sm"
-                                            aria-label={t('Edit')}
-                                            onClick={() => onEdit(view)}
-                                        >
-                                            <Pencil />
-                                        </Button>
-                                    )}
-                                    <Button
-                                        variant="subtle"
-                                        size="icon-sm"
-                                        aria-label={t('Delete')}
-                                        onClick={() => saveOverlay(removeEntry(overlay, view))}
-                                    >
-                                        <Trash2 />
-                                    </Button>
-                                </>
+                                <Button
+                                    variant="subtle"
+                                    size="icon-sm"
+                                    aria-label={t('Delete')}
+                                    onClick={() => saveOverlay(removeEntry(overlay, view))}
+                                >
+                                    <Trash2 />
+                                </Button>
                             )}
                         </div>
                     ))}

@@ -9,7 +9,7 @@ import { useListFile } from '../hooks/use-list-file';
 import { useListOverlay } from '../hooks/use-list-overlay';
 import { ListHeader } from '../list-header/list-header';
 import { OverlayList } from '../overlay-list/overlay-list';
-import { countTemplateChanges } from './text-templates.helpers';
+import { countTemplateChanges, saveTemplateEdit } from './text-templates.helpers';
 
 const EMPTY_OVERLAY: ListOverlay<TextTemplate> = { disabled: [], added: [] };
 
@@ -32,7 +32,7 @@ export const TextTemplates = () => {
     const [initial, setInitial] = useState<ListOverlay<TextTemplate>>(EMPTY_OVERLAY);
     const [trigger, setTrigger] = useState('');
     const [text, setText] = useState('');
-    const [editing, setEditing] = useState<TextTemplate | null>(null);
+    const [editing, setEditing] = useState<EntryView<TextTemplate> | null>(null);
 
     useEffect(() => {
         invoke<ListOverlay<TextTemplate>>('get_initial_text_template_overlay')
@@ -47,16 +47,13 @@ export const TextTemplates = () => {
     };
 
     const startEdit = (view: EntryView<TextTemplate>) => {
-        setEditing(view.entry);
+        setEditing(view);
         setTrigger(view.entry.trigger);
         setText(view.entry.text);
     };
 
     const saveTemplate = async () => {
-        const template = { trigger: trigger.trim(), text };
-        const previous = JSON.stringify(editing);
-        const kept = overlay.added.filter((entry) => JSON.stringify(entry) !== previous);
-        const saved = await saveOverlay({ ...overlay, added: [...kept, template] });
+        const saved = await saveOverlay(saveTemplateEdit(overlay, editing, { trigger: trigger.trim(), text }));
         if (saved) {
             clearForm();
         }
@@ -67,7 +64,7 @@ export const TextTemplates = () => {
             <ListHeader
                 title={t('Text templates')}
                 description={t(
-                    'A text template replaces a spoken phrase by a longer text, which can have several lines, for example "Insère l\'examen clinique normal." becomes a complete normal clinical exam. Templates are applied at the start of step 6, before your formatting rules, and match like the other spoken commands (capitals and final punctuation do not matter). The example is off until you turn it on.'
+                    'A text template replaces a spoken phrase by a longer text, for example "Insère l\'examen clinique normal." becomes a complete normal clinical exam. Templates are applied at the start of step 6, before your formatting rules, and match like the other spoken commands (capitals and final punctuation do not matter). The example is off until you turn it on.'
                 )}
                 summary={countTemplateChanges(overlay, initial)}
                 resetDescription={t(
@@ -98,7 +95,7 @@ export const TextTemplates = () => {
                     <Textarea
                         value={text}
                         onChange={(e) => setText(e.target.value)}
-                        placeholder={t('The text it is replaced by (several lines allowed)')}
+                        placeholder={t('The text it is replaced by')}
                         rows={6}
                         data-testid="text-templates-new-text"
                     />

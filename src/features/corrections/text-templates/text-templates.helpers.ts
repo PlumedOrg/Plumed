@@ -1,4 +1,23 @@
-import { ListOverlay, TextTemplate } from '../corrections.types';
+import { EntryView, ListOverlay, TextTemplate } from '../corrections.types';
+
+/**
+ * Saves `template` in place of `editing` (null when adding). Editing a
+ * bundled template turns it off and adds the edited copy as the user's own,
+ * so the original stays available by turning it back on.
+ */
+export const saveTemplateEdit = (
+    overlay: ListOverlay<TextTemplate>,
+    editing: EntryView<TextTemplate> | null,
+    template: TextTemplate
+): ListOverlay<TextTemplate> => {
+    if (editing?.origin === 'bundled') {
+        const disabled = overlay.disabled.filter((key) => key !== editing.key);
+        return { disabled: [...disabled, editing.key], added: [...overlay.added, template] };
+    }
+    const previous = JSON.stringify(editing?.entry ?? null);
+    const kept = overlay.added.filter((entry) => JSON.stringify(entry) !== previous);
+    return { ...overlay, added: [...kept, template] };
+};
 
 /**
  * The user's changes to the templates: added ones, plus the bundled ones whose
