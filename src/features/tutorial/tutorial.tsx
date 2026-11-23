@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { CircleCheck, GraduationCap } from 'lucide-react';
+import { GraduationCap } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { Page } from '@/components/page';
 import { Typography } from '@/components/typography';
@@ -55,11 +55,10 @@ export const Tutorial = () => {
             .catch((e) => console.error('Failed to load the tutorial state:', e));
     }, []);
 
-    const toggleCompleted = async () => {
-        const next = completed !== true;
+    const markCompleted = async () => {
         try {
-            await invoke('set_tutorial_completed', { completed: next });
-            setCompleted(next);
+            await invoke('set_tutorial_completed', { completed: true });
+            setCompleted(true);
         } catch (e) {
             toast.error(t('Failed to save the tutorial state'));
             console.error(e);
@@ -127,12 +126,14 @@ export const Tutorial = () => {
                 </ul>
             </Section>
 
-            <div className="flex justify-end">
-                <Page.PrimaryButton onClick={() => void toggleCompleted()} data-testid="tutorial-complete">
-                    {completed === true ? <CircleCheck className="w-4 h-4" /> : null}
-                    {completed === true ? t('Tutorial finished') : t("I've finished the tutorial")}
-                </Page.PrimaryButton>
-            </div>
+            {/* Hidden once finished (and while loading): there is nothing left to do with it. */}
+            {completed === false && (
+                <div className="flex justify-end">
+                    <Page.PrimaryButton onClick={() => void markCompleted()} data-testid="tutorial-complete">
+                        {t("I've finished the tutorial")}
+                    </Page.PrimaryButton>
+                </div>
+            )}
         </main>
     );
 };
