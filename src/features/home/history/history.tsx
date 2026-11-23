@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
+import clsx from 'clsx';
 import { Typography } from '@/components/typography';
 import { Button } from '@/components/button';
 import { Page } from '@/components/page';
@@ -21,6 +22,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/tooltip';
 import { useTranslation } from '@/i18n';
 import { HistoryEmptyState } from './history-empty-state/history-empty-state';
 import { HistorySteps } from './history-steps/history-steps';
+import { OneLineText } from '@/components/one-line-text';
 
 export const History = () => {
     const { history } = useHistoryState();
@@ -113,13 +115,21 @@ export const History = () => {
                                         }}
                                     >
                                         <div className="flex items-start justify-between gap-3">
-                                            <Typography.Paragraph className="text-zinc-200">
+                                            {/* Plumed: collapsed, two lines with ↵ for line breaks; expanded, the whole text. */}
+                                            <Typography.Paragraph
+                                                className={clsx(
+                                                    'min-w-0 text-zinc-200',
+                                                    isExpanded ? 'whitespace-pre-line' : 'line-clamp-2'
+                                                )}
+                                            >
                                                 {entry.text === '' ? (
                                                     <span className="italic text-xs text-zinc-400">
                                                         {t('(Empty transcription)')}
                                                     </span>
-                                                ) : (
+                                                ) : isExpanded ? (
                                                     entry.text
+                                                ) : (
+                                                    <OneLineText text={entry.text} />
                                                 )}
                                             </Typography.Paragraph>
                                             <Typography.Paragraph className="text-xs text-right whitespace-nowrap shrink-0 text-zinc-300">
@@ -127,11 +137,11 @@ export const History = () => {
                                             </Typography.Paragraph>
                                         </div>
                                     </button>
-                                    {steps.length > 0 && (
+                                    {(steps.length > 0 || entry.text.length > 0) && (
                                         <Button
                                             variant="subtle"
                                             size="icon-sm"
-                                            aria-label={t('Show the processing steps')}
+                                            aria-label={t('Show the full text and the processing steps')}
                                             aria-expanded={isExpanded}
                                             className="m-2 size-7 shrink-0 text-muted-foreground"
                                             onClick={() => setExpandedId(isExpanded ? null : entry.id)}
@@ -141,7 +151,7 @@ export const History = () => {
                                         </Button>
                                     )}
                                 </div>
-                                {isExpanded && (
+                                {isExpanded && steps.length > 0 && (
                                     <div className="px-3 pb-3">
                                         <HistorySteps steps={steps} />
                                     </div>
