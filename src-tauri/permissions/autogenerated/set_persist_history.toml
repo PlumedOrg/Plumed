@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-set-persist-history"
+description = "Enables the set_persist_history command without any pre-configured scope."
+commands.allow = ["set_persist_history"]
+
+[[permission]]
+identifier = "deny-set-persist-history"
+description = "Denies the set_persist_history command without any pre-configured scope."
+commands.deny = ["set_persist_history"]

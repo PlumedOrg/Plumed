@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-set-result-panel-mode"
+description = "Enables the set_result_panel_mode command without any pre-configured scope."
+commands.allow = ["set_result_panel_mode"]
+
+[[permission]]
+identifier = "deny-set-result-panel-mode"
+description = "Denies the set_result_panel_mode command without any pre-configured scope."
+commands.deny = ["set_result_panel_mode"]

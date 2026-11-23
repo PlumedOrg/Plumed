@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-get-linux-distro-info"
+description = "Enables the get_linux_distro_info command without any pre-configured scope."
+commands.allow = ["get_linux_distro_info"]
+
+[[permission]]
+identifier = "deny-get-linux-distro-info"
+description = "Denies the get_linux_distro_info command without any pre-configured scope."
+commands.deny = ["get_linux_distro_info"]

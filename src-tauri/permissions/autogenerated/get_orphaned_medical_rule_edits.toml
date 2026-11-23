@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-get-orphaned-medical-rule-edits"
+description = "Enables the get_orphaned_medical_rule_edits command without any pre-configured scope."
+commands.allow = ["get_orphaned_medical_rule_edits"]
+
+[[permission]]
+identifier = "deny-get-orphaned-medical-rule-edits"
+description = "Denies the get_orphaned_medical_rule_edits command without any pre-configured scope."
+commands.deny = ["get_orphaned_medical_rule_edits"]

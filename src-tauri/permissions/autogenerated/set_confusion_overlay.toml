@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-set-confusion-overlay"
+description = "Enables the set_confusion_overlay command without any pre-configured scope."
+commands.allow = ["set_confusion_overlay"]
+
+[[permission]]
+identifier = "deny-set-confusion-overlay"
+description = "Denies the set_confusion_overlay command without any pre-configured scope."
+commands.deny = ["set_confusion_overlay"]

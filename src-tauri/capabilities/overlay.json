@@ -1,7 +1,17 @@
 {
     "$schema": "../gen/schemas/desktop-schema.json",
     "identifier": "recording-overlay",
-    "description": "Capability for the recording overlay",
+    "description": "Capability for the recording overlay: event listening and the few app commands it invokes (see AGENTS.FORK.md)",
     "windows": ["recording_overlay"],
-    "permissions": ["core:default", "core:event:default"]
+    "permissions": [
+        "core:event:allow-listen",
+        "core:event:allow-unlisten",
+        "allow-get-all-settings",
+        "allow-cancel-recording",
+        "allow-set-overlay-input-region",
+        "allow-hide-overlay-if-idle",
+        "allow-ack-result-panel-shown",
+        "allow-consume-pending-result",
+        "allow-copy-result-text"
+    ]
 }

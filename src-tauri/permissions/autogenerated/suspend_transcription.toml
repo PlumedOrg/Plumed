@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-suspend-transcription"
+description = "Enables the suspend_transcription command without any pre-configured scope."
+commands.allow = ["suspend_transcription"]
+
+[[permission]]
+identifier = "deny-suspend-transcription"
+description = "Denies the suspend_transcription command without any pre-configured scope."
+commands.deny = ["suspend_transcription"]

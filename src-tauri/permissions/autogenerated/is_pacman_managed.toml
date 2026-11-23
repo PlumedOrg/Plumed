@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-is-pacman-managed"
+description = "Enables the is_pacman_managed command without any pre-configured scope."
+commands.allow = ["is_pacman_managed"]
+
+[[permission]]
+identifier = "deny-is-pacman-managed"
+description = "Denies the is_pacman_managed command without any pre-configured scope."
+commands.deny = ["is_pacman_managed"]

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-set-streaming-text-settings"
+description = "Enables the set_streaming_text_settings command without any pre-configured scope."
+commands.allow = ["set_streaming_text_settings"]
+
+[[permission]]
+identifier = "deny-set-streaming-text-settings"
+description = "Denies the set_streaming_text_settings command without any pre-configured scope."
+commands.deny = ["set_streaming_text_settings"]

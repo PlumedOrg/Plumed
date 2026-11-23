@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-set-streaming-preview"
+description = "Enables the set_streaming_preview command without any pre-configured scope."
+commands.allow = ["set_streaming_preview"]
+
+[[permission]]
+identifier = "deny-set-streaming-preview"
+description = "Denies the set_streaming_preview command without any pre-configured scope."
+commands.deny = ["set_streaming_preview"]

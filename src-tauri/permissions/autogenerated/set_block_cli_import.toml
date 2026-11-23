@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-set-block-cli-import"
+description = "Enables the set_block_cli_import command without any pre-configured scope."
+commands.allow = ["set_block_cli_import"]
+
+[[permission]]
+identifier = "deny-set-block-cli-import"
+description = "Denies the set_block_cli_import command without any pre-configured scope."
+commands.deny = ["set_block_cli_import"]
