@@ -41,7 +41,9 @@ Le modèle de reconnaissance vocale n'est pas inclus dans l'installateur : au pr
 
 ## Captures d'écran
 
-TODO : ajouter des captures d'écran.
+![Écran d'accueil de Plumed : statistiques, visualisation du micro et dernière dictée](docs/screenshots/accueil.png)
+
+TODO : ajouter des captures d'écran des autres pages (corrections, tutoriel, paramètres).
 
 ## Confidentialité
 
