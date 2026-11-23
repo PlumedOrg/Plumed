@@ -1,6 +1,6 @@
 # Privacy Policy (Plumed)
 
-**Last updated:** November 21, 2026
+**Last updated:** November 23, 2026
 
 Plumed is a privacy-first, open-source speech-to-text desktop application. It is designed to work without an internet connection and to keep your speech data on your device.
 
@@ -10,7 +10,7 @@ Plumed is a privacy-first, open-source speech-to-text desktop application. It is
 - Your audio and transcriptions are processed **locally** on your device.
 - Plumed stores only what it needs to operate (settings, custom words/rules). No transcription is written to disk by default.
 - On first launch, Plumed downloads the speech model you pick, from Hugging Face or, if Hugging Face cannot be reached, from the Plumed model relay (`models.plumed.fr`). This is a plain file download with no identifier; it happens once and the model is kept across updates.
-- On startup, Plumed checks for updates by contacting the configured updater endpoint (currently hosted on GitHub). Downloading updates is opt-in.
+- On startup, Plumed checks for updates by downloading a small file from GitHub, or from the Plumed relay (`models.plumed.fr`) if GitHub cannot be reached; no identifier is sent. You can choose stable or beta versions, or turn the automatic check off, in Settings > System > Online. Downloading updates is opt-in.
 - On first launch, Plumed asks whether it may check for medical rules updates at each start. Only if you agree (you can change it in Settings > System > Online) does it ask GitHub, on startup, whether newer medical rules exist: a plain download of a small signed file, with no identifier. Nothing is contacted before you answer. The new rules are downloaded only when you click "Download". You can also download them yourself with your browser and install them with "Install a downloaded update", which makes no network request.
 
 ## What Plumed does not do
@@ -92,7 +92,7 @@ When you use network-related features, standard network metadata (such as your I
 Plumed may access the network only for:
 
 - **Downloading the speech model** (only when you click "Download" in the model dialog or in Settings > System > Model): the model files are fetched from Hugging Face, or else from the Plumed model relay (`models.plumed.fr`, run by the Plumed maintainer, which streams the same files from Hugging Face and logs neither IP addresses nor downloaded files). No identifier, cookie or usage data is sent. The files are checked against SHA-256 hashes built into the app.
-- **Checking for updates** (runs automatically on launch; currently not disableable in-app)
+- **Checking for updates** (runs automatically on launch unless turned off in Settings > System > Online)
 - **Downloading and installing updates** (only when you choose to install an update)
 - **PhoneMic, the remote microphone** (only after you enable it and click "Connect a phone"; see above)
 - **Anonymous usage statistics** (only if you opted in; see above)
