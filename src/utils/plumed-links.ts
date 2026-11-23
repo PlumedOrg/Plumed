@@ -7,5 +7,11 @@ export const PLUMED_MEDICAL_DATA_RELEASE_URL = `${PLUMED_RELEASES_URL}/tag/medic
 export const PLUMED_NEW_ISSUE_URL = `${PLUMED_REPO_URL}/issues/new`;
 /** Plumed's phone microphone relay, built in (same default as `AppSettings::remote_mic_url` in Rust). */
 export const PLUMED_RELAY_URL = 'https://turn.plumed.fr';
+/**
+ * The author's site. Links open with rel="noreferrer", so `ref` is what tells
+ * the site the visit came from Plumed.
+ */
+export const AUTHOR_URL = 'https://olicorne.org/fr?ref=plumed';
+
 /** French health agency page explaining HDS (certified health data hosting). */
 export const HDS_INFO_URL = 'https://esante.gouv.fr/produits-services/hds';

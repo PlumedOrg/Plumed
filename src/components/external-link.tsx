@@ -1,4 +1,4 @@
-import clsx from 'clsx';
+import { cn } from '@/components/lib/utils';
 import { ExternalLink as ExternalLinkIcon } from 'lucide-react';
 
 interface ExternalLinkProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
@@ -11,7 +11,8 @@ export const ExternalLink = ({ children, withIcon = true, className, ...props }:
             {...props}
             target="_blank"
             rel="noopener noreferrer"
-            className={clsx(
+            // cn (tailwind-merge) so a className overrides the default colour and weight
+            className={cn(
                 'text-sky-400 hover:text-sky-300 underline underline-offset-2 font-bold',
                 withIcon && 'inline-flex items-center gap-0.5',
                 className

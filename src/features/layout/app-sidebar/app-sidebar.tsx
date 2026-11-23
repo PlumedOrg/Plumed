@@ -15,7 +15,8 @@ import { UpdateChecker } from '../../update-checker/update-checker';
 import { Separator } from '@/components/separator';
 import { useTranslation } from '@/i18n';
 import appIcon from '@/assets/app-icon.png';
-import { PLUMED_LATEST_RELEASE_URL, PLUMED_NEW_ISSUE_URL, PLUMED_RELEASES_URL } from '@/utils/plumed-links';
+import { ExternalLink } from '@/components/external-link';
+import { AUTHOR_URL, PLUMED_LATEST_RELEASE_URL, PLUMED_NEW_ISSUE_URL, PLUMED_RELEASES_URL } from '@/utils/plumed-links';
 
 // Plumed fork: every page is a direct entry. The Tutorial stays right below PhoneMic.
 const getTopLevelItems = (t: (key: string) => string) => [
@@ -54,8 +55,16 @@ export const AppSidebar = () => {
 
     return (
         <Sidebar className="bg-background border-border border-r overflow-hidden w-[15.5rem]">
-            <SidebarHeader className="flex items-center justify-center bg-background border-b border-border">
+            <SidebarHeader className="flex flex-col items-center justify-center gap-1 bg-background border-b border-border">
                 <img src={appIcon} alt="logo" className="w-16 h-16" />
+                <ExternalLink
+                    href={AUTHOR_URL}
+                    withIcon={false}
+                    className="text-xs font-medium text-violet-400 no-underline hover:text-violet-300 hover:underline"
+                    data-testid="author-link"
+                >
+                    {t('by Olivier Cornelis')}
+                </ExternalLink>
             </SidebarHeader>
             <SidebarContent className="bg-background">
                 <SidebarGroup>
