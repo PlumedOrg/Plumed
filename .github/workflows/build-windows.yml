@@ -71,7 +71,13 @@ jobs:
                   PLUMED_TELEMETRY_WEBSITE_ID: ${{ secrets.PLUMED_TELEMETRY_WEBSITE_ID }}
                   PLUMED_MODEL_RELAY_URL: ${{ vars.PLUMED_MODEL_RELAY_URL }}
                   PLUMED_RULES_PUBKEY: ${{ secrets.PLUMED_RULES_PUBKEY }}
-              run: pnpm tauri build ${{ inputs.dry && '--no-bundle' || '' }}
+              # Plumed: WiX refuses a non-numeric pre-release (0.2.0-beta.1), so a
+              # pre-release ships the NSIS installer only (the updater uses NSIS).
+              run: |
+                  $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+                  $bundles = if ("${{ inputs.dry }}" -eq "true") { "--no-bundle" } elseif ($version.Contains("-")) { "--bundles nsis" } else { "" }
+                  Invoke-Expression "pnpm tauri build $bundles"
+                  if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
               shell: pwsh
 
             - name: Prepare unsigned artifacts
@@ -79,8 +85,8 @@ jobs:
               shell: pwsh
               run: |
                   New-Item -ItemType Directory -Force -Path "unsigned_artifacts" | Out-Null
-                  $msi = Get-ChildItem -Path "src-tauri/target/release/bundle/msi" -Filter *.msi | Select-Object -First 1
-                  Copy-Item $msi.FullName -Destination "unsigned_artifacts/Plumed_x64.msi"
+                  $msi = Get-ChildItem -Path "src-tauri/target/release/bundle/msi" -Filter *.msi -ErrorAction SilentlyContinue | Select-Object -First 1
+                  if ($msi) { Copy-Item $msi.FullName -Destination "unsigned_artifacts/Plumed_x64.msi" }
                   $exe = Get-ChildItem -Path "src-tauri/target/release/bundle/nsis" -Filter *.exe | Select-Object -First 1
                   Copy-Item $exe.FullName -Destination "unsigned_artifacts/Plumed_x64-setup.exe"
 
