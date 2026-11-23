@@ -11,6 +11,7 @@ Fonctionnalités propres au fork Plumed, absentes de Murmure.
 - **4 Nettoyage et uniformisation** : les options préinstallées (hésitations, mots répétés, correction de texte court, espace avant ? et !, nombres en chiffres, espace finale). La correction de texte court s'applique en fait après l'étape 5 et la mise en forme préinstallée après l'étape 6, ce qui est indiqué à côté d'elles.
 - **5 Erreurs résiduelles** : les règles qui corrigent les erreurs fréquentes du modèle (« veine lafaxine » devient « venlafaxine »).
 - **6 Formatage** : vos propres règles de mise en forme (au départ celles d'InterHop).
+- **Textes types** (dernier onglet, sans numéro d'étape) : une phrase dite est remplacée par un texte plus long, éventuellement sur plusieurs lignes (« Insère l'examen clinique normal. » donne un examen clinique normal complet). Appliqué au début de l'étape 6, avant vos règles de mise en forme, avec la même tolérance que les autres commandes vocales. L'exemple fourni est désactivé tant que vous ne l'activez pas ; vous pouvez ajouter, modifier et supprimer vos propres textes. Un onglet de plus, ajouté avec Claude Code.
 
 Dans l'historique de la page d'accueil, la flèche d'une transcription montre ce que chaque étape a changé ; la correction de texte court et la mise en forme préinstallée y apparaissent sous l'étape 4.
 
