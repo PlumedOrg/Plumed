@@ -11,7 +11,7 @@ import { AppUpdateSettings } from '../app-update-settings/app-update-settings';
 // Plumed fork (written with Claude Code): the "Online" tab of the System page
 // gathers everything that makes Plumed reach the network, with an intro that
 // says what goes online and when. Each part is listed only when this build has
-// it: usage statistics need a Umami website id, medical data updates the
+// it: usage statistics need a Umami website id, medical rules updates the
 // signing public key (see AGENTS.FORK.md, section 6). The app update channel
 // is always listed.
 export const OnlineSettings = () => {
@@ -46,7 +46,7 @@ export const OnlineSettings = () => {
                     {medicalDataAvailable && (
                         <li>
                             {t(
-                                'Medical data updates (below): at every start, Plumed asks GitHub whether newer signed medical lists exist. Off unless you agreed; nothing is downloaded without your click.'
+                                'Medical rules updates (below): at every start, Plumed asks GitHub whether newer signed medical lists exist. Off unless you agreed; nothing is downloaded without your click.'
                             )}
                         </li>
                     )}

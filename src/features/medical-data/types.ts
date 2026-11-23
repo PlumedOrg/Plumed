@@ -1,4 +1,4 @@
-// Plumed fork (written with Claude Code): signed medical data updates, see
+// Plumed fork (written with Claude Code): signed medical rules updates, see
 // `src-tauri/src/medical/data_update.rs`.
 
 /** A newer signed data set found online (Rust `UpdateOffer`). */

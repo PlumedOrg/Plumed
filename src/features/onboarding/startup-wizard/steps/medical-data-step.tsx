@@ -7,7 +7,7 @@ import { WizardStep } from '../wizard-step/wizard-step';
 import { StepProps } from './step.types';
 
 // Plumed fork (written with Claude Code): asks once whether Plumed may look
-// for medical data updates at each start. No check, so no network call, is
+// for medical rules updates at each start. No check, so no network call, is
 // made before the answer; a "yes" checks from the next start on.
 export const MedicalDataStep = ({ onNext }: StepProps) => {
     const { t } = useTranslation();
@@ -16,7 +16,7 @@ export const MedicalDataStep = ({ onNext }: StepProps) => {
         try {
             await invoke('set_medical_data_update_check', { enabled });
         } catch (e) {
-            toast.error(t('Failed to save the medical data update setting'));
+            toast.error(t('Failed to save the medical rules update setting'));
             console.error(e);
             return;
         }

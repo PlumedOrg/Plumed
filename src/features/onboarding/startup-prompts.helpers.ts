@@ -41,5 +41,5 @@ export const getDueSteps = async (): Promise<DueSteps> => {
     };
 };
 
-/** Whether the wizard opens this launch (the medical data offer then waits for the next one). */
+/** Whether the wizard opens this launch (the medical rules offer then waits for the next one). */
 export const isStartupWizardDue = async (): Promise<boolean> => (await getDueSteps()).steps.length > 0;

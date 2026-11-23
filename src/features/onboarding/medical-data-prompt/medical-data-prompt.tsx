@@ -6,7 +6,7 @@ import { MedicalDataOffer } from '@/features/medical-data/types';
 import { isStartupWizardDue } from '../startup-prompts.helpers';
 
 // Plumed fork (written with Claude Code): when the startup check (backend,
-// after the model loaded) found a newer signed medical data set, asks
+// after the model loaded) found a newer signed medical rules set, asks
 // whether to download it. Waits for the next launch when the startup wizard
 // opens, so dialogs never stack.
 export const MedicalDataPrompt = () => {
@@ -31,7 +31,7 @@ export const MedicalDataPrompt = () => {
         };
         invoke<MedicalDataOffer | null>('get_medical_data_offer')
             .then(show)
-            .catch((e) => console.error('Failed to check for a medical data update:', e));
+            .catch((e) => console.error('Failed to check for a medical rules update:', e));
         const unlisten = listen<MedicalDataOffer>('medical-data-update-available', (event) => void show(event.payload));
         return () => {
             void unlisten.then((stop) => stop());

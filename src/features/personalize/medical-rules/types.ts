@@ -10,7 +10,7 @@ export interface MedicalRuleEdit {
 
 /**
  * 'added' rules are deleted, 'changed' ones reverted to the bundled rule,
- * 'orphaned' ones (edits of a rule the medical data in use no longer has) deleted.
+ * 'orphaned' ones (edits of a rule the medical rules in use no longer has) deleted.
  */
 export type MedicalRuleStatus = 'bundled' | 'changed' | 'added' | 'orphaned';
 

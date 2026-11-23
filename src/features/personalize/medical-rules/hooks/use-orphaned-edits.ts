@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { MedicalRuleEdit } from '../types';
 
-/** Patterns of the saved edits whose rule the medical data in use no longer has (after a data update). */
+/** Patterns of the saved edits whose rule the medical rules in use no longer has (after a data update). */
 export const useOrphanedEdits = (edits: MedicalRuleEdit[]) => {
     const [orphaned, setOrphaned] = useState<Set<string>>(new Set());
 

@@ -16,7 +16,7 @@ import { useMedicalDataStatus } from '../hooks/use-medical-data-status';
 import { medicalDataLastCheckLabel, medicalDataVersionLabel } from '../medical-data.helpers';
 import { MedicalDataChange, MedicalDataOffer } from '../types';
 
-// Plumed fork (written with Claude Code): which medical data is in use, the
+// Plumed fork (written with Claude Code): which medical rules is in use, the
 // startup check toggle with the last check result, "Check now", "Install a
 // downloaded update" and "Return to the bundled data". Hidden in builds
 // without the signing public key.
@@ -46,7 +46,7 @@ export const MedicalDataSettings = () => {
         try {
             await invoke('set_medical_data_update_check', { enabled });
         } catch (e) {
-            toast.error(t('Failed to save the medical data update setting'));
+            toast.error(t('Failed to save the medical rules update setting'));
             console.error(e);
         }
         refresh();
@@ -57,11 +57,11 @@ export const MedicalDataSettings = () => {
             try {
                 const found = await invoke<MedicalDataOffer | null>('check_medical_data_update');
                 if (found == null) {
-                    toast.info(t('The medical data is up to date.'));
+                    toast.info(t('The medical rules is up to date.'));
                 }
                 setOffer(found);
             } catch (e) {
-                toast.error(`${t('Failed to check for a medical data update')}: ${String(e)}`);
+                toast.error(`${t('Failed to check for a medical rules update')}: ${String(e)}`);
             }
             refresh();
         });
@@ -72,7 +72,7 @@ export const MedicalDataSettings = () => {
                 showChange(await invoke<MedicalDataChange>('reset_medical_data'));
                 refresh();
             } catch (e) {
-                toast.error(`${t('Failed to return to the bundled medical data')}: ${String(e)}`);
+                toast.error(`${t('Failed to return to the bundled medical rules')}: ${String(e)}`);
             }
         });
 
@@ -80,7 +80,7 @@ export const MedicalDataSettings = () => {
         <SettingsUI.Container>
             <SettingsUI.Item>
                 <SettingsUI.Description className="w-150">
-                    <Typography.Title>{t('Medical data updates')}</Typography.Title>
+                    <Typography.Title>{t('Medical rules updates')}</Typography.Title>
                     <Typography.Paragraph data-testid="medical-data-version">
                         {medicalDataVersionLabel(status, t)}
                     </Typography.Paragraph>
@@ -96,7 +96,7 @@ export const MedicalDataSettings = () => {
                 <Switch
                     checked={status.check_enabled}
                     onCheckedChange={(enabled) => void setCheckEnabled(enabled)}
-                    aria-label={t('Check for medical data updates at startup')}
+                    aria-label={t('Check for medical rules updates at startup')}
                     data-testid="medical-data-update-check"
                 />
             </SettingsUI.Item>
@@ -136,7 +136,7 @@ export const MedicalDataSettings = () => {
                 {t(
                     'If Plumed cannot reach GitHub, download every file of the release page with your browser, then pick them all with "Install a downloaded update". They are checked exactly like an online update.'
                 )}{' '}
-                <ExternalLink href={PLUMED_MEDICAL_DATA_RELEASE_URL}>{t('Open the medical data release page')}</ExternalLink>
+                <ExternalLink href={PLUMED_MEDICAL_DATA_RELEASE_URL}>{t('Open the medical rules release page')}</ExternalLink>
             </Typography.Paragraph>
             <MedicalDataUpdateDialog offer={offer} onClose={() => setOffer(null)} onInstalled={refresh} />
         </SettingsUI.Container>

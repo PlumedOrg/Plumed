@@ -67,7 +67,7 @@ export const OverlayList = <T,>({
                             )}
                             {view.origin === 'orphaned' && (
                                 <span className="text-xs italic text-muted-foreground">
-                                    {t('No longer in the medical data')}
+                                    {t('No longer in the medical rules')}
                                 </span>
                             )}
                             {view.origin === 'bundled' ? (

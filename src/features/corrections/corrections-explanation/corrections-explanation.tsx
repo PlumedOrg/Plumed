@@ -199,10 +199,10 @@ export const CorrectionsExplanation = ({ onOpen }: CorrectionsExplanationProps) 
 
             {dataStatus != null && (
                 <SettingsUI.Container className="space-y-2 p-4" data-testid="corrections-medical-data">
-                    <Typography.Title>{t('Medical data')}</Typography.Title>
+                    <Typography.Title>{t('Medical rules')}</Typography.Title>
                     <Typography.Paragraph>
                         {t(
-                            'The medical vocabulary (step {{vocabulary}}), the sound-alike words (step {{soundAlikes}}) and the residual errors (step {{residualErrors}}) form the medical data.',
+                            'The medical vocabulary (step {{vocabulary}}), the sound-alike words (step {{soundAlikes}}) and the residual errors (step {{residualErrors}}) form the medical rules.',
                             {
                                 vocabulary: stepNumber('vocabulary'),
                                 soundAlikes: stepNumber('sound_alikes'),
@@ -221,7 +221,7 @@ export const CorrectionsExplanation = ({ onOpen }: CorrectionsExplanationProps) 
                                 hash="online"
                                 data-testid="corrections-medical-data-settings-link"
                             >
-                                {t('Manage medical data updates in Settings > System > Online')}
+                                {t('Manage medical rules updates in Settings > System > Online')}
                             </InternalLink>
                         </Typography.Paragraph>
                     )}

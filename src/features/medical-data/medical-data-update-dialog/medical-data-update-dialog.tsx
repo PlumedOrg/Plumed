@@ -19,7 +19,7 @@ interface MedicalDataUpdateDialogProps {
     onInstalled?: (change: MedicalDataChange) => void;
 }
 
-// Plumed fork (written with Claude Code): offers a newer signed medical data
+// Plumed fork (written with Claude Code): offers a newer signed medical rules
 // set. Nothing is downloaded until the user clicks "Download".
 export const MedicalDataUpdateDialog = ({ offer, onClose, onInstalled }: MedicalDataUpdateDialogProps) => {
     const { t, i18n } = useTranslation();
@@ -53,7 +53,7 @@ export const MedicalDataUpdateDialog = ({ offer, onClose, onInstalled }: Medical
             onInstalled?.(change);
             onClose();
         } catch (e) {
-            toast.error(`${t('Failed to download the medical data')}: ${String(e)}`);
+            toast.error(`${t('Failed to download the medical rules')}: ${String(e)}`);
         } finally {
             setDownloading(false);
         }
@@ -62,7 +62,7 @@ export const MedicalDataUpdateDialog = ({ offer, onClose, onInstalled }: Medical
     const skip = () => {
         onClose();
         invoke('skip_medical_data_version', { version: offer?.version ?? '' }).catch((e) => {
-            toast.error(t('Failed to save the medical data update setting'));
+            toast.error(t('Failed to save the medical rules update setting'));
             console.error(e);
         });
     };
@@ -85,7 +85,7 @@ export const MedicalDataUpdateDialog = ({ offer, onClose, onInstalled }: Medical
                         <div className="w-8 h-8 bg-sky-500/15 rounded-full flex items-center justify-center flex-shrink-0">
                             <DatabaseZap className="w-4 h-4 text-sky-400" />
                         </div>
-                        <DialogTitle>{t('New medical data available')}</DialogTitle>
+                        <DialogTitle>{t('New medical rules available')}</DialogTitle>
                     </div>
                     <DialogDescription>
                         {t('Version {{version}} of the drug and medical term rules is available.', {

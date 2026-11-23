@@ -22,14 +22,14 @@ const CheckFailureBody = ({ error }: CheckFailureBodyProps) => {
                 )}
             </p>
             <ExternalLink href={PLUMED_MEDICAL_DATA_RELEASE_URL}>
-                {t('Open the medical data release page')}
+                {t('Open the medical rules release page')}
             </ExternalLink>
         </div>
     );
 };
 
 // Plumed fork (written with Claude Code): a non-blocking notice when the
-// startup medical data check failed (network error, GitHub blocked, bad
+// startup medical rules check failed (network error, GitHub blocked, bad
 // signature...). The backend hands the failure out once per launch, so the
 // notice never shows twice, even when the page is opened again.
 export const MedicalDataCheckFailureNotice = () => {
@@ -44,7 +44,7 @@ export const MedicalDataCheckFailureNotice = () => {
                         });
                     }
                 })
-                .catch((e) => console.error('Failed to read the medical data check result:', e));
+                .catch((e) => console.error('Failed to read the medical rules check result:', e));
         };
         show();
         const unlisten = listen('medical-data-check-failed', show);

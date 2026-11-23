@@ -80,7 +80,7 @@ export const MedicalRules = ({ edits, saveEdits }: MedicalRulesProps) => {
                     {orphaned.size > 0 && (
                         <Typography.Paragraph data-testid="medical-rules-orphaned">
                             {t(
-                                '{{count}} of your edits refer to rules that no longer exist in the medical data in use. They are kept but change nothing.',
+                                '{{count}} of your edits refer to rules that no longer exist in the medical rules in use. They are kept but change nothing.',
                                 { count: orphaned.size }
                             )}
                         </Typography.Paragraph>

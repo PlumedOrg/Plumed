@@ -14,7 +14,7 @@ export interface ListOverlay<T> {
     added: T[];
 }
 
-/** 'orphaned': a disabled entry the medical data in use no longer has. */
+/** 'orphaned': a disabled entry the medical rules in use no longer has. */
 export type EntryOrigin = 'bundled' | 'added' | 'orphaned';
 
 export interface EntryView<T> {

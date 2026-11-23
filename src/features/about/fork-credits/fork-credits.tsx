@@ -34,7 +34,7 @@ const TEXT: Record<'fr' | 'en', CreditsText> = {
             ', psychiatrist and developer. It adds the medical mode of ',
             '.',
         ],
-        dataTitle: 'Bundled medical data:',
+        dataTitle: 'Bundled medical rules:',
         drugRules: [
             'Drug and medical term fix rules: ',
             ' (AGPL-3.0-or-later, built on French open drug data, Etalab 2.0)',
@@ -55,7 +55,7 @@ const TEXT: Record<'fr' | 'en', CreditsText> = {
             ', psychiatre et développeur. Il reprend le mode médical de ',
             '.',
         ],
-        dataTitle: 'Données médicales incluses :',
+        dataTitle: 'Règles médicales incluses :',
         drugRules: [
             'Règles de correction des médicaments et termes médicaux : ',
             " (AGPL-3.0-or-later, d'après les données ouvertes françaises sur le médicament, Etalab 2.0)",
