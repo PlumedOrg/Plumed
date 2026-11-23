@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import clsx from 'clsx';
 import { toast } from 'react-toastify';
@@ -13,6 +13,10 @@ import { ModelStatus, ModelVariantStatus } from '../types';
 interface ModelChooserProps {
     status: ModelStatus;
     onStatus: (status: ModelStatus) => void;
+    /** Told the chosen variant, for a parent that starts the download itself. */
+    onChosen?: (id: string) => void;
+    /** No download button: the first launch dialog downloads on Continue. */
+    hideDownload?: boolean;
 }
 
 const initialChoice = (status: ModelStatus): string =>
@@ -23,7 +27,7 @@ const initialChoice = (status: ModelStatus): string =>
 // button: every file is hashed as it downloads, and a model that fails to load
 // is checked in full (`model::manager`). Shared
 // by the first launch dialog and the settings.
-export const ModelChooser = ({ status, onStatus }: ModelChooserProps) => {
+export const ModelChooser = ({ status, onStatus, onChosen, hideDownload = false }: ModelChooserProps) => {
     const { t, i18n } = useTranslation();
     const download = useModelDownload(onStatus);
     const [chosen, setChosen] = useState(() => initialChoice(status));
@@ -32,6 +36,8 @@ export const ModelChooser = ({ status, onStatus }: ModelChooserProps) => {
     const [warnFor, setWarnFor] = useState<ModelVariantStatus | null>(null);
     const downloading = download.running || status.downloading != null;
     const variant = status.variants.find((v) => v.id === chosen);
+
+    useEffect(() => onChosen?.(chosen), [chosen, onChosen]);
 
     const select = (id: string) => {
         setChosen(id);
@@ -110,6 +116,9 @@ export const ModelChooser = ({ status, onStatus }: ModelChooserProps) => {
             );
         }
         if (v.installed == null) {
+            if (hideDownload) {
+                return null;
+            }
             return (
                 <Button
                     size="sm"
