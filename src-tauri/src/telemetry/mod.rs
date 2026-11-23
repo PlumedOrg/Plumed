@@ -80,8 +80,14 @@ fn environment(app: &AppHandle, settings: &AppSettings) -> Environment {
 }
 
 fn feature_flags(app: &AppHandle, settings: &AppSettings) -> FeatureFlags {
+    let defaults = crate::medical::default_formatting_rules();
     let (rule_count, built_in) = crate::formatting_rules::load(app)
-        .map(|formatting| (formatting.rules.len(), formatting.built_in))
+        .map(|formatting| {
+            (
+                added_rule_count(&formatting.rules, &defaults),
+                formatting.built_in,
+            )
+        })
         .unwrap_or((0, BuiltInOptions::default()));
     let dictionary_size = app.state::<crate::dictionary::Dictionary>().get().len();
     FeatureFlags {
@@ -94,6 +100,20 @@ fn feature_flags(app: &AppHandle, settings: &AppSettings) -> FeatureFlags {
         phrase_boosting: built_in.phrase_boosting,
         grammar: built_in.grammar,
     }
+}
+
+/// The rules the user added: a fresh install is seeded with the default
+/// (InterHop) rules, which must not count as the user's own.
+fn added_rule_count(
+    rules: &[crate::formatting_rules::types::FormattingRule],
+    defaults: &[crate::formatting_rules::types::FormattingRule],
+) -> usize {
+    let default_ids: std::collections::HashSet<&str> =
+        defaults.iter().map(|rule| rule.id.as_str()).collect();
+    rules
+        .iter()
+        .filter(|rule| !default_ids.contains(rule.id.as_str()))
+        .count()
 }
 
 /// The request body and User-Agent for `state`.
@@ -234,5 +254,19 @@ mod delay_tests {
         let delays: Vec<Duration> = (0..200).map(|_| random_send_delay()).collect();
         assert!(delays.iter().all(|d| d.as_secs() < 15 * 60));
         assert!(delays.iter().any(|d| *d != delays[0]));
+    }
+
+    #[test]
+    fn seeded_default_rules_are_not_user_rules() {
+        let defaults = crate::medical::default_formatting_rules();
+        assert!(!defaults.is_empty());
+        assert_eq!(added_rule_count(&defaults, &defaults), 0);
+
+        let mut rules = defaults.clone();
+        rules.push(crate::formatting_rules::types::FormattingRule {
+            id: "user-rule".to_string(),
+            ..Default::default()
+        });
+        assert_eq!(added_rule_count(&rules, &defaults), 1);
     }
 }
