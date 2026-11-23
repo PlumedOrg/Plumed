@@ -54,7 +54,24 @@ fn main_set_toml(commands: &[String]) -> String {
     out
 }
 
+/// ONNX Runtime 1.31's prebuilt macOS library (ort 2.0.0-rc.15) calls
+/// `__isPlatformVersionAtLeast`, which lives in clang's runtime library;
+/// rustc links without clang's default libraries, so link it explicitly.
+fn link_clang_runtime_on_macos() {
+    if std::env::var("CARGO_CFG_TARGET_OS").as_deref() != Ok("macos") {
+        return;
+    }
+    let out = std::process::Command::new("clang")
+        .arg("--print-runtime-dir")
+        .output()
+        .expect("cannot run clang --print-runtime-dir");
+    let dir = String::from_utf8(out.stdout).expect("clang printed a non UTF-8 path");
+    println!("cargo:rustc-link-search=native={}", dir.trim());
+    println!("cargo:rustc-link-lib=static=clang_rt.osx");
+}
+
 fn main() {
+    link_clang_runtime_on_macos();
     println!("cargo:rerun-if-changed={LIB_RS}");
     let lib_rs = fs::read_to_string(LIB_RS).expect("cannot read src/lib.rs");
     let commands = handler_commands(&lib_rs);

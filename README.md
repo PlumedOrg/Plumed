@@ -26,7 +26,7 @@ Version bêta, actuellement `0.2.0-beta.2`. Des bugs sont possibles. Les version
 
 - **Windows** : installateur `Plumed_*-setup.exe` (NSIS), qui s'installe sans droits d'administrateur. Les installateurs ne sont pas signés : Windows SmartScreen affiche un avertissement, il faut choisir « Informations complémentaires » puis « Exécuter quand même ».
 - **Linux** : paquets `.deb` et `.rpm`, ou `.AppImage` (x86_64). Sous Wayland, la saisie directe demande une règle udev que l'application propose d'installer.
-- **macOS** : l'application n'est ni signée ni notarisée (pas de compte développeur Apple). Autorisez-la dans Réglages Système > Confidentialité et sécurité, ou exécutez `xattr -dr com.apple.quarantine /Applications/Plumed.app`.
+- **macOS** (13.4 ou plus récent) : l'application n'est ni signée ni notarisée (pas de compte développeur Apple). Autorisez-la dans Réglages Système > Confidentialité et sécurité, ou exécutez `xattr -dr com.apple.quarantine /Applications/Plumed.app`.
 
 Le modèle de reconnaissance vocale n'est pas inclus dans l'installateur : au premier lancement, un assistant propose de choisir un modèle ([UltiMed](https://github.com/UltiMed-Org) v1 Ultra int8, 668 Mo, ou sa version w4a8 plus légère, 402 Mo, proposée d'office sur les ordinateurs de moins de 8 Go de RAM ; les modèles UltiMed v2, encore expérimentaux, sont aussi proposés) et le télécharge une seule fois, depuis Hugging Face ou, si Hugging Face est bloqué, depuis le relais Plumed (`models.plumed.fr`). Le modèle est vérifié puis conservé lors des mises à jour ; il se change dans **Paramètres > Modèle**. L'assistant pose aussi quelques questions facultatives (statistiques anonymes, mises à jour des données médicales, canal de mise à jour).
 

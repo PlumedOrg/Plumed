@@ -60,6 +60,7 @@
             "../resources/grammalecte/**/*"
         ],
         "macOS": {
+            "minimumSystemVersion": "13.4",
             "entitlements": "./Entitlements.plist"
         },
         "linux": {
