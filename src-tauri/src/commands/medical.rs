@@ -37,7 +37,7 @@ pub fn preview_medical_fixes(text: String) -> String {
     medical::apply_medical_fixes(text)
 }
 
-/// The InterHop rules a fresh install starts with, to reset the user's
+/// The UltiMed dictation rules a fresh install starts with, to reset the user's
 /// formatting rules to them.
 #[command]
 pub fn get_default_formatting_rules() -> Vec<FormattingRule> {

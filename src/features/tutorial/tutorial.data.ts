@@ -1,7 +1,7 @@
 // Plumed fork (written with Claude Code): the spoken commands the tutorial
 // lists. Every entry is a real default rule, checked against the example pairs
-// of src-tauri/medical-data/interhop/rules.json (the InterHop rules seeded in
-// the formatting rules). They are spoken French, so they are not translated.
+// of src-tauri/medical-data/regex-fixes/dictation_rules.csv (the UltiMed
+// dictation rules seeded in the formatting rules). They are spoken French, so they are not translated.
 
 export interface SpokenCommand {
     /** What to say. */

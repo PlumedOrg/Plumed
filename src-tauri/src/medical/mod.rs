@@ -10,18 +10,18 @@
 pub mod changes;
 pub mod data_set;
 pub mod data_update;
+mod dictation_rules;
 mod drug_rules;
 pub mod engine_lists;
-mod interhop;
 pub mod list_overlay;
 pub(crate) mod store;
 pub mod text_templates;
 
 pub use changes::MedicalChanges;
+pub use dictation_rules::default_rules as default_formatting_rules;
 use drug_rules::DrugRules;
 pub use drug_rules::{validate_edit, RuleEdit, RuleView};
 pub use engine_lists::MedicalList;
-pub use interhop::default_rules as default_formatting_rules;
 use list_overlay::{ListOverlay, ListPage, OverlayEntry, Phrase};
 use log::warn;
 use serde::Deserialize;

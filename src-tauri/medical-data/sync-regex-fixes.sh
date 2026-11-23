@@ -7,7 +7,8 @@
 # The clone must be checked out at a release tag (e.g. v2.0.0): every file is
 # checked against that tag's SHA256SUMS before it is copied.
 #
-# Copies its rules/*_fix_rules.jsonl and rules/confusion_groups.jsonl byte for byte and records each file's commit and
+# Copies its rules/*_fix_rules.jsonl, rules/confusion_groups.jsonl and
+# rules/dictation_rules.csv byte for byte and records each file's commit and
 # sha256 in regex-fixes/PROVENANCE, then reminds you to run the tests.
 # Written with Claude Code.
 set -eu
@@ -22,6 +23,9 @@ dst="$here/regex-fixes"
 files="drug_fix_rules.jsonl dictionary_fix_rules.jsonl parhaf_fix_rules.jsonl parrot_fix_rules.jsonl acronyms_fix_rules.jsonl manual_fix_rules.jsonl"
 # Not a rule file: read by the decoder's second pass (src/engine/confusion.rs).
 files="$files confusion_groups.jsonl"
+# Not a rule file either: the dictation rules seeded as the user's formatting
+# rules on a fresh install (src/medical/dictation_rules.rs).
+files="$files dictation_rules.csv"
 
 [ -d "$src" ] || { echo "ERROR: $src not found" >&2; exit 1; }
 # Sync from a release tag: its SHA256SUMS is checked below (this catches a

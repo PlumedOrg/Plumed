@@ -112,7 +112,7 @@ fn feature_flags(app: &AppHandle, settings: &AppSettings) -> FeatureFlags {
 }
 
 /// The rules the user added: a fresh install is seeded with the default
-/// (InterHop) rules, which must not count as the user's own.
+/// (UltiMed dictation) rules, which must not count as the user's own.
 fn added_rule_count(
     rules: &[crate::formatting_rules::types::FormattingRule],
     defaults: &[crate::formatting_rules::types::FormattingRule],

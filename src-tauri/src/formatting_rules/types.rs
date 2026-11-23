@@ -127,7 +127,7 @@ pub struct FormattingSettings {
 }
 
 impl Default for FormattingSettings {
-    /// Plumed: a fresh install starts with InterHop's medical dictation rules.
+    /// Plumed: a fresh install starts with UltiMed's medical dictation rules.
     fn default() -> Self {
         Self {
             built_in: BuiltInOptions::default(),

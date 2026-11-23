@@ -70,7 +70,7 @@ mod tests {
         assert!(validate(&with_replacement("\u{16}")).is_err());
     }
 
-    /// The InterHop rules seeded on a fresh install stay savable.
+    /// The UltiMed dictation rules seeded on a fresh install stay savable.
     #[test]
     fn default_rules_are_valid() {
         assert!(validate(&FormattingSettings::default()).is_ok());
