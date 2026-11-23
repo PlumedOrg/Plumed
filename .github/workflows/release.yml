@@ -48,12 +48,11 @@ jobs:
             APPLE_ID: ${{ secrets.APPLE_ID }}
             APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
             APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-    # TODO: put `github.event.inputs.target == 'all' ||` back once
-    # github.com/microsoft/onnxruntime is public again (closed in 2026-11
-    # after a key leak): this job builds ONNX Runtime from that source.
-    # Until then Intel Macs build only when picked explicitly.
+    # TEMPORARY: while github.com/microsoft/onnxruntime is closed, this job
+    # builds ONNX Runtime from a pinned commit served by a third-party fork
+    # (see build-macos-intel.yml). TODO: remove the fork once the repo is back.
     macos-intel:
-        if: ${{ github.event.inputs.target == 'macos-intel' }}
+        if: ${{ github.event.inputs.target == 'all' || github.event.inputs.target == 'macos-intel' }}
         uses: ./.github/workflows/build-macos-intel.yml
         secrets:
             TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}

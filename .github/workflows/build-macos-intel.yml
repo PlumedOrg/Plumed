@@ -92,9 +92,16 @@ jobs:
                   path: ${{ runner.temp }}/onnxruntime-osx-x86_64-1.31.0
                   key: ort-1.31.0-osx-x86_64-${{ hashFiles('.github/ort/*.patch') }}
 
-            # TODO: check that the patch still applies to 1.31.0: it was written for
-            # 1.23.2, and github.com/microsoft/onnxruntime answered 404 when ort was
-            # upgraded, so neither the clone below nor the check could be tried.
+            # TEMPORARY, DO NOT KEEP: github.com/microsoft/onnxruntime answers 404
+            # since 2026-11 (closed after a key leak), so the source comes from a
+            # stranger's public fork (mst-mkt/onnxruntime), pinned to the commit
+            # Microsoft built 1.31.0 from (the commit attribute of the repository
+            # element in the Microsoft.ML.OnnxRuntime 1.31.0 nuspec on nuget.org).
+            # Git checks every object against that hash, so the fork can only serve
+            # Microsoft's code or nothing. TODO: drop the fork from the mirror list
+            # as soon as the official repo is back, and never bump ORT through it
+            # (a new version needs a commit taken from Microsoft, not the fork).
+            # The patch was written for 1.23.2; this is its first run on 1.31.0.
             - name: Build ONNX Runtime 1.31.0 (Intel)
               if: steps.ort-cache.outputs.cache-hit != 'true'
               shell: bash
@@ -104,7 +111,15 @@ jobs:
                   src="$RUNNER_TEMP/ort-src"
                   build="$RUNNER_TEMP/ort-build"
                   dest="$RUNNER_TEMP/onnxruntime-osx-x86_64-${version}"
-                  git clone --depth 1 --branch "v${version}" https://github.com/microsoft/onnxruntime.git "$src"
+                  # Must match the nuspec of Microsoft.ML.OnnxRuntime ${version}.
+                  commit="402979ac1bef89dcd55add41eaa7277c407599eb"
+                  git init -q "$src"
+                  # TEMPORARY fork fallback, see the comment above the step.
+                  for mirror in https://github.com/microsoft/onnxruntime.git https://github.com/mst-mkt/onnxruntime.git; do
+                    git -C "$src" fetch -q --depth 1 "$mirror" "$commit" && break || echo "$mirror does not serve $commit"
+                  done
+                  git -C "$src" checkout -q FETCH_HEAD
+                  test "$(git -C "$src" rev-parse HEAD)" = "$commit"
                   git -C "$src" apply "$GITHUB_WORKSPACE/.github/ort/0001-mlas-avx2-without-avxvnni.patch"
                   cd "$src"
                   python3 tools/ci_build/build.py --build_dir "$build" --config Release --build_shared_lib --parallel \
@@ -147,14 +162,16 @@ jobs:
 
                   # The detector is calibrated on Microsoft's 1.23.2 build, known to
                   # fuse AVX-VNNI into its AVX2 kernels; it does not need to match ours.
+                  # Taken from Microsoft's NuGet package: the GitHub release files of
+                  # the closed repo are gone.
                   version="1.23.2"
                   reference_dir="$(mktemp -d)"
-                  curl --proto '=https' -L -o "$reference_dir/ort.tgz" \
-                    "https://github.com/microsoft/onnxruntime/releases/download/v${version}/onnxruntime-osx-x86_64-${version}.tgz"
-                  echo "d10359e16347b57d9959f7e80a225a5b4a66ed7d7e007274a15cae86836485a6  $reference_dir/ort.tgz" | shasum -a 256 -c -
-                  tar xzf "$reference_dir/ort.tgz" -C "$reference_dir"
+                  curl --proto '=https' -fL -o "$reference_dir/ort.nupkg" \
+                    "https://api.nuget.org/v3-flatcontainer/microsoft.ml.onnxruntime/${version}/microsoft.ml.onnxruntime.${version}.nupkg"
+                  echo "25fe172f7fcdf34f2b5b02c8b997f6b88abc282956849d4af4335af23d0c4e4a  $reference_dir/ort.nupkg" | shasum -a 256 -c -
+                  unzip -q "$reference_dir/ort.nupkg" runtimes/osx-x64/native/libonnxruntime.dylib -d "$reference_dir"
 
-                  reference="$(count_vnni_in_avx2_symbols "$reference_dir/onnxruntime-osx-x86_64-${version}/lib/libonnxruntime.${version}.dylib")"
+                  reference="$(count_vnni_in_avx2_symbols "$reference_dir/runtimes/osx-x64/native/libonnxruntime.dylib")"
                   read -r reference_symbols reference_hits <<<"$reference"
                   echo "Microsoft build: $reference_symbols avx2 symbols inspected, $reference_hits AVX-VNNI instructions"
                   if [ "$reference_symbols" -eq 0 ] || [ "$reference_hits" -eq 0 ]; then
