@@ -96,7 +96,7 @@ const ULTRA_DECODER_INT8: ModelFile = ModelFile {
 };
 
 /// Every variant, in the order the UI lists them (the first available one
-/// is the recommended default).
+/// is the default, see `recommended`).
 pub const VARIANTS: &[Variant] = &[
     Variant {
         id: "ultra-int8",
@@ -171,6 +171,30 @@ pub fn find(id: &str) -> Option<&'static Variant> {
     VARIANTS.iter().find(|v| v.id == id)
 }
 
+/// Below this much total RAM, the lightest available variant is recommended.
+/// Peak RSS of the 400 clip benchmark under ONNX Runtime 1.31: Ultra int8
+/// 2.07 GB, w4a8 1.69 GB (380 MB less). An 8 GB machine reports a bit less
+/// than 8 GiB (firmware and integrated GPU reservations, e.g. 7.7 GiB), and
+/// with the OS, a browser and the hospital software open it often has about
+/// 2 GB free: int8's peak would push it into swap, w4a8 fits. From 12 GB on,
+/// the difference does not matter and the more accurate default is kept.
+const LOW_MEMORY: u64 = 8 << 30;
+
+/// The variant to preselect: the default (the first, tested available), or
+/// the lightest available one on a machine with less than `LOW_MEMORY` of
+/// RAM. Unknown RAM keeps the default.
+pub fn recommended(total_memory: Option<u64>) -> &'static Variant {
+    let default = &VARIANTS[0];
+    match total_memory {
+        Some(total) if total < LOW_MEMORY => VARIANTS
+            .iter()
+            .filter(|v| v.available)
+            .min_by_key(|v| v.total_size())
+            .unwrap_or(default),
+        _ => default,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -218,5 +242,22 @@ mod tests {
         // Ultra int8: 668 MB, w4a8: 402 MB
         assert_eq!(VARIANTS[0].total_size(), 667_868_883);
         assert_eq!(VARIANTS[1].total_size(), 401_792_773);
+    }
+
+    #[test]
+    fn the_default_is_recommended_with_enough_or_unknown_memory() {
+        assert_eq!(recommended(None).id, VARIANTS[0].id);
+        assert_eq!(recommended(Some(LOW_MEMORY)).id, VARIANTS[0].id);
+        assert_eq!(recommended(Some(32 << 30)).id, VARIANTS[0].id);
+        // What a 12 GB machine reports.
+        assert_eq!(recommended(Some(11_700 << 20)).id, VARIANTS[0].id);
+    }
+
+    #[test]
+    fn the_lightest_available_variant_is_recommended_with_little_memory() {
+        assert_eq!(recommended(Some(LOW_MEMORY - 1)).id, "ultra-w4a8");
+        assert_eq!(recommended(Some(4 << 30)).id, "ultra-w4a8");
+        // What an 8 GB laptop reports.
+        assert_eq!(recommended(Some(7_700 << 20)).id, "ultra-w4a8");
     }
 }

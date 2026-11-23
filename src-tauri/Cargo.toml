@@ -121,9 +121,11 @@ windows-sys = { version = "0.61", features = [
     "Win32_Graphics_Gdi",
     "Win32_System_Console",
     "Win32_Storage_FileSystem",
+    "Win32_System_SystemInformation",
 ] }
 
-# Plumed fork: `geteuid`, to check that the temp recordings folder is ours.
+# Plumed fork: `geteuid`, to check that the temp recordings folder is ours;
+# `sysconf`, the total RAM for the model recommendation.
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
 

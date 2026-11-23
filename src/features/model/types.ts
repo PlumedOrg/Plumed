@@ -24,6 +24,8 @@ export interface ModelStatus {
     /** A development build uses the model of resources/: nothing to download. */
     dev: boolean;
     downloading: string | null;
+    /** The variant to preselect, lighter on a machine with little RAM. */
+    recommended: string;
     variants: ModelVariantStatus[];
 }
 

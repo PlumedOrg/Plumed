@@ -4,6 +4,7 @@
 
 use super::catalog::{self, Variant};
 use super::download::{self, DownloadError, Endpoints};
+use super::memory;
 use super::store::{self, Source};
 use super::Model;
 use serde::Serialize;
@@ -38,6 +39,8 @@ pub struct ModelStatus {
     pub dev: bool,
     /// The variant being downloaded.
     pub downloading: Option<&'static str>,
+    /// The variant to preselect, lighter on a machine with little RAM.
+    pub recommended: &'static str,
     pub variants: Vec<VariantStatus>,
 }
 
@@ -76,6 +79,7 @@ pub fn status(app: &AppHandle) -> ModelStatus {
         active: model.active_variant().map(|v| v.id),
         dev: model.is_dev(),
         downloading: running().as_ref().map(|(id, _)| *id),
+        recommended: catalog::recommended(memory::total_memory()).id,
         variants,
     }
 }

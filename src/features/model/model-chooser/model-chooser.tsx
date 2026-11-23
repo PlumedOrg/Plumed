@@ -15,11 +15,8 @@ interface ModelChooserProps {
     onStatus: (status: ModelStatus) => void;
 }
 
-const initialChoice = (status: ModelStatus): string | undefined =>
-    status.active ??
-    status.downloading ??
-    status.variants.find((v) => v.installed != null)?.id ??
-    status.variants.find((v) => v.available)?.id;
+const initialChoice = (status: ModelStatus): string =>
+    status.active ?? status.downloading ?? status.variants.find((v) => v.installed != null)?.id ?? status.recommended;
 
 // Plumed fork (written with Claude Code): the model catalog with the actions
 // on the chosen variant (download, resume, cancel, use, check, delete). Shared
@@ -177,6 +174,9 @@ export const ModelChooser = ({ status, onStatus }: ModelChooserProps) => {
                         <div className="flex items-center justify-between gap-2">
                             <span className="font-medium" title={v.family}>
                                 {v.name}
+                                {v.id === status.recommended && (
+                                    <span className="ml-2 text-xs font-normal text-sky-400">{t('Recommended')}</span>
+                                )}
                             </span>
                             <span className="text-xs text-muted-foreground">
                                 {formatBytes(v.size, t, i18n.language)}
