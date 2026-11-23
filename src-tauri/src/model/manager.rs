@@ -184,22 +184,6 @@ pub async fn delete(app: &AppHandle, id: &str) -> Result<ModelStatus, String> {
     Ok(status(app))
 }
 
-/// Hashes every file of `id`. A damaged model is no longer used (its bad
-/// files are removed, so a new download fetches only those). Returns whether
-/// it was intact.
-pub async fn verify(app: &AppHandle, id: &str) -> Result<bool, String> {
-    let variant = find(id)?;
-    let root = root(app)?;
-    let intact = tauri::async_runtime::spawn_blocking(move || store::verify(&root, variant))
-        .await
-        .map_err(|e| e.to_string())?
-        .map_err(|e| e.to_string())?;
-    if !intact {
-        reload_engine(app).await?;
-    }
-    Ok(intact)
-}
-
 /// At launch, after the engine failed to load an installed model: a full
 /// check, so a damaged model leads to the download dialog.
 pub fn check_after_load_failure(app: &AppHandle) {

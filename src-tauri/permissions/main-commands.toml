@@ -11,7 +11,6 @@ permissions = [
     "allow-cancel-model-download",
     "allow-set-active-model",
     "allow-delete-model",
-    "allow-verify-model",
     "allow-read-murmure-file",
     "allow-write-murmure-file",
     "allow-get-all-settings",

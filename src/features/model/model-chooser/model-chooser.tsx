@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import clsx from 'clsx';
-import { Loader2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { Button } from '@/components/button';
 import { Typography } from '@/components/typography';
@@ -20,7 +19,9 @@ const initialChoice = (status: ModelStatus): string =>
     status.active ?? status.downloading ?? status.variants.find((v) => v.installed != null)?.id ?? status.recommended;
 
 // Plumed fork (written with Claude Code): the model catalog with the actions
-// on the chosen variant (download, resume, cancel, use, check, delete). Shared
+// on the chosen variant (download, resume, cancel, use, delete). No check
+// button: every file is hashed as it downloads, and a model that fails to load
+// is checked in full (`model::manager`). Shared
 // by the first launch dialog and the settings.
 export const ModelChooser = ({ status, onStatus }: ModelChooserProps) => {
     const { t, i18n } = useTranslation();
@@ -61,20 +62,6 @@ export const ModelChooser = ({ status, onStatus }: ModelChooserProps) => {
                 onStatus(await invoke<ModelStatus>('set_active_model', { variant: id }));
             } catch (e) {
                 toast.error(`${t('Failed to switch the model')}: ${String(e)}`);
-            }
-        });
-
-    const verify = (id: string) =>
-        whileBusy(async () => {
-            try {
-                const intact = await invoke<boolean>('verify_model', { variant: id });
-                if (intact) {
-                    toast.success(t('The model is intact.'));
-                } else {
-                    toast.error(t('The model was damaged: download it again (only the damaged files are fetched).'));
-                }
-            } catch (e) {
-                toast.error(`${t('Failed to check the model')}: ${String(e)}`);
             }
         });
 
@@ -141,16 +128,6 @@ export const ModelChooser = ({ status, onStatus }: ModelChooserProps) => {
                         {t('Use this model')}
                     </Button>
                 )}
-                <Button
-                    variant="secondary"
-                    size="sm"
-                    disabled={busy}
-                    onClick={() => void verify(v.id)}
-                    data-testid="model-verify"
-                >
-                    {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-                    {t('Check')}
-                </Button>
                 <Button
                     variant="secondary"
                     size="sm"

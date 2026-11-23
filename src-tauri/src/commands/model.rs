@@ -42,8 +42,3 @@ pub async fn set_active_model(app: AppHandle, variant: String) -> Result<ModelSt
 pub async fn delete_model(app: AppHandle, variant: String) -> Result<ModelStatus, String> {
     manager::delete(&app, &variant).await
 }
-
-#[command]
-pub async fn verify_model(app: AppHandle, variant: String) -> Result<bool, String> {
-    manager::verify(&app, &variant).await
-}

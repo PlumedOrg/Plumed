@@ -411,7 +411,6 @@ pub fn run() {
             cancel_model_download,
             set_active_model,
             delete_model,
-            verify_model,
             read_murmure_file,
             write_murmure_file,
             get_all_settings,
