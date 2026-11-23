@@ -83,7 +83,7 @@ impl Endpoints {
     pub fn public() -> Self {
         Self {
             hub: HUB_URL.to_owned(),
-            relay: relay_url(RELAY_URL_OVERRIDE).to_owned(),
+            relay: relay_base().to_owned(),
             hub_redirect: |url| allowed_hub_host(url.scheme(), url.host_str().unwrap_or("")),
             backoff: Duration::from_secs(1),
         }
@@ -104,6 +104,11 @@ impl Endpoints {
             ),
         }
     }
+}
+
+/// The relay base url of this build (also used by `app_update`).
+pub fn relay_base() -> &'static str {
+    relay_url(RELAY_URL_OVERRIDE)
 }
 
 /// The relay base url: the build-time override unless it is empty.

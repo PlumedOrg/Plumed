@@ -1,5 +1,6 @@
 #![allow(clippy::module_inception)]
 
+mod app_update;
 mod audio;
 pub mod cli;
 mod clipboard;
@@ -504,6 +505,9 @@ pub fn run() {
             is_telemetry_available,
             get_telemetry_preview,
             set_telemetry_enabled,
+            set_app_update_channel,
+            check_app_update,
+            install_app_update,
             get_recordings_dir,
             open_accessibility_settings,
             check_accessibility_permission,

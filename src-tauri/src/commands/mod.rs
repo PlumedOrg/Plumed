@@ -1,3 +1,4 @@
+pub mod app_update;
 pub mod clipboard;
 pub mod dictionary;
 pub mod formatting_rules;
@@ -16,6 +17,7 @@ pub mod shortcuts;
 pub mod stats;
 pub mod telemetry;
 
+pub use app_update::*;
 pub use clipboard::*;
 pub use dictionary::*;
 pub use formatting_rules::*;

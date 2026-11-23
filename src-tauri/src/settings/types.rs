@@ -81,6 +81,9 @@ pub struct AppSettings {
     pub medical_data_update_check: bool,
     pub medical_data_skipped_version: String,
     pub medical_data_update_asked: bool,
+    // Plumed fork: which app releases the updater follows (see `app_update`).
+    // Never exported, so a settings file cannot change it.
+    pub app_update_channel: crate::app_update::UpdateChannel,
 }
 
 /// Plumed: new installs type the text (Direct), which needs no clipboard and
@@ -182,6 +185,7 @@ impl Default for AppSettings {
             medical_data_update_check: false,
             medical_data_skipped_version: String::new(),
             medical_data_update_asked: false,
+            app_update_channel: Default::default(),
         }
     }
 }
