@@ -1,16 +1,22 @@
 import { useEffect, useRef, useState } from 'react';
-import { invoke } from '@tauri-apps/api/core';
-import { check } from '@tauri-apps/plugin-updater';
+import { Channel, invoke } from '@tauri-apps/api/core';
 import { relaunch } from '@tauri-apps/plugin-process';
 import { RefreshCcw, Download } from 'lucide-react';
 import { useTranslation } from '@/i18n';
 import { PLUMED_LATEST_RELEASE_URL } from '@/utils/plumed-links';
+import { useAppUpdateChannel } from './hooks/use-app-update-channel';
 
 type UpdateCheckerProps = {
     className?: string;
 };
 
+// Plumed fork (written with Claude Code): the check and the install run in
+// Rust (`src-tauri/src/app_update.rs`), which picks the channel's manifest and
+// falls back to the Plumed relay when GitHub is unreachable. The button shows
+// only when an update is available, or always when the user disabled the
+// automatic check (then it checks the stable channel on demand).
 export const UpdateChecker = ({ className = '' }: UpdateCheckerProps) => {
+    const [channel] = useAppUpdateChannel();
     const [isChecking, setIsChecking] = useState(false);
     const [updateAvailable, setUpdateAvailable] = useState(false);
     const [isInstalling, setIsInstalling] = useState(false);
@@ -20,12 +26,8 @@ export const UpdateChecker = ({ className = '' }: UpdateCheckerProps) => {
     const { t } = useTranslation();
 
     const upToDateTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-    const isManualCheckRef = useRef(false);
-    const downloadedBytesRef = useRef(0);
-    const contentLengthRef = useRef(0);
 
     useEffect(() => {
-        void checkForUpdates();
         invoke<boolean>('is_pacman_managed')
             .then(setIsPacmanManaged)
             .catch((e) => {
@@ -36,60 +38,38 @@ export const UpdateChecker = ({ className = '' }: UpdateCheckerProps) => {
         };
     }, []);
 
-    const checkForUpdates = async () => {
-        if (isChecking) return;
+    // Checks again whenever the channel changes: a beta found earlier is not
+    // an update on the stable channel.
+    useEffect(() => {
+        setUpdateAvailable(false);
+        if (channel !== null && channel !== 'disabled') void checkForUpdates(false);
+    }, [channel]);
+
+    const checkForUpdates = async (manual: boolean) => {
         try {
             setIsChecking(true);
-            const update = await check();
-            if (update) {
-                setUpdateAvailable(true);
-                setShowUpToDate(false);
-            } else {
-                setUpdateAvailable(false);
-                if (isManualCheckRef.current) {
-                    setShowUpToDate(true);
-                    if (upToDateTimeoutRef.current) clearTimeout(upToDateTimeoutRef.current);
-                    upToDateTimeoutRef.current = setTimeout(() => setShowUpToDate(false), 3000);
-                }
+            const version = await invoke<string | null>('check_app_update', { manual });
+            const found = version !== null;
+            setUpdateAvailable(found);
+            setShowUpToDate(manual && !found);
+            if (manual && !found) {
+                if (upToDateTimeoutRef.current) clearTimeout(upToDateTimeoutRef.current);
+                upToDateTimeoutRef.current = setTimeout(() => setShowUpToDate(false), 3000);
             }
         } catch (e) {
             console.error('Failed to check for updates:', e);
         } finally {
             setIsChecking(false);
-            isManualCheckRef.current = false;
         }
-    };
-
-    const handleManualUpdateCheck = () => {
-        isManualCheckRef.current = true;
-        void checkForUpdates();
     };
 
     const installUpdate = async () => {
         try {
             setIsInstalling(true);
             setDownloadProgress(0);
-            downloadedBytesRef.current = 0;
-            contentLengthRef.current = 0;
-            const update = await check();
-            if (!update) return;
-            await update.downloadAndInstall((event) => {
-                switch (event.event) {
-                    case 'Started':
-                        downloadedBytesRef.current = 0;
-                        contentLengthRef.current = event.data.contentLength ?? 0;
-                        break;
-                    case 'Progress': {
-                        downloadedBytesRef.current += event.data.chunkLength;
-                        const total = contentLengthRef.current;
-                        const progress = total > 0 ? Math.round((downloadedBytesRef.current / total) * 100) : 0;
-                        setDownloadProgress(Math.min(progress, 100));
-                        break;
-                    }
-                    default:
-                        break;
-                }
-            });
+            const onProgress = new Channel<number>();
+            onProgress.onmessage = setDownloadProgress;
+            await invoke('install_app_update', { onProgress });
             try {
                 await relaunch();
             } catch (e) {
@@ -100,8 +80,6 @@ export const UpdateChecker = ({ className = '' }: UpdateCheckerProps) => {
         } finally {
             setIsInstalling(false);
             setDownloadProgress(0);
-            downloadedBytesRef.current = 0;
-            contentLengthRef.current = 0;
         }
     };
 
@@ -122,11 +100,13 @@ export const UpdateChecker = ({ className = '' }: UpdateCheckerProps) => {
 
     const onClick = () => {
         if (updateAvailable && !isInstalling) return installUpdate();
-        if (!isChecking && !isInstalling && !updateAvailable) return handleManualUpdateCheck();
+        if (!isChecking && !isInstalling && !updateAvailable) return checkForUpdates(true);
     };
 
+    if (!updateAvailable && !isInstalling && channel !== 'disabled') return null;
+
     const isDisabled = isChecking || isInstalling;
-    const isClickable = !isDisabled && (updateAvailable || (!isChecking && !showUpToDate));
+    const isClickable = !isDisabled && (updateAvailable || !showUpToDate);
 
     if (isPacmanManaged && updateAvailable && !isInstalling) {
         return (

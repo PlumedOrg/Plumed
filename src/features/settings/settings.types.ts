@@ -1,3 +1,6 @@
+/** Plumed fork: which app releases the updater offers (`src-tauri/src/app_update.rs`). */
+export type AppUpdateChannel = 'stable' | 'beta' | 'disabled';
+
 export interface SystemSettings {
     record_mode: string;
     overlay_mode: string;
@@ -34,6 +37,7 @@ export interface SystemSettings {
     medical_data_update_check: boolean;
     medical_data_skipped_version: string;
     medical_data_update_asked: boolean;
+    app_update_channel: AppUpdateChannel;
 }
 
 export interface ShortcutSettings {

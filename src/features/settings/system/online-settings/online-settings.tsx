@@ -6,14 +6,14 @@ import { MedicalDataSettings } from '@/features/medical-data/medical-data-settin
 import { useMedicalDataStatus } from '@/features/medical-data/hooks/use-medical-data-status';
 import { useTelemetryAvailable } from '@/features/telemetry/hooks/use-telemetry-available';
 import { TelemetrySettings } from '../telemetry-settings/telemetry-settings';
+import { AppUpdateSettings } from '../app-update-settings/app-update-settings';
 
 // Plumed fork (written with Claude Code): the "Online" tab of the System page
 // gathers everything that makes Plumed reach the network, with an intro that
 // says what goes online and when. Each part is listed only when this build has
 // it: usage statistics need a Umami website id, medical data updates the
-// signing public key (see AGENTS.FORK.md, section 6). The app update check
-// (`update-checker.tsx`, Tauri updater) runs at every start and has no
-// setting, so the intro only states it.
+// signing public key (see AGENTS.FORK.md, section 6). The app update channel
+// is always listed.
 export const OnlineSettings = () => {
     const { t } = useTranslation();
     const telemetryAvailable = useTelemetryAvailable();
@@ -35,7 +35,7 @@ export const OnlineSettings = () => {
                 <ul className="list-disc space-y-2 pl-5 text-sm text-muted-foreground">
                     <li>
                         {t(
-                            'App updates: at every start, Plumed downloads a small file from GitHub (latest.json) to see whether a newer version exists. This check cannot be turned off; an update is only installed when you click it.'
+                            'App updates (below): at every start, Plumed downloads a small file from GitHub (latest.json), or else from the Plumed relay, to see whether a newer version exists. An update is only installed when you click it, and only if its signature is valid.'
                         )}
                     </li>
                     <li>
@@ -63,6 +63,9 @@ export const OnlineSettings = () => {
                         )}
                     </li>
                 </ul>
+            </SettingsUI.Container>
+            <SettingsUI.Container>
+                <AppUpdateSettings />
             </SettingsUI.Container>
             {telemetryAvailable && (
                 <SettingsUI.Container>
