@@ -66,3 +66,6 @@ PlumedOrg-repo
 
 # Local medical data publish helper (sets the args, asks for the minisign password)
 /publish_medical_data.sh
+
+# Local deb build helper (builds, installs with dpkg, offers to delete the build dir)
+/build_locally.sh
