@@ -85,6 +85,18 @@ The allowlist defaults to `MODEL_REPOS` in `protocol/src/models.rs`, the same li
 
 All but the bind address can be set in `.env`, `docker-compose.yml` passes them to the container.
 
+### App releases
+
+The same service also relays the app's own releases, so the updater works where github.com is blocked (`models/src/releases.rs`, scheme in `protocol/src/releases.rs`, shared with the app; written with Claude Code). The app asks GitHub first and only uses these routes when that fails:
+
+- `GET /releases/latest/download/latest.json`: the latest stable release's updater manifest, from `https://github.com/PlumedOrg/Plumed/releases/latest/download/latest.json`.
+- `GET /releases/download/<tag>/<asset>`: one asset of one release, from `https://github.com/PlumedOrg/Plumed/releases/download/<tag>/<asset>`. The app rewrites the installer URL found in `latest.json` to this route when it fell back to the relay.
+- `GET /releases/list`: the 10 newest releases (`https://api.github.com/repos/PlumedOrg/Plumed/releases?per_page=10`), read by the beta channel. Kept in memory 5 minutes (at most 12 GitHub API calls an hour, the unauthenticated limit is 60), one fetch at a time, at most 4 MiB.
+
+Same hardening as the model routes: only the `PlumedOrg/Plumed` repository (it is not part of the path, so no other one can be asked for), `<tag>` and `<asset>` must be `[A-Za-z0-9._-]+` tokens, no query string, anything else is a `404` without contacting GitHub. Redirects are followed by hand, at most 5, each hop https on `github.com`, `objects.githubusercontent.com` or `release-assets.githubusercontent.com` (otherwise `502`). Files are streamed without buffering, `Range` / `If-Range` / `If-None-Match` pass through, and release streams share the global and per IP caps of the model streams (the listing takes a per IP slot too). The `HF_TOKEN` never goes to GitHub.
+
+A relay cannot forge an update: the app installs only an installer whose minisign signature matches the updater public key compiled into it (`plugins.updater.pubkey` in `src-tauri/tauri.conf.json`), and the private key never leaves the maintainer's machine and the GitHub secrets. A compromised relay could at most withhold updates or serve an older signed version, which the app refuses to install since it never downgrades.
+
 ## Develop
 
 ```sh
@@ -94,7 +106,7 @@ cargo run -p plumed-relay                   # http://localhost:5174
 cargo run -p plumed-models                  # http://localhost:5175 (model relay)
 ```
 
-`cargo test` also runs the model relay against a fake Hugging Face (hub redirecting to a CDN) over real sockets (`models/tests/relay.rs`).
+`cargo test` also runs the model relay against a fake Hugging Face (hub redirecting to a CDN) and a fake GitHub over real sockets (`models/tests/relay.rs`).
 
 Browsers only give the microphone to secure origins, so testing on a real phone needs HTTPS (for example a reverse proxy with a certificate).
 

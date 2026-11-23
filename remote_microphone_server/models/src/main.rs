@@ -1,6 +1,9 @@
 //! `plumed-models`: see the crate docs in lib.rs and remote_microphone_server/README.md.
 
-use plumed_models::{app, hub_redirect, Allowlist, Config, DEFAULT_UPSTREAM};
+use plumed_models::{
+    app, github_redirect, hub_redirect, Allowlist, Config, DEFAULT_GITHUB, DEFAULT_GITHUB_API,
+    DEFAULT_UPSTREAM,
+};
 use plumed_relay::serve::{env_or, exit_code, healthcheck, healthcheck_requested, run};
 use std::net::SocketAddr;
 
@@ -15,6 +18,9 @@ fn config() -> Result<(SocketAddr, Config), String> {
         token: std::env::var("HF_TOKEN").ok(),
         upstream: DEFAULT_UPSTREAM.to_owned(),
         redirect_allowed: hub_redirect,
+        github: DEFAULT_GITHUB.to_owned(),
+        github_api: DEFAULT_GITHUB_API.to_owned(),
+        github_redirect,
         max_streams: env_or("PLUMED_MODELS_MAX_STREAMS", 32)?,
         streams_per_ip: env_or("PLUMED_MODELS_STREAMS_PER_IP", 8)?,
         trust_proxy: env_or("PLUMED_MODELS_TRUST_PROXY", false)?,

@@ -10,13 +10,21 @@
 //! - `Range`, `If-Range` and `If-None-Match` are forwarded and
 //!   `Content-Length`, `Content-Range`, `Accept-Ranges` and `ETag` come back,
 //!   so the app can resume a download.
+//! - The app's releases, so its updater works where GitHub is blocked
+//!   (`releases.rs`, scheme in `plumed_relay_protocol::releases`): `GET
+//!   /releases/latest/download/latest.json`, `GET
+//!   /releases/download/<tag>/<asset>` (both streamed from github.com, only
+//!   the `PlumedOrg/Plumed` repository) and `GET /releases/list` (the 10
+//!   newest releases from the GitHub API, cached in memory a few minutes).
 //!
 //! Never an open proxy: only the allowlisted `repo@revision` pairs are served
 //! (anything else is a 404 without contacting the hub), every path segment
 //! is a plain `[A-Za-z0-9._-]` token, redirects are followed by hand and each
 //! hop must stay on https `huggingface.co`, `*.huggingface.co` or `*.hf.co`
 //! (at most 5), and the optional token only goes to the hub itself, never to
-//! its CDN. Concurrent streams are capped globally and per client IP. Client
+//! its CDN. Release redirects may only reach https `github.com`,
+//! `objects.githubusercontent.com` or `release-assets.githubusercontent.com`.
+//! Concurrent streams are capped globally and per client IP. Client
 //! IPs are never logged.
 
 use axum::body::Body;
@@ -32,12 +40,19 @@ use plumed_relay::serve::{client_key, retry_after};
 use plumed_relay_protocol::models::{
     allowed_hub_host, hub_path, safe_path, safe_segment, HUB_URL, MODELS_PATH,
 };
+use plumed_relay_protocol::releases::{
+    allowed_github_host, GITHUB_API_URL, GITHUB_URL, RELAY_LISTING_PATH, RELEASES_PATH,
+};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::sync::Semaphore;
+use tokio::sync::{Mutex, Semaphore};
+
+mod releases;
 
 pub const DEFAULT_UPSTREAM: &str = HUB_URL;
+pub const DEFAULT_GITHUB: &str = GITHUB_URL;
+pub const DEFAULT_GITHUB_API: &str = GITHUB_API_URL;
 const MAX_REDIRECTS: usize = 5;
 /// Connection plus response headers, per upstream request chain.
 const HEADERS_TIMEOUT: Duration = Duration::from_secs(30);
@@ -111,6 +126,12 @@ pub struct Config {
     pub upstream: String,
     /// Where a redirect may land besides `upstream` itself.
     pub redirect_allowed: fn(&reqwest::Url) -> bool,
+    /// github.com, for the release files.
+    pub github: String,
+    /// api.github.com, for the release listing.
+    pub github_api: String,
+    /// Where a release redirect may land besides `github` itself.
+    pub github_redirect: fn(&reqwest::Url) -> bool,
     pub max_streams: usize,
     pub streams_per_ip: usize,
     /// Take the client IP from `X-Forwarded-For` (behind Caddy).
@@ -122,11 +143,45 @@ pub fn hub_redirect(url: &reqwest::Url) -> bool {
     allowed_hub_host(url.scheme(), url.host_str().unwrap_or_default())
 }
 
+/// GitHub's release asset hosts, https only.
+pub fn github_redirect(url: &reqwest::Url) -> bool {
+    allowed_github_host(url.scheme(), url.host_str().unwrap_or_default())
+}
+
+/// Where a family of routes fetches from, and where its redirects may land.
+struct Upstream {
+    base: reqwest::Url,
+    redirect_allowed: fn(&reqwest::Url) -> bool,
+}
+
+impl Upstream {
+    fn new(base: &str, redirect_allowed: fn(&reqwest::Url) -> bool) -> Result<Self, String> {
+        let base = reqwest::Url::parse(base.trim_end_matches('/'))
+            .map_err(|e| format!("invalid upstream {base}: {e}"))?;
+        Ok(Self {
+            base,
+            redirect_allowed,
+        })
+    }
+
+    /// `path` (starting with `/`) on this upstream.
+    fn url(&self, path: &str) -> String {
+        format!("{}{path}", self.base.as_str().trim_end_matches('/'))
+    }
+
+    fn allows(&self, url: &reqwest::Url) -> bool {
+        same_origin(url, &self.base) || (self.redirect_allowed)(url)
+    }
+}
+
 struct Inner {
     allowlist: Allowlist,
     token: Option<String>,
-    upstream: reqwest::Url,
-    redirect_allowed: fn(&reqwest::Url) -> bool,
+    hub: Upstream,
+    github: Upstream,
+    github_api: Upstream,
+    /// The release listing and when it was fetched.
+    listing: Mutex<Option<releases::Listing>>,
     client: reqwest::Client,
     streams: Arc<Semaphore>,
     per_client: InFlight,
@@ -144,13 +199,14 @@ pub fn app(config: Config) -> Result<Router, String> {
         .user_agent("plumed-models")
         .build()
         .map_err(|e| e.to_string())?;
-    let upstream = reqwest::Url::parse(config.upstream.trim_end_matches('/'))
-        .map_err(|e| format!("invalid upstream: {e}"))?;
     let state = Arc::new(Inner {
         allowlist: config.allowlist,
         token: config.token.filter(|t| !t.trim().is_empty()),
-        upstream,
-        redirect_allowed: config.redirect_allowed,
+        hub: Upstream::new(&config.upstream, config.redirect_allowed)?,
+        github: Upstream::new(&config.github, config.github_redirect)?,
+        // The API answers itself: no redirect leaves it.
+        github_api: Upstream::new(&config.github_api, |_| false)?,
+        listing: Mutex::new(None),
         client,
         streams: Arc::new(Semaphore::new(config.max_streams)),
         per_client: InFlight::new(config.streams_per_ip),
@@ -159,6 +215,8 @@ pub fn app(config: Config) -> Result<Router, String> {
     Ok(Router::new()
         .route("/healthz", get(|| async { "ok" }))
         .route(&format!("{MODELS_PATH}/{{*file}}"), get(serve).head(serve))
+        .route(RELAY_LISTING_PATH, get(releases::listing))
+        .route(&format!("{RELEASES_PATH}/{{*file}}"), get(releases::serve))
         .layer(middleware::map_response(security_headers))
         .with_state(state))
 }
@@ -209,23 +267,28 @@ async fn serve(State(state): State<Arc<Inner>>, req: Request) -> Response {
         Some(w) if state.allowlist.allows(&w.repo, &w.revision) => w,
         _ => return StatusCode::NOT_FOUND.into_response(),
     };
-    let url = format!(
-        "{}{}",
-        state.upstream.as_str().trim_end_matches('/'),
-        hub_path(&wanted.repo, &wanted.revision, &wanted.file)
-    );
+    let url = state
+        .hub
+        .url(&hub_path(&wanted.repo, &wanted.revision, &wanted.file));
+    let label = format!("{}/{}", wanted.repo, wanted.file);
     if req.method() == Method::HEAD {
-        return head(&state, &wanted, &url).await;
+        return head(&state, &label, &url).await;
     }
     // Taken before any await: a `&Request` is not `Send`.
     let ip = client_key(&req, state.trust_proxy);
+    let forwarded = forwarded(req.headers());
+    stream(state, ip, forwarded, label, url, |s| &s.hub).await
+}
+
+/// The client headers passed on upstream.
+fn forwarded(from: &HeaderMap) -> HeaderMap {
     let mut forwarded = HeaderMap::new();
     for name in FORWARDED_REQUEST {
-        if let Some(value) = req.headers().get(&name) {
+        if let Some(value) = from.get(&name) {
             forwarded.insert(name, value.clone());
         }
     }
-    stream(state, ip, forwarded, &wanted, &url).await
+    forwarded
 }
 
 fn same_origin(a: &reqwest::Url, b: &reqwest::Url) -> bool {
@@ -247,18 +310,19 @@ impl Inner {
             .headers(headers.clone())
             .header(header::ACCEPT_ENCODING, "identity");
         match &self.token {
-            Some(token) if same_origin(url, &self.upstream) => builder.bearer_auth(token),
+            Some(token) if same_origin(url, &self.hub.base) => builder.bearer_auth(token),
             _ => builder,
         }
     }
 
-    /// Follows redirects by hand, checking every hop. The final
-    /// non-redirect answer, or the status to give the client.
+    /// Follows redirects by hand, checking every hop against `upstream`. The
+    /// final non-redirect answer, or the status to give the client.
     async fn fetch_following(
         &self,
-        wanted: &Wanted,
+        label: &str,
         start: &str,
         headers: &HeaderMap,
+        upstream: &Upstream,
     ) -> Result<reqwest::Response, StatusCode> {
         let mut url = reqwest::Url::parse(start).map_err(|_| StatusCode::BAD_GATEWAY)?;
         for _ in 0..=MAX_REDIRECTS {
@@ -266,7 +330,7 @@ impl Inner {
                 .request(Method::GET, &url, headers)
                 .send()
                 .await
-                .map_err(|e| self.fail(wanted, &e.to_string()))?;
+                .map_err(|e| self.fail(label, &e.to_string()))?;
             if !resp.status().is_redirection() || resp.status() == StatusCode::NOT_MODIFIED {
                 return Ok(resp);
             }
@@ -275,19 +339,19 @@ impl Inner {
                 .get(header::LOCATION)
                 .and_then(|l| l.to_str().ok())
                 .and_then(|l| url.join(l).ok())
-                .ok_or_else(|| self.fail(wanted, "redirect without a valid Location"))?;
-            if !same_origin(&next, &self.upstream) && !(self.redirect_allowed)(&next) {
+                .ok_or_else(|| self.fail(label, "redirect without a valid Location"))?;
+            if !upstream.allows(&next) {
                 let host = next.host_str().unwrap_or_default().to_owned();
-                return Err(self.fail(wanted, &format!("refusing a redirect to {host}")));
+                return Err(self.fail(label, &format!("refusing a redirect to {host}")));
             }
             url = next;
         }
-        Err(self.fail(wanted, "too many redirects"))
+        Err(self.fail(label, "too many redirects"))
     }
 
-    /// Logs an upstream failure (repository and file only, never the client).
-    fn fail(&self, wanted: &Wanted, why: &str) -> StatusCode {
-        eprintln!("plumed-models: {}/{}: {why}", wanted.repo, wanted.file);
+    /// Logs an upstream failure (what was asked only, never the client).
+    fn fail(&self, label: &str, why: &str) -> StatusCode {
+        eprintln!("plumed-models: {label}: {why}");
         StatusCode::BAD_GATEWAY
     }
 }
@@ -295,21 +359,21 @@ impl Inner {
 /// `HEAD` stops at the hub: its resolve answer already carries the real size
 /// and ETag of a large file (`X-Linked-Size`, `X-Linked-Etag`), so a
 /// presence probe never touches the CDN.
-async fn head(state: &Inner, wanted: &Wanted, url: &str) -> Response {
+async fn head(state: &Inner, label: &str, url: &str) -> Response {
     let Ok(url) = reqwest::Url::parse(url) else {
         return StatusCode::BAD_GATEWAY.into_response();
     };
     let sent = state.request(Method::HEAD, &url, &HeaderMap::new()).send();
     let resp = match tokio::time::timeout(HEADERS_TIMEOUT, sent).await {
         Ok(Ok(resp)) => resp,
-        Ok(Err(e)) => return state.fail(wanted, &e.to_string()).into_response(),
+        Ok(Err(e)) => return state.fail(label, &e.to_string()).into_response(),
         Err(_) => return StatusCode::GATEWAY_TIMEOUT.into_response(),
     };
     match resp.status().as_u16() {
         404 => return StatusCode::NOT_FOUND.into_response(),
         400.. => {
             return state
-                .fail(wanted, &format!("HEAD HTTP {}", resp.status()))
+                .fail(label, &format!("HEAD HTTP {}", resp.status()))
                 .into_response()
         }
         _ => {}
@@ -340,8 +404,9 @@ async fn stream(
     state: Arc<Inner>,
     ip: std::net::IpAddr,
     forwarded: HeaderMap,
-    wanted: &Wanted,
-    url: &str,
+    label: String,
+    url: String,
+    upstream: fn(&Inner) -> &Upstream,
 ) -> Response {
     let Some(slot) = state.per_client.enter(ip) else {
         return retry_after(StatusCode::SERVICE_UNAVAILABLE, RETRY_AFTER_SECS);
@@ -351,7 +416,7 @@ async fn stream(
     };
     let fetched = tokio::time::timeout(
         HEADERS_TIMEOUT,
-        state.fetch_following(wanted, url, &forwarded),
+        state.fetch_following(&label, &url, &forwarded, upstream(&state)),
     )
     .await;
     let upstream = match fetched {
@@ -366,7 +431,7 @@ async fn stream(
         304 | 416 => false,
         _ => {
             return state
-                .fail(wanted, &format!("upstream HTTP {status}"))
+                .fail(&label, &format!("upstream HTTP {status}"))
                 .into_response()
         }
     };

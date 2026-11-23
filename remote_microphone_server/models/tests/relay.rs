@@ -27,11 +27,15 @@ struct Seen {
     cdn: AtomicUsize,
     hub_auth: AtomicUsize,
     cdn_auth: AtomicUsize,
+    github: AtomicUsize,
+    api: AtomicUsize,
 }
 
 struct Fake {
     seen: Arc<Seen>,
     addr: SocketAddr,
+    /// A fake github.com and api.github.com, sharing the CDN.
+    github: SocketAddr,
 }
 
 async fn listen(router: Router) -> SocketAddr {
@@ -148,6 +152,33 @@ async fn cdn(
     }
 }
 
+const LISTING: &str = r#"[{"tag_name":"1.1.0-beta.1","prerelease":true}]"#;
+
+/// github.com: `latest` redirects to a tag, assets redirect to the CDN.
+async fn github(
+    State((seen, port)): State<(Arc<Seen>, u16)>,
+    Path((tag, asset)): Path<(String, String)>,
+) -> Response {
+    seen.github.fetch_add(1, Ordering::SeqCst);
+    let location = match (tag.as_str(), asset.as_str()) {
+        ("latest", "latest.json") => "/PlumedOrg/Plumed/releases/download/1.0.0/latest.json".into(),
+        (_, "evil.bin") => "https://evil.example/x".to_owned(),
+        (_, "missing.bin") => return StatusCode::NOT_FOUND.into_response(),
+        _ => format!("http://127.0.0.1:{port}/cdn/{asset}"),
+    };
+    (StatusCode::FOUND, [(header::LOCATION, location)]).into_response()
+}
+
+async fn api(State(seen): State<Arc<Seen>>, uri: axum::http::Uri) -> Response {
+    seen.api.fetch_add(1, Ordering::SeqCst);
+    match uri.query() {
+        Some("per_page=10") => {
+            ([(header::CONTENT_TYPE, "application/json")], LISTING).into_response()
+        }
+        _ => StatusCode::BAD_REQUEST.into_response(),
+    }
+}
+
 async fn fake_hub() -> Fake {
     let seen = Arc::new(Seen::default());
     // The CDN first, so the hub knows where to redirect
@@ -159,7 +190,21 @@ async fn fake_hub() -> Fake {
         .route("/{owner}/{name}/resolve/{rev}/{*file}", get(hub))
         .with_state((seen.clone(), cdn_addr.port()));
     let addr = listen(hub_router).await;
-    Fake { seen, addr }
+    let github_router = Router::new()
+        .route(
+            "/PlumedOrg/Plumed/releases/download/{tag}/{asset}",
+            get(github).with_state((seen.clone(), cdn_addr.port())),
+        )
+        .route(
+            "/PlumedOrg/Plumed/releases/{tag}/download/{asset}",
+            get(github).with_state((seen.clone(), cdn_addr.port())),
+        )
+        .route(
+            "/repos/PlumedOrg/Plumed/releases",
+            get(api).with_state(seen.clone()),
+        );
+    let github = listen(github_router).await;
+    Fake { seen, addr, github }
 }
 
 /// Test redirects stay on this machine (the real relay: hub hosts only).
@@ -173,6 +218,9 @@ async fn relay(fake: &Fake, token: Option<&str>, streams_per_ip: usize) -> Strin
         token: token.map(str::to_owned),
         upstream: format!("http://{}", fake.addr),
         redirect_allowed: local_only,
+        github: format!("http://{}", fake.github),
+        github_api: format!("http://{}", fake.github),
+        github_redirect: local_only,
         max_streams: 16,
         streams_per_ip,
         trust_proxy: false,
@@ -395,4 +443,100 @@ async fn healthz_answers_ok() {
         .await
         .expect("send");
     assert_eq!(resp.text().await.expect("body"), "ok");
+}
+
+#[tokio::test]
+async fn latest_json_follows_github_redirects_to_the_cdn() {
+    let fake = fake_hub().await;
+    let relay = relay(&fake, Some("hf-secret"), 8).await;
+    let resp = client()
+        .get(format!("{relay}/releases/latest/download/latest.json"))
+        .send()
+        .await
+        .expect("send");
+    assert_eq!(resp.status(), 200);
+    assert_eq!(resp.bytes().await.expect("body").to_vec(), data());
+    // latest -> tag -> CDN, and the Hugging Face token never reaches GitHub
+    assert_eq!(fake.seen.github.load(Ordering::SeqCst), 2);
+    assert_eq!(fake.seen.cdn_auth.load(Ordering::SeqCst), 0);
+}
+
+#[tokio::test]
+async fn a_release_asset_streams_with_range_passthrough() {
+    let fake = fake_hub().await;
+    let relay = relay(&fake, None, 8).await;
+    let resp = client()
+        .get(format!(
+            "{relay}/releases/download/1.0.0/Plumed_x64-setup.exe"
+        ))
+        .header(header::RANGE, "bytes=990-")
+        .send()
+        .await
+        .expect("send");
+    assert_eq!(resp.status(), 206);
+    assert_eq!(
+        header_of(&resp, header::CONTENT_RANGE),
+        Some("bytes 990-999/1000")
+    );
+    assert_eq!(
+        resp.bytes().await.expect("body").to_vec(),
+        data()[990..].to_vec()
+    );
+}
+
+#[tokio::test]
+async fn release_junk_is_a_404_without_contacting_github() {
+    let fake = fake_hub().await;
+    let relay = relay(&fake, None, 8).await;
+    for path in [
+        "/releases/latest/download/other.json",
+        "/releases/download/1.0.0/a/b",
+        "/releases/download/1.0.0/%2e%2e",
+        "/releases/download/1.0.0/x.exe?y=1",
+        "/releases/list?per_page=100",
+        "/releases/PlumedOrg/Plumed/x",
+    ] {
+        let resp = client()
+            .get(format!("{relay}{path}"))
+            .send()
+            .await
+            .expect("send");
+        assert_eq!(resp.status(), 404, "{path}");
+    }
+    assert_eq!(fake.seen.github.load(Ordering::SeqCst), 0);
+    assert_eq!(fake.seen.api.load(Ordering::SeqCst), 0);
+}
+
+#[tokio::test]
+async fn release_redirects_off_github_and_missing_assets_are_refused() {
+    let fake = fake_hub().await;
+    let relay = relay(&fake, None, 8).await;
+    for (asset, status) in [("evil.bin", 502), ("missing.bin", 404)] {
+        let resp = client()
+            .get(format!("{relay}/releases/download/1.0.0/{asset}"))
+            .send()
+            .await
+            .expect("send");
+        assert_eq!(resp.status(), status, "{asset}");
+    }
+}
+
+#[tokio::test]
+async fn the_release_listing_is_fetched_once_then_cached() {
+    let fake = fake_hub().await;
+    let relay = relay(&fake, None, 8).await;
+    for _ in 0..3 {
+        let resp = client()
+            .get(format!("{relay}/releases/list"))
+            .send()
+            .await
+            .expect("send");
+        assert_eq!(resp.status(), 200);
+        assert_eq!(
+            header_of(&resp, header::CONTENT_TYPE),
+            Some("application/json")
+        );
+        assert_eq!(resp.text().await.expect("body"), LISTING);
+    }
+    assert_eq!(fake.seen.api.load(Ordering::SeqCst), 1);
 }

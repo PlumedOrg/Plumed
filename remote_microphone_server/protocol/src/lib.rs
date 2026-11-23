@@ -28,6 +28,7 @@ use std::fmt;
 
 /// The speech model repositories and the model relay's URL scheme.
 pub mod models;
+pub mod releases;
 
 /// Header carrying the role's secret on every room request.
 pub const SECRET_HEADER: &str = "x-room-secret";
