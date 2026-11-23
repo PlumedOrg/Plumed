@@ -71,8 +71,8 @@ Plumed consists of two parts:
 
 - A desktop app in Rust (using [Tauri](https://tauri.app/)) responsible for
   displaying the frontend, using audio primitives, and instantiating the
-  Parakeet model — in the `src-tauri` directory
-- A frontend in React + TypeScript as per Tauri convention — in the `src/` directory
+  Parakeet model, in the `src-tauri` directory
+- A frontend in React + TypeScript as per Tauri convention, in the `src/` directory
 
 The main flow of Plumed is the following:
 
