@@ -1,5 +1,5 @@
 import clsx from 'clsx';
-import React, { useId, useRef } from 'react';
+import React, { useEffect, useId, useRef } from 'react';
 import { type LucideIcon } from 'lucide-react';
 import { TabPanel } from './tab-panel/tab-panel';
 import { TabTrigger } from './tab-trigger/tab-trigger';
@@ -36,6 +36,22 @@ export const Tabs = <T extends string>({
     const panelId = `${baseId}-panel`;
     const getTabId = (tabValue: T) => `${baseId}-tab-${tabValue}`;
     const isFirstTabActive = tabs.length > 0 && tabs[0].value === value;
+    const activeIndex = tabs.findIndex((tab) => tab.value === value);
+
+    // Plumed fork: the tab row scrolls sideways when it is wider than the
+    // page (Corrections has many tabs), so keep the active tab visible.
+    useEffect(() => {
+        tabRefs.current[activeIndex]?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }, [activeIndex]);
+
+    // A plain mouse wheel only scrolls vertically: turn it into a sideways
+    // scroll while the row overflows, so mouse users can reach every tab.
+    const handleWheel = (event: React.WheelEvent<HTMLDivElement>) => {
+        const row = event.currentTarget;
+        const overflows = row.scrollWidth > row.clientWidth;
+        if (!overflows || event.deltaY === 0 || Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
+        row.scrollLeft += event.deltaY;
+    };
 
     const handleKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
         const nextIndex = getAdjacentTabIndex(index, event.key, tabs.length);
@@ -47,7 +63,13 @@ export const Tabs = <T extends string>({
 
     return (
         <div className={className}>
-            <div role="tablist" className="flex">
+            {/* pb-px/-mb-px: the active tab overlaps the panel border by one
+                pixel, which the scroll container would otherwise clip. */}
+            <div
+                role="tablist"
+                onWheel={handleWheel}
+                className="relative z-10 -mb-px flex overflow-x-auto overflow-y-hidden pb-px [scrollbar-width:thin]"
+            >
                 {tabs.map((tab, index) => {
                     const isActive = tab.value === value;
                     return (
@@ -65,7 +87,7 @@ export const Tabs = <T extends string>({
                             onClick={() => onValueChange(tab.value)}
                             onKeyDown={(event) => handleKeyDown(event, index)}
                             isActive={isActive}
-                            className={clsx('cursor-pointer', isActive && activeColor == null && 'text-sky-400')}
+                            className={clsx('shrink-0 cursor-pointer whitespace-nowrap', isActive && activeColor == null && 'text-sky-400')}
                             style={isActive ? { color: activeColor } : undefined}
                         >
                             {tab.prefix}

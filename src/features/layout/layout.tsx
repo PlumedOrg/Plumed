@@ -33,7 +33,7 @@ export const Layout = () => {
                         )}
                     />
                 )}
-                <div className="relative max-w-[800px] w-full pb-12" data-testid="murmure-content">
+                <div className="relative max-w-[800px] w-full min-w-0 pb-12" data-testid="murmure-content">
                     <Outlet />
                 </div>
             </SidebarInset>
