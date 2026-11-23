@@ -24,9 +24,23 @@ Version bêta, actuellement `0.2.0-beta.3`. Des bugs sont possibles. Les version
 
 ## Installation
 
-- **Windows** : installateur `Plumed_*-setup.exe` (NSIS), qui s'installe sans droits d'administrateur. Les installateurs ne sont pas signés : Windows SmartScreen affiche un avertissement, il faut choisir « Informations complémentaires » puis « Exécuter quand même ».
-- **Linux** : paquets `.deb` et `.rpm`, ou `.AppImage` (x86_64). Sous Wayland, la saisie directe demande une règle udev que l'application propose d'installer.
-- **macOS** (13.4 ou plus récent) : l'application n'est ni signée ni notarisée (pas de compte développeur Apple). Autorisez-la dans Réglages Système > Confidentialité et sécurité, ou exécutez `xattr -dr com.apple.quarantine /Applications/Plumed.app`.
+Téléchargement direct de la dernière version stable :
+
+| Système                              | Fichier                                                                                                             |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| Windows (x64)                        | [Plumed_x64-setup.exe](https://github.com/PlumedOrg/Plumed/releases/latest/download/Plumed_x64-setup.exe)           |
+| Linux Debian, Ubuntu                 | [Plumed_amd64.deb](https://github.com/PlumedOrg/Plumed/releases/latest/download/Plumed_amd64.deb)                   |
+| Linux Fedora, openSUSE               | [Plumed_amd64.rpm](https://github.com/PlumedOrg/Plumed/releases/latest/download/Plumed_amd64.rpm)                   |
+| Linux Arch                           | [Plumed_amd64.pkg.tar.zst](https://github.com/PlumedOrg/Plumed/releases/latest/download/Plumed_amd64.pkg.tar.zst)   |
+| Linux (autres distributions)         | [Plumed_amd64.AppImage](https://github.com/PlumedOrg/Plumed/releases/latest/download/Plumed_amd64.AppImage)         |
+| macOS Apple Silicon (M1 et suivants) | [Plumed_aarch64_darwin.dmg](https://github.com/PlumedOrg/Plumed/releases/latest/download/Plumed_aarch64_darwin.dmg) |
+| macOS Intel                          | [Plumed_x86_64_darwin.dmg](https://github.com/PlumedOrg/Plumed/releases/latest/download/Plumed_x86_64_darwin.dmg)   |
+
+Les versions bêta sont sur la [page des releases](https://github.com/PlumedOrg/Plumed/releases).
+
+- **Windows** : l'installateur (NSIS) s'installe sans droits d'administrateur. Il n'est pas signé : Windows SmartScreen affiche un avertissement, il faut choisir « Informations complémentaires » puis « Exécuter quand même ».
+- **Linux** : sous Wayland, la saisie directe demande une règle udev que l'application propose d'installer.
+- **macOS** (13.4 ou plus récent) : l'application est signée ad hoc mais pas notarisée (pas de compte développeur Apple), macOS la bloque donc au premier lancement. Autorisez-la dans Réglages Système > Confidentialité et sécurité (« Ouvrir quand même »), ou exécutez `xattr -dr com.apple.quarantine /Applications/Plumed.app`.
 
 ## Fonctionnalités
 
