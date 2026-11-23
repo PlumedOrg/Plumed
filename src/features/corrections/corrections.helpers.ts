@@ -135,7 +135,16 @@ export const pipelineStepTitle = (id: TextStepId, t: Translate): string => {
     }
 };
 
-/** "applied after step 5": when a Clean-up option runs, `null` for a real step. */
+/**
+ * Name of a step as its Corrections tab shows it ("Residual errors"), the
+ * history uses it. A Clean-up option has no tab of its own, so it keeps its title.
+ */
+export const stepName = (id: TextStepId, t: Translate): string => {
+    const tab = PIPELINE_STEPS.find((step) => step.id === id)?.tab;
+    return tab === undefined ? pipelineStepTitle(id, t) : t(CORRECTIONS_TAB_LABELS[tab]);
+};
+
+/** "applied after step 5":when a Clean-up option runs, `null` for a real step. */
 export const cleanUpOptionTiming = (id: TextStepId, t: Translate): string | null => {
     const after = runsAfterStep(id);
     return after === null ? null : t('applied after step {{step}}', { step: after });

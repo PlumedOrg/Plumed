@@ -19,26 +19,28 @@ export interface DiffPart {
 /** Above this many word pairs, the diff shows the whole texts as removed and added. */
 const MAX_DIFF_CELLS = 4_000_000;
 
-const words = (text: string): string[] => text.split(/\s+/).filter((word) => word.length > 0);
+/** Words and runs of whitespace, so a change of spacing is a visible change: "a  b" gives ["a", "  ", "b"]. */
+const tokens = (text: string): string[] => text.match(/\s+|\S+/g) ?? [];
 
-/** Merges consecutive words of the same kind: [same "le", same "patient"] becomes [same "le patient"]. */
-const pushPart = (parts: DiffPart[], kind: DiffKind, word: string) => {
+/** Merges consecutive tokens of the same kind: [same "le", same " ", same "patient"] becomes [same "le patient"]. */
+const pushPart = (parts: DiffPart[], kind: DiffKind, token: string) => {
     const last: DiffPart | undefined = parts[parts.length - 1];
     if (last !== undefined && last.kind === kind) {
-        last.text = `${last.text} ${word}`;
+        last.text += token;
     } else {
-        parts.push({ kind, text: word });
+        parts.push({ kind, text: token });
     }
 };
 
 /**
- * Word level diff (longest common subsequence). Example:
+ * Word level diff (longest common subsequence) that also tracks whitespace,
+ * the parts joined back give the texts. Example:
  * wordDiff("le le patient", "le patient") gives
- * [{ kind: 'same', text: 'le' }, { kind: 'removed', text: 'le' }, { kind: 'same', text: 'patient' }].
+ * [{ kind: 'same', text: 'le ' }, { kind: 'removed', text: 'le ' }, { kind: 'same', text: 'patient' }].
  */
 export const wordDiff = (before: string, after: string): DiffPart[] => {
-    const a = words(before);
-    const b = words(after);
+    const a = tokens(before);
+    const b = tokens(after);
     const parts: DiffPart[] = [];
     if (a.length * b.length > MAX_DIFF_CELLS) {
         a.forEach((word) => pushPart(parts, 'removed', word));
@@ -71,6 +73,17 @@ export const wordDiff = (before: string, after: string): DiffPart[] => {
     b.slice(j).forEach((word) => pushPart(parts, 'added', word));
     return parts;
 };
+
+const VISIBLE_WHITESPACE: Record<string, string> = { ' ': '·', '\n': '↵', '\t': '→' };
+
+/**
+ * Text to show for a part. A removed or added part made only of whitespace
+ * would be invisible, so its characters are drawn: "  " becomes "··".
+ */
+export const partDisplayText = (part: DiffPart): string =>
+    part.kind !== 'same' && part.text.trim().length === 0
+        ? Array.from(part.text, (char) => VISIBLE_WHITESPACE[char] ?? '·').join('')
+        : part.text;
 
 export interface StepChange {
     step: HistoryStep;
