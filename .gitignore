@@ -63,3 +63,6 @@ AGENTS.local.md
 /remote_microphone_server/.env
 
 PlumedOrg-repo
+
+# Local medical data publish helper (sets the args, asks for the minisign password)
+/publish_medical_data.sh
