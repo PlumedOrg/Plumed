@@ -9,7 +9,6 @@ import { useTranslation } from '@/i18n';
 const PARAKEET_WEB = 'https://github.com/thiswillbeyourgithub/parakeet_web';
 // The fix rules credited below come from the rules repo, not the model repo.
 const ULTIMED_RULES = 'https://github.com/UltiMed-Org/UltiMed-ASR-FR-v2-regex-fixes';
-const INTERHOP = 'https://framagit.org/interhop/murmure-regex';
 const LPSN = 'https://lpsn.dsmz.de/';
 const GRAMMALECTE = 'https://grammalecte.net';
 // Source offer for the bundled Grammalecte build (GPL v3): the pinned extension package
@@ -103,10 +102,10 @@ export const ForkCredits = () => {
                     </li>
                     <li>
                         {text.dictationRules}
-                        <ExternalLink href={INTERHOP} withIcon={false}>
-                            InterHop murmure-regex
+                        <ExternalLink href={ULTIMED_RULES} withIcon={false}>
+                            UltiMed
                         </ExternalLink>{' '}
-                        (AGPL v3)
+                        (AGPL-3.0-or-later)
                     </li>
                     <li>
                         {text.phraseList[0]}
