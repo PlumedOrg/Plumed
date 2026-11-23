@@ -120,11 +120,16 @@ windows-sys = { version = "0.61", features = [
     "Win32_UI_WindowsAndMessaging",
     "Win32_Graphics_Gdi",
     "Win32_System_Console",
+    "Win32_Storage_FileSystem",
 ] }
 
 # Plumed fork: `geteuid`, to check that the temp recordings folder is ours.
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
+
+# Plumed fork: the model download tests run a local HTTP server.
+[dev-dependencies]
+tokio = { version = "1", features = ["net", "io-util"] }
 
 # panic = "abort" deliberately omitted, changes thread-panic behaviour.
 [profile.release]
