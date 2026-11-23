@@ -167,6 +167,4 @@ pub fn sha256_hex(bytes: &[u8]) -> String {
     hex_of(ring::digest::digest(&ring::digest::SHA256, bytes).as_ref())
 }
 
-pub fn hex_of(bytes: &[u8]) -> String {
-    bytes.iter().map(|b| format!("{b:02x}")).collect()
-}
+pub use crate::utils::verified_file::hex_of;

@@ -4,11 +4,11 @@
 
 use super::manifest::{self, parse_signed, Manifest, ManifestFile};
 use super::SetError;
+use crate::utils::verified_file::{VerifiedFile, VerifyError};
 use log::warn;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
-use std::io::Write;
 use std::path::{Path, PathBuf};
 
 const ACTIVE_FILE: &str = "active.json";
@@ -85,9 +85,7 @@ pub fn write_manifest(set_dir: &Path, manifest: &[u8], signature: &str) -> Resul
 /// are those of its manifest entry.
 pub struct StagedFile<'a> {
     entry: &'a ManifestFile,
-    out: fs::File,
-    hash: ring::digest::Context,
-    written: u64,
+    out: VerifiedFile,
 }
 
 impl<'a> StagedFile<'a> {
@@ -95,40 +93,28 @@ impl<'a> StagedFile<'a> {
     pub fn create(staging: &Path, entry: &'a ManifestFile) -> Result<Self, SetError> {
         Ok(Self {
             entry,
-            out: fs::File::create(staging.join(&entry.name)).map_err(SetError::other)?,
-            hash: ring::digest::Context::new(&ring::digest::SHA256),
-            written: 0,
+            out: VerifiedFile::create(&staging.join(&entry.name), entry.size, &entry.sha256)
+                .map_err(SetError::other)?,
         })
     }
 
     pub fn write(&mut self, chunk: &[u8]) -> Result<(), SetError> {
-        self.written += chunk.len() as u64;
-        if self.written > self.entry.size {
-            return Err(self.mismatch());
-        }
-        self.out.write_all(chunk).map_err(SetError::other)?;
-        self.hash.update(chunk);
-        Ok(())
+        let name = &self.entry.name;
+        self.out.write(chunk).map_err(|e| staged_error(name, e))
     }
 
     pub fn finish(self) -> Result<(), SetError> {
-        let mismatch = self.mismatch();
-        let Self {
-            entry,
-            out,
-            hash,
-            written,
-        } = self;
-        if written != entry.size || manifest::hex_of(hash.finish().as_ref()) != entry.sha256 {
-            return Err(mismatch);
-        }
-        out.sync_all().map_err(SetError::other)
+        let name = &self.entry.name;
+        self.out.finish().map_err(|e| staged_error(name, e))
     }
+}
 
-    fn mismatch(&self) -> SetError {
-        SetError::FileMismatch {
-            name: self.entry.name.clone(),
-        }
+fn staged_error(name: &str, e: VerifyError) -> SetError {
+    match e {
+        VerifyError::Mismatch => SetError::FileMismatch {
+            name: name.to_owned(),
+        },
+        VerifyError::Io(e) => SetError::other(e),
     }
 }
 
@@ -146,7 +132,7 @@ pub fn stage_picked(
         let mut staged = StagedFile::create(staging, entry)?;
         // Size first, so a wrong file is never read whole.
         if fs::metadata(path).map_err(SetError::other)?.len() != entry.size {
-            return Err(staged.mismatch());
+            return Err(staged_error(&entry.name, VerifyError::Mismatch));
         }
         staged.write(&fs::read(path).map_err(SetError::other)?)?;
         staged.finish()?;

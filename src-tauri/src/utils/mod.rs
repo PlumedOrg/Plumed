@@ -5,6 +5,7 @@ pub mod platform;
 pub mod private_dir;
 pub mod resources;
 pub mod user_text;
+pub mod verified_file;
 #[cfg(target_os = "linux")]
 pub mod wayland_inject;
 #[cfg(target_os = "linux")]
