@@ -9,6 +9,7 @@ import {
     ArrowDownUp,
     RadioTower,
     SpellCheck,
+    GraduationCap,
 } from 'lucide-react';
 import { Link, useLocation } from '@tanstack/react-router';
 import { useState } from 'react';
@@ -40,6 +41,12 @@ const getTopLevelItems = (t: (key: string) => string) => [
         url: '/extensions/remote-mic',
         icon: RadioTower,
         dataTestId: 'remote-mic-tab',
+    },
+    {
+        name: t('Tutorial'),
+        url: '/tutorial',
+        icon: GraduationCap,
+        dataTestId: 'tutorial-tab',
     },
 ];
 

@@ -6,6 +6,7 @@ import { Corrections } from './features/corrections/corrections';
 import { System } from './features/settings/system/system';
 import { ImportExport } from './features/settings/import-export/import-export';
 import { RemoteMic } from './features/extensions/remote-mic/remote-mic';
+import { Tutorial } from './features/tutorial/tutorial';
 
 const rootRoute = createRootRoute({
     component: () => <Layout />,
@@ -85,8 +86,15 @@ const aboutRoute = createRoute({
     component: About,
 });
 
+const tutorialRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/tutorial',
+    component: Tutorial,
+});
+
 const routeTree = rootRoute.addChildren([
     indexRoute,
+    tutorialRoute,
     settingsIndexRoute,
     settingsShortcutsRoute,
     settingsSystemRoute,
