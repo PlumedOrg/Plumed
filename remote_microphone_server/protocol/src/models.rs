@@ -13,6 +13,13 @@ pub struct ModelRepo {
     pub revision: &'static str,
 }
 
+/// UltiMed v1, "ultra" family (int8 and w4a8 encoders): the default while v2
+/// is still being evaluated.
+pub const ULTIMED_V1_ULTRA: ModelRepo = ModelRepo {
+    repo: "Olicorne/parakeet-tdt-0.6b-v3-ultra-UltiMed-v1-onnx",
+    revision: "ce5160b5dcc9481fae31a98c3ae0e94c6f12326d",
+};
+
 /// UltiMed v2, "ultra" family (int8 and w4a8 encoders).
 pub const ULTIMED_V2_ULTRA: ModelRepo = ModelRepo {
     repo: "Olicorne/parakeet-tdt-0.6b-v3-ultra-UltiMed-v2-onnx",
@@ -28,7 +35,7 @@ pub const ULTIMED_V2_REDUX: ModelRepo = ModelRepo {
 /// Every repository the app may download from, so every one the relay serves
 /// by default. A new pinned revision goes here (and in the relay's
 /// `PLUMED_MODELS_REPOS` if the deployment overrides it).
-pub const MODEL_REPOS: &[ModelRepo] = &[ULTIMED_V2_ULTRA, ULTIMED_V2_REDUX];
+pub const MODEL_REPOS: &[ModelRepo] = &[ULTIMED_V1_ULTRA, ULTIMED_V2_ULTRA, ULTIMED_V2_REDUX];
 
 /// Path prefix of the relay's files.
 pub const MODELS_PATH: &str = "/models";

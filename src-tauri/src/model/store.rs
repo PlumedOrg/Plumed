@@ -237,6 +237,11 @@ pub(crate) mod tests {
     fn folder_names_carry_the_variant_and_the_revision() {
         assert_eq!(
             folder_name(&catalog::VARIANTS[0]),
+            "ultra-v1-int8-ce5160b5dcc9"
+        );
+        // Unchanged since v2 was the only model, so existing installs keep it.
+        assert_eq!(
+            folder_name(catalog::find("ultra-int8").unwrap()),
             "ultra-int8-675b4b8d7ee9"
         );
     }

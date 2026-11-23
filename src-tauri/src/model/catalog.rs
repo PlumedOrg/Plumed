@@ -9,7 +9,9 @@
 //! `nemo128.onnx`, `vocab.txt` and `config.json` from one folder, so every
 //! variant is installed under those local names whatever its quantization.
 
-use plumed_relay_protocol::models::{ModelRepo, ULTIMED_V2_REDUX, ULTIMED_V2_ULTRA};
+use plumed_relay_protocol::models::{
+    ModelRepo, ULTIMED_V1_ULTRA, ULTIMED_V2_REDUX, ULTIMED_V2_ULTRA,
+};
 use serde::Serialize;
 
 /// One file of a variant.
@@ -52,6 +54,12 @@ impl Variant {
     }
 }
 
+pub const ULTRA_V1: Family = Family {
+    id: "ultra-v1",
+    name: "UltiMed v1 Ultra",
+    repo: ULTIMED_V1_ULTRA,
+};
+
 pub const ULTRA: Family = Family {
     id: "ultra",
     name: "UltiMed v2 Ultra",
@@ -88,6 +96,13 @@ const CONFIG: ModelFile = ModelFile {
 const ENCODER: &str = "encoder-model.int8.onnx";
 const DECODER: &str = "decoder_joint-model.int8.onnx";
 
+const V1_DECODER_INT8: ModelFile = ModelFile {
+    path: "int8/decoder_joint-model.int8.onnx",
+    size: 18_203_490,
+    sha256: "5c621d9d3769505c764e7c2de0c7508427cc1afdba73e1174003d52d4b784468",
+    local_name: DECODER,
+};
+
 const ULTRA_DECODER_INT8: ModelFile = ModelFile {
     path: "int8/decoder_joint-model.int8.onnx",
     size: 18_203_490,
@@ -96,13 +111,54 @@ const ULTRA_DECODER_INT8: ModelFile = ModelFile {
 };
 
 /// Every variant, in the order the UI lists them (the first available one
-/// is the default, see `recommended`).
+/// is the default, see `recommended`). v1 comes first: v2 stays selectable but
+/// is still being evaluated against it. The v2 ids keep their original names
+/// ("ultra-int8", "ultra-w4a8") so existing installs keep their model. Every
+/// model uses the same medical data (rules mined from v2, see `MODEL_ID`).
 pub const VARIANTS: &[Variant] = &[
+    Variant {
+        id: "ultra-v1-int8",
+        family: &ULTRA_V1,
+        name: "UltiMed v1 int8",
+        summary: "the proven model, needs about 2 GB of memory",
+        files: &[
+            ModelFile {
+                path: "int8/encoder-model.int8.onnx",
+                size: 649_431_593,
+                sha256: "f524b0d415dd142502fd504fb7dfe722f455edbe280131ac8fadf9eab3af23a3",
+                local_name: ENCODER,
+            },
+            V1_DECODER_INT8,
+            NEMO128,
+            VOCAB,
+            CONFIG,
+        ],
+        available: true,
+    },
+    Variant {
+        id: "ultra-v1-w4a8",
+        family: &ULTRA_V1,
+        name: "UltiMed v1 w4a8",
+        summary: "1.7x smaller download, 20% less memory, barely less accurate",
+        files: &[
+            ModelFile {
+                path: "w4a8/encoder-model.w4a8.onnx",
+                size: 383_355_483,
+                sha256: "cd8fc9c08d2d0623f9891f6deb88e6753139fba2a435c7fb4dae4d9e0ff95154",
+                local_name: ENCODER,
+            },
+            V1_DECODER_INT8,
+            NEMO128,
+            VOCAB,
+            CONFIG,
+        ],
+        available: true,
+    },
     Variant {
         id: "ultra-int8",
         family: &ULTRA,
-        name: "Ultra int8",
-        summary: "the most accurate, needs about 2 GB of memory",
+        name: "UltiMed v2 int8",
+        summary: "still experimental, needs about 2 GB of memory",
         files: &[
             ModelFile {
                 path: "int8/encoder-model.int8.onnx",
@@ -120,8 +176,8 @@ pub const VARIANTS: &[Variant] = &[
     Variant {
         id: "ultra-w4a8",
         family: &ULTRA,
-        name: "Ultra w4a8",
-        summary: "1.7x smaller download, 20% less memory, barely less accurate",
+        name: "UltiMed v2 w4a8",
+        summary: "still experimental, 1.7x smaller download, 20% less memory",
         files: &[
             ModelFile {
                 path: "w4a8/encoder-model.w4a8.onnx",
@@ -146,7 +202,7 @@ pub const VARIANTS: &[Variant] = &[
     Variant {
         id: "redux-w2a8",
         family: &REDUX,
-        name: "Redux w2a8",
+        name: "UltiMed v2 Redux w2a8",
         summary: "2.3x smaller download, but nearly twice as many errors",
         files: &[
             ModelFile {
@@ -241,9 +297,12 @@ mod tests {
     #[test]
     fn the_first_variant_is_available_and_sizes_add_up() {
         assert!(VARIANTS[0].available);
-        // Ultra int8: 668 MB, w4a8: 402 MB
+        assert_eq!(VARIANTS[0].id, "ultra-v1-int8");
+        // int8: 668 MB, w4a8: 402 MB, for v1 and v2 alike
         assert_eq!(VARIANTS[0].total_size(), 667_868_883);
         assert_eq!(VARIANTS[1].total_size(), 401_792_773);
+        assert_eq!(find("ultra-int8").unwrap().total_size(), 667_868_883);
+        assert_eq!(find("ultra-w4a8").unwrap().total_size(), 401_792_773);
     }
 
     #[test]
@@ -257,9 +316,9 @@ mod tests {
 
     #[test]
     fn the_lightest_available_variant_is_recommended_with_little_memory() {
-        assert_eq!(recommended(Some(LOW_MEMORY - 1)).id, "ultra-w4a8");
-        assert_eq!(recommended(Some(4 << 30)).id, "ultra-w4a8");
+        assert_eq!(recommended(Some(LOW_MEMORY - 1)).id, "ultra-v1-w4a8");
+        assert_eq!(recommended(Some(4 << 30)).id, "ultra-v1-w4a8");
         // What an 8 GB laptop reports.
-        assert_eq!(recommended(Some(7_700 << 20)).id, "ultra-w4a8");
+        assert_eq!(recommended(Some(7_700 << 20)).id, "ultra-v1-w4a8");
     }
 }
