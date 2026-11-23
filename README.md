@@ -1,29 +1,41 @@
-> [!CAUTION]
-> # ⚠️ Plumed : PAS ENCORE UTILISABLE ⚠️
->
-> **Ce projet n'est pas encore prêt et ne doit pas être utilisé.**
->
-> Plumed vise la **dictée d'audio médical en français** (comptes rendus, observations, courriers médicaux), et non la transcription de n'importe quel type d'audio. Tant que ce bandeau est présent, considérez ce dépôt comme un travail en cours, instable et non fonctionnel.
-
 # Plumed
 
-Plumed est un fork de [Murmure](https://www.murmure.app/) (code source sur [GitHub](https://github.com/Kieirra/murmure)), une application de reconnaissance vocale 100 % locale.
+Plumed est une application de dictée vocale respectueuse de la vie privée : elle fonctionne localement sur votre ordinateur et permet de dicter dans **n'importe quelle application** (logiciel métier, traitement de texte, messagerie, etc.), avec une reconnaissance adaptée au **vocabulaire médical français** (médicaments, termes médicaux, comptes rendus, courriers). C'est un fork de [Murmure](https://github.com/Kieirra/murmure) qui reprend le modèle UltiMed et les fonctionnalités du mode médical de [ParakeetWeb](http://parakeetweb.olicorne.org/?mode=med), la version navigateur.
 
-Son but est de porter dans une application facile à installer les fonctionnalités du **mode médical de ParakeetWeb**, déjà utilisable aujourd'hui : [http://parakeetweb.olicorne.org/?mode=med](http://parakeetweb.olicorne.org/?mode=med)
-
-ParakeetWeb fonctionne dès maintenant, et plutôt bien, dans n'importe quel navigateur. Mais il reste limité au navigateur. Plumed doit en faire une application installable en quelques clics, pour pouvoir dicter directement dans **n'importe quelle application de l'ordinateur** (logiciel métier, traitement de texte, messagerie, etc.).
-
-En attendant que Plumed soit prêt, utilisez ParakeetWeb.
+Plumed n'est pas un dispositif médical certifié : l'application est fournie telle quelle, sans garantie.
 
 Plumed est réalisé par [Olivier Cornelis](https://olicorne.org/fr), psychiatre et développeur.
 
+## Statut
+
+Version bêta, actuellement `0.2.0-beta.1`. Des bugs sont possibles. Les versions sont sur la [page des releases](https://github.com/PlumedOrg/Plumed/releases) ; la mise à jour automatique propose un canal stable et un canal bêta (**Paramètres > En ligne**).
+
 ## Installation
 
-Le modèle de reconnaissance vocale n'est pas inclus dans l'installateur : au premier lancement, Plumed propose de choisir un modèle (UltiMed v2 Ultra int8, 668 Mo, ou sa version w4a8 plus légère, 402 Mo et 20 % de mémoire en moins, proposée d'office sur les ordinateurs de moins de 8 Go de RAM) et le télécharge une seule fois, depuis Hugging Face ou, si Hugging Face est bloqué, depuis le relais Plumed (`models.plumed.fr`). Le modèle est vérifié puis conservé lors des mises à jour ; il se change dans **Paramètres > Modèle**.
+- **Windows** : installateur `Plumed_*-setup.exe` (NSIS), qui s'installe sans droits d'administrateur. Les installateurs ne sont pas signés : Windows SmartScreen affiche un avertissement, il faut choisir « Informations complémentaires » puis « Exécuter quand même ».
+- **Linux** : paquets `.deb` et `.rpm`, ou `.AppImage` (x86_64). Sous Wayland, la saisie directe demande une règle udev que l'application propose d'installer.
+- **macOS** : l'application n'est ni signée ni notarisée (pas de compte développeur Apple). Autorisez-la dans Réglages Système > Confidentialité et sécurité, ou exécutez `xattr -dr com.apple.quarantine /Applications/Plumed.app`.
+
+### Premier lancement
+
+Le modèle de reconnaissance vocale n'est pas inclus dans l'installateur : au premier lancement, un assistant propose de choisir un modèle (UltiMed v2 Ultra int8, 668 Mo, ou sa version w4a8 plus légère, 402 Mo, proposée d'office sur les ordinateurs de moins de 8 Go de RAM) et le télécharge une seule fois, depuis Hugging Face ou, si Hugging Face est bloqué, depuis le relais Plumed (`models.plumed.fr`). Le modèle est vérifié puis conservé lors des mises à jour ; il se change dans **Paramètres > Modèle**. L'assistant pose aussi quelques questions facultatives (statistiques anonymes, mises à jour des données médicales, canal de mise à jour).
+
+## Fonctionnalités
+
+- **Dictée par raccourci clavier** dans n'importe quelle application, avec aperçu en cours de dictée.
+- **Pipeline de correction en 7 étapes**, détaillé dans l'onglet Explication de **Paramètres > Corrections** : vocabulaire médical (amplification d'environ 77 000 expressions pendant la reconnaissance), mots qui se ressemblent (départage par réécoute du passage), dictionnaire personnel, nettoyage et uniformisation, erreurs résiduelles du modèle (règles pour les médicaments et termes médicaux), règles de mise en forme (dont les règles de dictée d'InterHop) et grammaire (Grammalecte). Voir [MEDICAL.fr.md](MEDICAL.fr.md).
+- **Textes types** : une phrase dite est remplacée par un texte plus long (désactivés par défaut).
+- **Contexte pour les dictées courtes** : une dictée très brève est mieux reconnue grâce à la fin de la précédente.
+- **PhoneMic** (alpha, désactivé par défaut) : utiliser le téléphone comme micro, via un relais HTTPS chiffré de bout en bout.
+- **Tutoriel** intégré dans la barre latérale.
+
+## Captures d'écran
+
+TODO : ajouter des captures d'écran.
 
 ## Confidentialité
 
-Tout fonctionne sur votre ordinateur : l'audio et les transcriptions ne sont jamais envoyés sur internet. Rien n'est envoyé, sauf si vous acceptez de partager des statistiques d'utilisation anonymes (des totaux agrégés, jamais de texte ni d'audio, désactivables à tout moment dans les réglages) : voir la [politique de confidentialité](PRIVACY_POLICY.md).
+La reconnaissance se fait sur votre ordinateur : l'audio et les transcriptions ne sont jamais envoyés sur internet. Les seules connexions réseau possibles sont listées dans **Paramètres > En ligne** : la vérification des mises à jour de l'application, le téléchargement du modèle, les mises à jour des données médicales (sur demande), les statistiques d'utilisation anonymes (facultatives, des totaux agrégés, jamais de texte ni d'audio) et le relais de PhoneMic. Voir la [politique de confidentialité](PRIVACY_POLICY.md).
 
 ## Remerciements et licences
 
@@ -39,4 +51,4 @@ Le détail des règles médicales incluses (provenance, mise à jour) est dans [
 
 ---
 
-Développé avec l'aide de Claude Code.
+Ce fork a été développé avec l'aide de Claude Code.
