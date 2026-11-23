@@ -608,6 +608,8 @@
     "The Grammalecte grammar checker then reads the corrected text. Plumed applies a fix only when the rule is on and there is a single possible fix; ages, doses, acronyms and names are hidden from the checker so it does not take them for errors.": "Le correcteur grammatical Grammalecte lit ensuite le texte corrigé. Plumed n'applique une correction que si la règle est activée et qu'il n'y a qu'une seule correction possible ; les âges, doses, sigles et noms sont cachés au correcteur pour qu'il ne les prenne pas pour des erreurs.",
     "Without the hiding, \"ans\" would be taken as the subject and \"fatigué\" left as it is.": "Sans ce masquage, « ans » serait pris pour le sujet et « fatigué » resterait tel quel.",
     "Open the grammar rules": "Ouvrir les règles de grammaire",
+    "Show the previous tabs": "Voir les onglets précédents",
+    "Show the next tabs": "Voir les onglets suivants",
     "Insert your text templates": "Insérer vos textes types",
     "Last, a spoken phrase is replaced by a longer text written in advance. It comes after the grammar, so the text is inserted exactly as you wrote it.": "Enfin, une phrase dite est remplacée par un texte plus long écrit à l'avance. Cette étape vient après la grammaire : le texte est inséré exactement comme vous l'avez écrit.",
     "A complete normal clinical exam": "Un examen clinique normal complet",
