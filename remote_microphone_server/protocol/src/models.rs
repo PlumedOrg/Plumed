@@ -58,12 +58,14 @@ pub fn relay_path(repo: &ModelRepo, path: &str) -> String {
     )
 }
 
-/// The Hugging Face download URL of `path` in `repo` at `revision`.
-pub fn hub_url(repo: &ModelRepo, path: &str) -> String {
-    format!(
-        "https://huggingface.co/{}/resolve/{}/{path}",
-        repo.repo, repo.revision
-    )
+/// The Hugging Face hub, where downloads start.
+pub const HUB_URL: &str = "https://huggingface.co";
+
+/// The hub URL path of `path` in `repo` at `revision`
+/// (`/<owner>/<name>/resolve/<commit>/<path>`), appended to [`HUB_URL`] or
+/// to a test upstream.
+pub fn hub_path(repo: &str, revision: &str, path: &str) -> String {
+    format!("/{repo}/resolve/{revision}/{path}")
 }
 
 /// Hosts a Hugging Face download may be redirected to (its CDN), https only.
@@ -108,8 +110,12 @@ mod tests {
              ?revision=675b4b8d7ee9f3ee15a273e3037f76ddc3e730bb"
         );
         assert_eq!(
-            hub_url(&ULTIMED_V2_ULTRA, "vocab.txt"),
-            "https://huggingface.co/Olicorne/parakeet-tdt-0.6b-v3-ultra-UltiMed-v2-onnx\
+            hub_path(
+                ULTIMED_V2_ULTRA.repo,
+                ULTIMED_V2_ULTRA.revision,
+                "vocab.txt"
+            ),
+            "/Olicorne/parakeet-tdt-0.6b-v3-ultra-UltiMed-v2-onnx\
              /resolve/675b4b8d7ee9f3ee15a273e3037f76ddc3e730bb/vocab.txt"
         );
     }

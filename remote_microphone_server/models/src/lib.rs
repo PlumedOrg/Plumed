@@ -29,13 +29,15 @@ use axum::Router;
 use futures_util::StreamExt;
 use plumed_relay::limiter::InFlight;
 use plumed_relay::serve::{client_key, retry_after};
-use plumed_relay_protocol::models::{allowed_hub_host, safe_path, safe_segment, MODELS_PATH};
+use plumed_relay_protocol::models::{
+    allowed_hub_host, hub_path, safe_path, safe_segment, HUB_URL, MODELS_PATH,
+};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::Semaphore;
 
-pub const DEFAULT_UPSTREAM: &str = "https://huggingface.co";
+pub const DEFAULT_UPSTREAM: &str = HUB_URL;
 const MAX_REDIRECTS: usize = 5;
 /// Connection plus response headers, per upstream request chain.
 const HEADERS_TIMEOUT: Duration = Duration::from_secs(30);
@@ -208,11 +210,9 @@ async fn serve(State(state): State<Arc<Inner>>, req: Request) -> Response {
         _ => return StatusCode::NOT_FOUND.into_response(),
     };
     let url = format!(
-        "{}/{}/resolve/{}/{}",
+        "{}{}",
         state.upstream.as_str().trim_end_matches('/'),
-        wanted.repo,
-        wanted.revision,
-        wanted.file
+        hub_path(&wanted.repo, &wanted.revision, &wanted.file)
     );
     if req.method() == Method::HEAD {
         return head(&state, &wanted, &url).await;
