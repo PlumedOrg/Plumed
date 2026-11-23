@@ -54,7 +54,10 @@ export const HistorySteps = ({ steps }: HistoryStepsProps) => {
     };
 
     return (
-        <ul className="space-y-1 border-t border-surface-border pt-2 text-xs" data-testid="history-steps">
+        <ul
+            className="space-y-3 border-t border-surface-border pt-3 text-xs leading-relaxed"
+            data-testid="history-steps"
+        >
             {changesInStepOrder(steps).map((change) => (
                 <li key={change.step.step_id} className="grid grid-cols-[14rem_1fr] gap-2">
                     <span
