@@ -5,6 +5,7 @@
 //! fallback whenever a downloaded one is missing, corrupt, for another model
 //! or does not parse. Written with Claude Code.
 
+pub mod diff;
 mod disk;
 mod error;
 pub mod manifest;
@@ -317,6 +318,42 @@ pub fn checked_manifest(
     let (parsed, version) = manifest::parse_signed(key, manifest, signature, app_version)?;
     let newer = DataVersion::parse(active).is_none_or(|active| version > active);
     Ok((parsed, newer))
+}
+
+/// What installing the downloaded files in `staging` would change, file by
+/// file, compared with the data in use. Verifies them first, against the
+/// signed manifest saved into `staging` (so [`install`] still works on it).
+pub fn preview(
+    staging: &Path,
+    version: &str,
+    manifest: &[u8],
+    signature: &str,
+) -> Result<Vec<diff::FileDiff>, String> {
+    let (context, key) = context()?;
+    disk::write_manifest(staging, manifest, signature)?;
+    let new = disk::read_verified(staging, version, key, &context.app_version)?;
+    let old = match &current().downloaded {
+        Some(active) => {
+            disk::read_verified(&context.dir.join(active), active, key, &context.app_version)?
+        }
+        None => bundled_files(),
+    };
+    let mut names = RULE_FILES.to_vec();
+    names.extend([PHRASE_FILE, CONFUSION_FILE]);
+    Ok(diff::diff_files(&names, &old, &new))
+}
+
+/// The bundled data under its file names, as a downloaded set has it.
+fn bundled_files() -> HashMap<String, String> {
+    RULE_FILES
+        .iter()
+        .zip(BUNDLED_RULES)
+        .chain([
+            (&PHRASE_FILE, BUNDLED_PHRASE_LIST),
+            (&CONFUSION_FILE, BUNDLED_CONFUSION_GROUPS),
+        ])
+        .map(|(name, text)| (name.to_string(), text.to_string()))
+        .collect()
 }
 
 /// Installs the verified files in `staging`, with the signed manifest they

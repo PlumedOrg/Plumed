@@ -136,7 +136,9 @@ export const MedicalDataSettings = () => {
                 {t(
                     'If Plumed cannot reach GitHub, download every file of the release page with your browser, then pick them all with "Install a downloaded update". They are checked exactly like an online update.'
                 )}{' '}
-                <ExternalLink href={PLUMED_MEDICAL_DATA_RELEASE_URL}>{t('Open the medical rules release page')}</ExternalLink>
+                <ExternalLink href={PLUMED_MEDICAL_DATA_RELEASE_URL}>
+                    {t('Open the medical rules release page')}
+                </ExternalLink>
             </Typography.Paragraph>
             <MedicalDataUpdateDialog offer={offer} onClose={() => setOffer(null)} onInstalled={refresh} />
         </SettingsUI.Container>

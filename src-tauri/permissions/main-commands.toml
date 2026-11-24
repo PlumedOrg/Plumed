@@ -91,6 +91,7 @@ permissions = [
     "allow-skip-medical-data-version",
     "allow-check-medical-data-update",
     "allow-download-medical-data-update",
+    "allow-preview-medical-data-update",
     "allow-reset-medical-data",
     "allow-set-medical-data-update-check",
     "allow-medical-data-question-due",

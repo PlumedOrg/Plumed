@@ -1,7 +1,7 @@
 //! Medical data updates (Plumed fork, see `medical::data_update`). Written
 //! with Claude Code.
 
-use crate::medical::data_set::SetError;
+use crate::medical::data_set::{diff::FileDiff, SetError};
 use crate::medical::data_update::{self, DataChange, DataStatus, UpdateOffer};
 use std::path::PathBuf;
 use tauri::{command, AppHandle};
@@ -41,6 +41,16 @@ pub async fn download_medical_data_update(
     version: String,
 ) -> Result<DataChange, String> {
     data_update::download(&app, &version).await
+}
+
+/// Downloads the offered `version` without installing it and lists what it
+/// changes, for the optional review in the update dialog.
+#[command]
+pub async fn preview_medical_data_update(
+    app: AppHandle,
+    version: String,
+) -> Result<Vec<FileDiff>, String> {
+    data_update::preview(&app, &version).await
 }
 
 /// Deletes the downloaded data and goes back to the bundled data.

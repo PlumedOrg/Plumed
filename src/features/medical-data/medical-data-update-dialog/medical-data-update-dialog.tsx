@@ -9,6 +9,7 @@ import { Page } from '@/components/page';
 import { Typography } from '@/components/typography';
 import { formatData } from '@/features/home/statistics/statistics.helpers';
 import { useMedicalDataChangeToast } from '../hooks/use-medical-data-change-toast';
+import { UpdateChangesReview } from './update-changes-review';
 import { MedicalDataChange, MedicalDataOffer, MedicalDataProgress } from '../types';
 
 interface MedicalDataUpdateDialogProps {
@@ -26,6 +27,8 @@ export const MedicalDataUpdateDialog = ({ offer, onClose, onInstalled }: Medical
     const showChange = useMedicalDataChangeToast();
     const [progress, setProgress] = useState<MedicalDataProgress | null>(null);
     const [downloading, setDownloading] = useState(false);
+    const [reviewing, setReviewing] = useState(false);
+    const busy = downloading || reviewing;
 
     useEffect(() => {
         const unlisten = listen<MedicalDataProgress>('medical-data-download-progress', (event) =>
@@ -74,7 +77,7 @@ export const MedicalDataUpdateDialog = ({ offer, onClose, onInstalled }: Medical
         <Dialog
             open={offer != null}
             onOpenChange={(isOpen) => {
-                if (!isOpen && !downloading) {
+                if (!isOpen && !busy) {
                     onClose();
                 }
             }}
@@ -109,21 +112,23 @@ export const MedicalDataUpdateDialog = ({ offer, onClose, onInstalled }: Medical
                     )}
                 </Typography.Paragraph>
 
+                {offer != null && <UpdateChangesReview version={offer.version} onBusyChange={setReviewing} />}
+
                 <DialogFooter>
-                    <Page.SecondaryButton onClick={skip} disabled={downloading} data-testid="medical-data-update-skip">
+                    <Page.SecondaryButton onClick={skip} disabled={busy} data-testid="medical-data-update-skip">
                         {t('Skip this version')}
                     </Page.SecondaryButton>
                     <Page.SecondaryButton
                         autoFocus
                         onClick={onClose}
-                        disabled={downloading}
+                        disabled={busy}
                         data-testid="medical-data-update-later"
                     >
                         {t('Not now')}
                     </Page.SecondaryButton>
                     <Page.PrimaryButton
                         onClick={() => void download()}
-                        disabled={downloading}
+                        disabled={busy}
                         data-testid="medical-data-update-download"
                     >
                         {downloading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}

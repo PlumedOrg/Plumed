@@ -47,3 +47,13 @@ export interface MedicalDataProgress {
     downloaded: number;
     total: number;
 }
+
+/** Rust `FileDiff`: what an update changes in one file of the set. */
+export interface MedicalDataFileDiff {
+    name: string;
+    added: number;
+    removed: number;
+    /** Capped samples, the counts stay exact. */
+    added_samples: string[];
+    removed_samples: string[];
+}

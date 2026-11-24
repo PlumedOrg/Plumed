@@ -6,7 +6,7 @@
 //! The same set can also be installed from files downloaded by hand, with
 //! the same checks. Written with Claude Code.
 
-use super::data_set::{self, manifest::Manifest, ActiveData, SetError, StagedFile};
+use super::data_set::{self, diff::FileDiff, manifest::Manifest, ActiveData, SetError, StagedFile};
 use crate::settings::AppSettings;
 use log::warn;
 use serde::Serialize;
@@ -61,6 +61,9 @@ struct Pending {
     signature: String,
     /// Found by the startup check and not answered yet.
     prompt: bool,
+    /// Folder the files were already downloaded into for the review of
+    /// the changes, reused by the install.
+    staged: Option<PathBuf>,
 }
 
 /// What the last check found.
@@ -222,6 +225,7 @@ async fn fetch_newer() -> Result<Option<Pending>, String> {
         bytes,
         signature,
         prompt: false,
+        staged: None,
     }))
 }
 
@@ -353,9 +357,9 @@ async fn download_files(
 }
 
 /// Runs one install at a time (download or manual install).
-async fn one_install_at_a_time<E: From<String>>(
-    job: impl std::future::Future<Output = Result<DataChange, E>>,
-) -> Result<DataChange, E> {
+async fn one_install_at_a_time<T, E: From<String>>(
+    job: impl std::future::Future<Output = Result<T, E>>,
+) -> Result<T, E> {
     if INSTALLING.swap(true, Ordering::AcqRel) {
         return Err(E::from("An install is already running".to_string()));
     }
@@ -388,20 +392,57 @@ pub async fn download(app: &AppHandle, version: &str) -> Result<DataChange, Stri
     one_install_at_a_time(download_and_install(app, version)).await
 }
 
-async fn download_and_install(app: &AppHandle, version: &str) -> Result<DataChange, String> {
-    let (manifest, bytes, signature) = pending()
+/// The offered set, downloaded into staging (or already there).
+async fn staged_offer(
+    app: &AppHandle,
+    version: &str,
+) -> Result<(PathBuf, Vec<u8>, String), String> {
+    let (manifest, bytes, signature, staged) = pending()
         .as_ref()
         .filter(|p| p.manifest.version == version)
-        .map(|p| (p.manifest.clone(), p.bytes.clone(), p.signature.clone()))
+        .map(|p| {
+            (
+                p.manifest.clone(),
+                p.bytes.clone(),
+                p.signature.clone(),
+                p.staged.clone(),
+            )
+        })
         .ok_or("This update is no longer offered, check again")?;
+    if let Some(staging) = staged.filter(|dir| dir.is_dir()) {
+        return Ok((staging, bytes, signature));
+    }
     let staging = data_set::new_staging()?;
     if let Err(e) = download_files(app, &manifest, &staging).await {
         let _ = std::fs::remove_dir_all(&staging);
         return Err(e);
     }
+    if let Some(p) = pending().as_mut().filter(|p| p.manifest.version == version) {
+        p.staged = Some(staging.clone());
+    }
+    Ok((staging, bytes, signature))
+}
+
+async fn download_and_install(app: &AppHandle, version: &str) -> Result<DataChange, String> {
+    let (staging, bytes, signature) = staged_offer(app, version).await?;
     let version = version.to_string();
     activate(app, move || {
         data_set::install(&staging, &version, &bytes, &signature)
+    })
+    .await
+}
+
+/// "Review the changes": downloads the offered `version` without
+/// installing it and lists what it changes compared with the data in use.
+pub async fn preview(app: &AppHandle, version: &str) -> Result<Vec<FileDiff>, String> {
+    one_install_at_a_time(async {
+        let (staging, bytes, signature) = staged_offer(app, version).await?;
+        let version = version.to_string();
+        tauri::async_runtime::spawn_blocking(move || {
+            data_set::preview(&staging, &version, &bytes, &signature)
+        })
+        .await
+        .map_err(|e| e.to_string())?
     })
     .await
 }

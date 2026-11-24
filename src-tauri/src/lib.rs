@@ -491,6 +491,7 @@ pub fn run() {
             skip_medical_data_version,
             check_medical_data_update,
             download_medical_data_update,
+            preview_medical_data_update,
             reset_medical_data,
             set_medical_data_update_check,
             medical_data_question_due,
