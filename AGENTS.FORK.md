@@ -79,7 +79,7 @@ Auto-updater (`src-tauri/src/app_update.rs`; key and stable endpoint in `plugins
 - `beta`: GitHub API, 10 newest releases; newest non-draft one with a `latest.json` asset wins.
 - `disabled`: no startup check; sidebar button checks stable on demand (otherwise the button only shows when an update exists).
 
-Never downgrades (beta to stable waits for the next greater version). On any GitHub failure (network, timeout, HTTP error like a proxy 403) the check, the installer URL and failed installer downloads go through the relay (`models.plumed.fr`, `relay_base()` in `model/download.rs`), whose `/releases/...` routes mirror GitHub minus `/PlumedOrg/Plumed` (`PhoneMic_server/protocol/src/releases.rs`, routes in `PhoneMic_server/README.md`). Safe because only installers with a valid minisign signature against `pubkey` install.
+Never downgrades (beta to stable waits for the next greater version). On any GitHub failure (network, timeout, HTTP error like a proxy 403) the check, the installer URL and failed installer downloads go through the relay (`models.plumed.fr`, `relay_base()` in `model/download.rs`), whose `/releases/...` routes mirror GitHub minus `/PlumedOrg/Plumed` (`PhoneMic_server/protocol/src/releases.rs`, routes in `PhoneMic_server/README.md`). Safe because only installers with a valid minisign signature against `pubkey` install. `latest.json` itself is deliberately unsigned: whoever controls it (GitHub, the relay, a proxy) can at worst hide an update, since a lower or equal version is never installed.
 
 Updater key one-time setup:
 1. `pnpm tauri signer generate -w ~/.tauri/murmuremed.key` (password). Keep the private key out of the repo and backed up: losing it means installed copies can never update.
