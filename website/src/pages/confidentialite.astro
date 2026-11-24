@@ -1,0 +1,21 @@
+---
+// The privacy policy is rendered from the repository's PRIVACY_POLICY.md,
+// the only copy (the app's opt-in also reads its registre from there).
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import { Content, getHeadings } from '../../../PRIVACY_POLICY.md';
+
+// The policy's own H1 is hidden (see plumed.css), so it stays out of the TOC.
+const headings = getHeadings().filter((heading) => heading.depth > 1);
+---
+
+<StarlightPage
+    frontmatter={{
+        title: 'Politique de confidentialité',
+        description: 'Ce que Plumed fait de vos données, et ce qu’il ne fait pas.',
+    }}
+    headings={headings}
+>
+    <div class="plumed-policy">
+        <Content />
+    </div>
+</StarlightPage>

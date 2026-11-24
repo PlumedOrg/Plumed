@@ -1,0 +1,35 @@
+/* Plumed's colors: the violet of the logo (src-tauri/icons/icon.svg) on the
+   zinc grays of the app (src/tailwind.css). */
+:root {
+    --sl-color-accent-low: #2e1065; /* violet-950 */
+    --sl-color-accent: #8b5cf6; /* violet-500, logo background */
+    --sl-color-accent-high: #ddd6fe; /* violet-200 */
+    --sl-color-white: #f4f4f5; /* zinc-100 */
+    --sl-color-gray-1: #e4e4e7; /* zinc-200 */
+    --sl-color-gray-2: #d4d4d8; /* zinc-300 */
+    --sl-color-gray-3: #a1a1aa; /* zinc-400 */
+    --sl-color-gray-4: #71717a; /* zinc-500 */
+    --sl-color-gray-5: #3f3f46; /* zinc-700 */
+    --sl-color-gray-6: #27272a; /* zinc-800 */
+    --sl-color-black: #18181b; /* zinc-900, the app background */
+}
+
+:root[data-theme='light'] {
+    --sl-color-accent-low: #ede9fe; /* violet-100 */
+    --sl-color-accent: #6d28d9; /* violet-700, logo pen */
+    --sl-color-accent-high: #4c1d95; /* violet-900 */
+    --sl-color-white: #18181b;
+    --sl-color-gray-1: #27272a;
+    --sl-color-gray-2: #3f3f46;
+    --sl-color-gray-3: #52525b;
+    --sl-color-gray-4: #71717a;
+    --sl-color-gray-5: #d4d4d8;
+    --sl-color-gray-6: #f4f4f5;
+    --sl-color-gray-7: #fafafa;
+    --sl-color-black: #ffffff;
+}
+
+/* The privacy policy brings its own H1, below the page title. */
+.plumed-policy > h1:first-child {
+    display: none;
+}
