@@ -30,4 +30,4 @@ Ces modifications sont enregistrées séparément de vos règles de mise en form
 
 ## Mises à jour des règles
 
-Si vous l'avez accepté au premier lancement (modifiable dans **Paramètres > En ligne**), Plumed vérifie au démarrage s'il existe de nouvelles règles médicales. Rien n'est téléchargé sans votre clic, et « Voir les changements » montre les lignes ajoutées et retirées avant d'installer.
+Si vous l'avez accepté au premier lancement (modifiable dans **Paramètres > En ligne**), Plumed vérifie au démarrage, puis une fois par jour s'il reste ouvert, s'il existe de nouvelles règles médicales. Rien n'est téléchargé sans votre clic, et « Voir les changements » montre les lignes ajoutées et retirées avant d'installer.
