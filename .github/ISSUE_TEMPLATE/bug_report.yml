@@ -89,7 +89,7 @@ body:
       id: logs
       attributes:
           label: Debug logs
-          description: Enable debug mode in Settings > System, reproduce the bug, then paste the logs here.
+          description: Enable debug mode in Settings > Advanced, reproduce the bug, then paste the logs here.
           render: shell
       validations:
           required: false

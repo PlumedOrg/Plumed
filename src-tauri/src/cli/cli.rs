@@ -82,7 +82,7 @@ SERVE:
     Serve the OpenAI-compatible transcription API on 127.0.0.1 without a
     window, until Ctrl-C. Same transcription as a dictation (dictionary,
     formatting rules, grammar, text templates). Refuses to start unless
-    Settings > System > Advanced > Local transcription API is turned on;
+    Settings > Advanced > Local transcription API is turned on;
     requests need the API key shown there (Authorization: Bearer <KEY>).
 
     USAGE:

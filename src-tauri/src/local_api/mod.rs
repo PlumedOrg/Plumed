@@ -1,5 +1,5 @@
 //! Plumed fork: OpenAI-compatible transcription API (`POST
-//! /v1/audio/transcriptions`), off by default (Settings > System > Advanced).
+//! /v1/audio/transcriptions`), off by default (Settings > Advanced).
 //! Runs inside the app while the setting is on, or headless with `plumed
 //! serve`. Listens on 127.0.0.1 only and wants the bearer key from the
 //! settings. Transcribes like a dictation (dictionary, formatting rules,
@@ -183,7 +183,7 @@ pub fn serve_headless(app: &AppHandle, port: Option<u16>) -> Result<(), String> 
     let settings = crate::settings::load_settings(app);
     if !settings.local_api_enabled {
         return Err(
-            "The local transcription API is turned off. Turn on Settings > System > \
+            "The local transcription API is turned off. Turn on Settings > Advanced > \
              Advanced > Local transcription API in Plumed first."
                 .to_string(),
         );
@@ -195,7 +195,7 @@ pub fn serve_headless(app: &AppHandle, port: Option<u16>) -> Result<(), String> 
     crate::audio::preload_engine(app).map_err(|e| e.to_string())?;
     eprintln!(
         "Plumed local API listening on http://127.0.0.1:{port}/v1 (Ctrl-C to stop).\n\
-         Use the API key shown in Settings > System > Advanced."
+         Use the API key shown in Settings > Advanced."
     );
     let ctx = context(app, token);
     tauri::async_runtime::block_on(serve(listener, ctx, async {

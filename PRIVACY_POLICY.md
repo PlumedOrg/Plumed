@@ -104,7 +104,7 @@ Plumed peut accéder au réseau uniquement pour :
 
 Les vérifications de mises à jour n'incluent ni votre audio ni vos transcriptions.
 
-L'API de transcription locale (désactivée par défaut, Paramètres > Système > Avancé) n'accède pas à internet : elle écoute uniquement sur `127.0.0.1`, donc seuls les programmes de votre propre ordinateur qui connaissent la clé peuvent lui envoyer de l'audio, et le texte leur est renvoyé sans rien écrire dans l'historique.
+L'API de transcription locale (désactivée par défaut, Paramètres > Avancé) n'accède pas à internet : elle écoute uniquement sur `127.0.0.1`, donc seuls les programmes de votre propre ordinateur qui connaissent la clé peuvent lui envoyer de l'audio, et le texte leur est renvoyé sans rien écrire dans l'historique.
 
 Politiques de confidentialité des tiers : [Déclaration de confidentialité de GitHub](https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement), [Politique de confidentialité de Hugging Face](https://huggingface.co/privacy)
 

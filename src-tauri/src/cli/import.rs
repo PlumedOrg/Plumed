@@ -21,8 +21,8 @@ fn ensure_import_allowed(block_cli_import: bool) -> Result<(), String> {
     match block_cli_import {
         true => Err(
             "Error: Importing settings from the command line is blocked. To allow it, open Plumed, \
-             Settings > System > Advanced, and turn off \"Block command-line import\" (in French: \
-             Paramètres > Système > Avancé, \"Bloquer l'import en ligne de commande\"). You can \
+             Settings > Advanced, and turn off \"Block command-line import\" (in French: \
+             Paramètres > Avancé, \"Bloquer l'import en ligne de commande\"). You can \
              also import the file from the app window: Import / Export."
                 .to_string(),
         ),
