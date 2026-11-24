@@ -43,6 +43,15 @@ Si l'erreur revient malgré tout, signalez-la : ouvrez un ticket sur [GitHub](ht
 
 Oui : **Paramètres > Importer / Exporter** enregistre vos réglages dans un fichier à importer sur l'autre poste. Voir [Exporter et importer ses réglages](/docs/fonctionnalites/corrections/#exporter-et-importer-ses-réglages).
 
+## Comment participer ou améliorer Plumed ?
+
+De plusieurs façons, toutes utiles :
+
+- **Signaler un problème ou proposer une idée** en ouvrant un ticket sur [GitHub](https://github.com/PlumedOrg/Plumed/issues/new/choose).
+- **Me faire vos retours**, même sans compte GitHub, via [olicorne.org/fr/contact](https://olicorne.org/fr/contact) : ce qui marche, ce qui gêne, ce qui manque.
+- **En parler autour de vous**, à vos collègues et à vos proches qui écrivent beaucoup.
+- **Participer au code** : le projet est libre et les contributions sont bienvenues sur [GitHub](https://github.com/PlumedOrg/Plumed).
+
 ## Quel est le lien avec Murmure ?
 
 Plumed est un fork de [Murmure](https://github.com/Kieirra/murmure), adapté à la dictée médicale française. Voir [Remerciements et licences](/docs/licences/).
