@@ -21,6 +21,7 @@ Transport is plain HTTPS long-polling (no WebSocket, no WebRTC, no TURN server),
 | `server/static/` | The phone page (plain ES modules, no build step): French by default, English toggle |
 | `server/static-tests/` | Node tests of the phone JS (wire, crypto against the shared vectors, VAD) |
 | `server/src/serve.rs` | Serving helpers shared by both binaries (environment, client IP behind the proxy, shutdown, `--healthcheck`) |
+| `protocol_details.md` | Detailed spec of the ParakeetWeb remote microphone protocol (relay-only transport, crypto handshake, framing) that the Plumed protocol was derived from |
 | `models/` | The model relay `plumed-models` (see [Model relay](#model-relay)) |
 | `Dockerfile`, `docker-compose.yml`, `env.example` | Deployment of both services (Dockerfile targets `relay` and `models`) |
 
