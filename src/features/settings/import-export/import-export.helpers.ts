@@ -27,7 +27,7 @@ export const formatRuleLabel = (rule: FormattingRule): string => {
 
 export const hasSubItems = (def: CategoryDefinition, selection: CategorySelection): boolean => {
     const subKeys = Object.keys(selection[def.key]?.subItems ?? {});
-    return subKeys.length > 0;
+    return subKeys.length > 0 || def.dynamicSubItems != null;
 };
 
 export const isCategoryOn = (categoryKey: string, selection: CategorySelection): boolean => {

@@ -50,7 +50,7 @@ export const ImportPreview = ({ configData, fileName, isImporting, onImport, onC
 
     const categoriesWithDynamic = buildCategoriesWithDynamic(
         CATEGORY_DEFINITIONS,
-        buildRenderers(fileRules, fileWords)
+        buildRenderers(fileRules, fileWords, categories)
     );
 
     const selectedCategories = CATEGORY_DEFINITIONS.filter(

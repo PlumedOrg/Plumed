@@ -41,18 +41,12 @@ export const ImportProgressModal = ({ open, steps, isComplete, hasError, onDone 
                             {step.status === 'in_progress' && (
                                 <Loader2 className="w-4 h-4 text-sky-400 animate-spin shrink-0" />
                             )}
-                            {step.status === 'done' && (
-                                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                            )}
+                            {step.status === 'done' && <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />}
                             {step.status === 'pending' && (
                                 <div className="w-4 h-4 rounded-full border border-border shrink-0" />
                             )}
-                            {step.status === 'error' && (
-                                <div className="w-4 h-4 rounded-full bg-red-400 shrink-0" />
-                            )}
-                            <span className={clsx('text-sm', STATUS_TEXT_CLASSES[step.status])}>
-                                {step.label}
-                            </span>
+                            {step.status === 'error' && <div className="w-4 h-4 rounded-full bg-red-400 shrink-0" />}
+                            <span className={clsx('text-sm', STATUS_TEXT_CLASSES[step.status])}>{step.label}</span>
                         </div>
                     ))}
                 </div>

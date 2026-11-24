@@ -709,5 +709,7 @@
     "The relay uses a newer PhoneMic protocol (v{{relay}}, ours v{{ours}}): update Plumed to use it.": "Le relais utilise un protocole PhoneMic plus récent (v{{relay}}, le nôtre v{{ours}}) : mettez Plumed à jour pour l'utiliser.",
     "Update Plumed": "Mettre à jour Plumed",
     "The relay no longer serves the phone page of this Plumed version: update Plumed to use it.": "Le relais ne sert plus la page téléphone de cette version de Plumed : mettez Plumed à jour pour l'utiliser.",
-    "The relay does not serve the phone page of this Plumed version yet: it is not up to date. Try again later or ask its administrator.": "Le relais ne sert pas encore la page téléphone de cette version de Plumed : il n'est pas à jour. Réessayez plus tard ou contactez son administrateur."
+    "The relay does not serve the phone page of this Plumed version yet: it is not up to date. Try again later or ask its administrator.": "Le relais ne sert pas encore la page téléphone de cette version de Plumed : il n'est pas à jour. Réessayez plus tard ou contactez son administrateur.",
+    "Added or changed": "Ajouté ou modifié",
+    "Turned off": "Désactivé"
 }
