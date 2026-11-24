@@ -11,7 +11,7 @@ use rayon::prelude::*;
 use tokenizers::Tokenizer;
 
 use super::helpers::tokenize_word_to_ids;
-use list::{expand_augmentations, parse_boost_list, BoostPhrase};
+use list::{expand_augmentations, parse_boost_list_with, BoostPhrase, DefaultOverrides};
 pub use trie::{BoostingTrie, EncodedPhrase, NodeId};
 
 /// Tokenize every spelling, in parallel (a ~77k phrase list expands to ~480k
@@ -44,8 +44,12 @@ pub fn encode_phrases(
 
 /// Parse a ParakeetWeb list, expand its spellings and build its trie.
 /// `None` when nothing in it can be emitted by the decoder.
-pub fn build_trie(raw: &str, tokenizer: &Tokenizer) -> Option<BoostingTrie> {
-    let list = parse_boost_list(raw);
+pub fn build_trie(
+    raw: &str,
+    overrides: DefaultOverrides,
+    tokenizer: &Tokenizer,
+) -> Option<BoostingTrie> {
+    let list = parse_boost_list_with(raw, overrides);
     for warning in &list.warnings {
         log::warn!("phrase list: {warning}");
     }
@@ -91,7 +95,7 @@ pub fn add_phrase_bonuses(
 
 #[cfg(test)]
 mod tests {
-    use super::list::DEFAULT_BOOST_MIN_P;
+    use super::list::{parse_boost_list, DEFAULT_BOOST_MIN_P};
     use super::*;
     use crate::engine::helpers::bundled_tokenizer;
 
@@ -158,14 +162,14 @@ mod tests {
         };
         // syntocinon is 4 tokens: first-token bonus 1/4 by default, 1 with commitment 0.
         let first_bonus = |raw: &str| {
-            let trie = build_trie(raw, &tokenizer).expect("trie");
+            let trie = build_trie(raw, DefaultOverrides::default(), &tokenizer).expect("trie");
             let mut scores = vec![0.0; 8192];
             add_phrase_bonuses(&trie, &vec![0.0; 8192], &trie.start(), -1, &mut scores);
             scores[4208]
         };
         assert_eq!(first_bonus("syntocinon:1::s"), 0.25);
         assert_eq!(first_bonus("#!commitment 0\nsyntocinon:1::s"), 1.0);
-        assert!(build_trie("東京", &tokenizer).is_none());
+        assert!(build_trie("東京", DefaultOverrides::default(), &tokenizer).is_none());
     }
 
     #[test]

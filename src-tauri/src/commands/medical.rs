@@ -44,6 +44,21 @@ pub fn get_default_formatting_rules() -> Vec<FormattingRule> {
     medical::default_formatting_rules()
 }
 
+/// The phrase boosting weight and min-p of the list in use (its header),
+/// shown when the user keeps them.
+#[derive(serde::Serialize)]
+pub struct PhraseBoostDefaults {
+    weight: f32,
+    minp: f32,
+}
+
+#[command]
+pub fn get_phrase_boost_defaults() -> PhraseBoostDefaults {
+    let (weight, minp) =
+        crate::engine::phrase_boost::list::list_defaults(&medical::data_set::current().phrase_list);
+    PhraseBoostDefaults { weight, minp }
+}
+
 #[command]
 pub fn get_phrase_overlay(app: AppHandle) -> Result<ListOverlay<Phrase>, String> {
     medical::get_overlay(&app)

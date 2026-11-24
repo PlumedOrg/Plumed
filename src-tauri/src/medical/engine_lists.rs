@@ -8,6 +8,7 @@
 use super::data_set::{self, ActiveData};
 use super::store::{self, StoreFile};
 use crate::audio::types::AudioState;
+use crate::engine::phrase_boost::list::DefaultOverrides;
 use crate::engine::ParakeetEngine;
 use crate::formatting_rules::BuiltInOptions;
 use serde::Deserialize;
@@ -47,19 +48,23 @@ impl MedicalList {
 struct EngineList {
     list: MedicalList,
     enabled: fn(&BuiltInOptions) -> bool,
-    arm: fn(&mut ParakeetEngine, &str),
+    /// What else in the options shapes the armed list (re-armed on change).
+    tuning: fn(&BuiltInOptions) -> DefaultOverrides,
+    arm: fn(&mut ParakeetEngine, &str, &BuiltInOptions),
 }
 
 const LISTS: [EngineList; 2] = [
     EngineList {
         list: MedicalList::Phrases,
         enabled: |options| options.phrase_boosting,
-        arm: ParakeetEngine::set_boost_list,
+        tuning: BuiltInOptions::boost_overrides,
+        arm: |engine, list, options| engine.set_boost_list(list, options.boost_overrides()),
     },
     EngineList {
         list: MedicalList::ConfusionGroups,
         enabled: |options| options.confusion_rescoring,
-        arm: ParakeetEngine::set_confusion_groups,
+        tuning: |_| DefaultOverrides::default(),
+        arm: |engine, list, _| engine.set_confusion_groups(list),
     },
 ];
 
@@ -83,7 +88,7 @@ impl EngineList {
             true => super::overlaid_list(app, self.list, data),
             false => String::new(),
         };
-        (self.arm)(engine, self.content(&list, options));
+        (self.arm)(engine, self.content(&list, options), options);
     }
 }
 
@@ -137,7 +142,8 @@ pub fn apply_settings(app: &AppHandle, before: Option<&BuiltInOptions>, after: &
     let data = data_set::current();
     with_loaded_engine(app, |engine| {
         for list in &LISTS {
-            if before.map(list.enabled) != Some((list.enabled)(after)) {
+            let shape = |options: &BuiltInOptions| ((list.enabled)(options), (list.tuning)(options));
+            if before.map(shape) != Some(shape(after)) {
                 list.arm_on(app, engine, &data, after);
             }
         }

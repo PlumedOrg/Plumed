@@ -8,14 +8,16 @@
 //! where this gentler, min-p gated trie lowers it.
 
 use super::build_trie;
+use super::list::DefaultOverrides;
 use crate::engine::types::{ParakeetEngine, ParakeetModel};
 
 impl ParakeetModel {
     /// Boost the phrases of a ParakeetWeb list, on top of the dictionary. An
     /// empty list turns phrase list boosting off.
-    pub fn set_boost_list(&mut self, raw: &str) {
+    /// `overrides` replace the list's default weight and min-p.
+    pub fn set_boost_list(&mut self, raw: &str, overrides: DefaultOverrides) {
         self.phrase_trie = match &self.tokenizer {
-            Some(tokenizer) => build_trie(raw, tokenizer),
+            Some(tokenizer) => build_trie(raw, overrides, tokenizer),
             None => {
                 log::warn!("Phrase list ignored: no tokenizer loaded");
                 None
@@ -25,9 +27,9 @@ impl ParakeetModel {
 }
 
 impl ParakeetEngine {
-    pub fn set_boost_list(&mut self, raw: &str) {
+    pub fn set_boost_list(&mut self, raw: &str, overrides: DefaultOverrides) {
         if let Some(model) = self.model.as_mut() {
-            model.set_boost_list(raw);
+            model.set_boost_list(raw, overrides);
         }
     }
 }
@@ -66,7 +68,7 @@ mod tests {
             engine.set_boost_words(&words);
         }
         if let Some(path) = env("PLUMED_BOOST_LIST") {
-            engine.set_boost_list(&read(path));
+            engine.set_boost_list(&read(path), DefaultOverrides::default());
         }
         if let Some(path) = env("PLUMED_CONFUSION") {
             engine.set_confusion_groups(&read(path));

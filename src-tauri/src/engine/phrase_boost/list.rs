@@ -233,20 +233,67 @@ pub fn line_phrase(line: &str) -> Option<String> {
     Some(parse_fields(trimmed).phrase)
 }
 
+/// Weight and min-p that replace the list's own defaults (its `*:` lines),
+/// from the user's settings. A phrase's explicit fields (the penalties'
+/// negative weights) still win; `None` or an invalid value keeps the list's.
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
+pub struct DefaultOverrides {
+    pub weight: Option<f32>,
+    pub minp: Option<f32>,
+}
+
+impl DefaultOverrides {
+    fn apply(&self, defaults: &mut Fields) {
+        if let Some(w) = self.weight.filter(|&w| is_valid_weight(w)) {
+            defaults.weight = Some(w);
+        }
+        if let Some(p) = self.minp.filter(|&p| is_valid_minp(p)) {
+            defaults.minp = Some(p);
+        }
+    }
+}
+
+fn no_defaults() -> Fields {
+    Fields {
+        phrase: String::new(),
+        weight: None,
+        minp: None,
+        augment: None,
+    }
+}
+
+/// The weight and min-p the list gives its first phrase (its header), as
+/// shown next to the user's overrides.
+pub fn list_defaults(raw: &str) -> (f32, f32) {
+    let mut defaults = no_defaults();
+    for trimmed in raw.lines().map(str::trim) {
+        if is_defaults_line(trimmed) {
+            apply_defaults_line(trimmed, &mut defaults);
+        } else if !trimmed.is_empty() && !trimmed.starts_with(DIRECTIVE_PREFIX) {
+            break;
+        }
+    }
+    (
+        defaults.weight.unwrap_or(1.0),
+        defaults.minp.unwrap_or(DEFAULT_BOOST_MIN_P),
+    )
+}
+
 /// Parse a whole list (ParakeetWeb's `parseBoostPhrases` + `parseBoostDirectives`).
 pub fn parse_boost_list(raw: &str) -> BoostList {
+    parse_boost_list_with(raw, DefaultOverrides::default())
+}
+
+/// [`parse_boost_list`], with `overrides` replacing the list's defaults.
+pub fn parse_boost_list_with(raw: &str, overrides: DefaultOverrides) -> BoostList {
     let mut list = BoostList {
         phrases: Vec::new(),
         prefixes: None,
         commitment: None,
         warnings: Vec::new(),
     };
-    let mut defaults = Fields {
-        phrase: String::new(),
-        weight: None,
-        minp: None,
-        augment: None,
-    };
+    let mut defaults = no_defaults();
+    overrides.apply(&mut defaults);
     for line in raw.lines() {
         let trimmed = line.trim();
         if trimmed.is_empty() {
@@ -258,6 +305,7 @@ pub fn parse_boost_list(raw: &str) -> BoostList {
         }
         if is_defaults_line(trimmed) {
             apply_defaults_line(trimmed, &mut defaults);
+            overrides.apply(&mut defaults);
             continue;
         }
         let f = parse_fields(trimmed);
@@ -574,6 +622,35 @@ mod tests {
             Some(prefixes(&["d'"]))
         );
         assert_eq!(parse("#hashtag")[0].phrase, "#hashtag");
+    }
+
+    #[test]
+    fn overrides_replace_the_list_defaults_but_not_explicit_fields() {
+        let raw = "*:0.5:0.01:fhpn\nalpha\nbeta:-1";
+        let list = parse_boost_list_with(
+            raw,
+            DefaultOverrides {
+                weight: Some(1.5),
+                minp: None,
+            },
+        );
+        assert_eq!((list.phrases[0].weight, list.phrases[0].minp), (1.5, 0.01));
+        assert_eq!(list.phrases[1].weight, -1.0);
+        // An invalid override keeps the list's value.
+        let list = parse_boost_list_with(
+            raw,
+            DefaultOverrides {
+                weight: Some(99.0),
+                minp: Some(0.0),
+            },
+        );
+        assert_eq!((list.phrases[0].weight, list.phrases[0].minp), (0.5, 0.01));
+    }
+
+    #[test]
+    fn list_defaults_reads_the_header() {
+        assert_eq!(list_defaults("#!commitment 0.5\n*:0.5:0.01:fhpn\nalpha"), (0.5, 0.01));
+        assert_eq!(list_defaults("alpha\n*:3"), (1.0, DEFAULT_BOOST_MIN_P));
     }
 
     #[test]

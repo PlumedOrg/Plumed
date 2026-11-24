@@ -96,10 +96,25 @@ pub struct BuiltInOptions {
     pub medical_fixes: bool,
     /// Plumed: boost the bundled French medical phrase list while decoding
     pub phrase_boosting: bool,
+    /// Plumed: phrase boosting weight replacing the list's default, `None`
+    /// keeps the list's (see `DefaultOverrides`)
+    pub phrase_boost_weight: Option<f32>,
+    /// Plumed: phrase boosting min-p (margin) replacing the list's default
+    pub phrase_boost_minp: Option<f32>,
     /// Plumed: re-score sound-alike medical words on the audio (confusion groups)
     pub confusion_rescoring: bool,
     /// Plumed: apply Grammalecte's fixes of the chosen rules (grammar step, last)
     pub grammar: bool,
+}
+
+impl BuiltInOptions {
+    /// The user's phrase boosting weight and min-p, for the list parser.
+    pub fn boost_overrides(&self) -> crate::engine::phrase_boost::list::DefaultOverrides {
+        crate::engine::phrase_boost::list::DefaultOverrides {
+            weight: self.phrase_boost_weight,
+            minp: self.phrase_boost_minp,
+        }
+    }
 }
 
 impl Default for BuiltInOptions {
@@ -113,6 +128,8 @@ impl Default for BuiltInOptions {
             text_numbers_threshold: 0.0,
             medical_fixes: true,
             phrase_boosting: true,
+            phrase_boost_weight: None,
+            phrase_boost_minp: None,
             confusion_rescoring: true,
             grammar: true,
         }

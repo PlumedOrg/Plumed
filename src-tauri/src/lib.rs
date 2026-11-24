@@ -497,6 +497,7 @@ pub fn run() {
             preview_medical_fixes,
             get_orphaned_medical_rule_edits,
             get_default_formatting_rules,
+            get_phrase_boost_defaults,
             get_phrase_overlay,
             set_phrase_overlay,
             search_phrases,
