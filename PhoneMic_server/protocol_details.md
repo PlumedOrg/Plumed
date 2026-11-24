@@ -159,3 +159,15 @@ Si le relais supprime un salon (redémarrage, limite de 24 h), l'ordinateur ouvr
 ## 10. Modèle de menace
 
 Le relais ne voit que des octets opaques et des identifiants aléatoires ; il garde tout en RAM et ne journalise ni IP ni identifiant de salon. Grâce au secret d'appairage, le chiffrement tient face à l'opérateur du relais et au réseau sans comparaison de code, tant que la page du téléphone est honnête : c'est le même serveur qui sert la page et son code cryptographique, un relais compromis pourrait donc servir une page modifiée.
+
+### Vérification de la page servie
+
+Pour limiter ce risque, Plumed embarque à la compilation une copie exacte des fichiers de la page (`protocol/src/page.rs`, la même table que celle que sert le relais). Une seule fois par session, entre 2 et 9 s (au hasard) après l'affichage du QR code, Plumed télécharge chaque fichier de la page comme le ferait un téléphone (nouvelle connexion, User-Agent et en-têtes d'un navigateur mobile, sans secret de salon) et le compare octet par octet à sa copie. À la moindre différence, PhoneMic s'arrête avec un message d'erreur. La vérification n'est jamais périodique : elle coûte au relais un chargement de page par session.
+
+Conséquence pratique : le relais et Plumed doivent être compilés à partir des mêmes fichiers `server/static/`. Toute modification de la page impose de publier les deux ensemble (l'ordre n'importe pas, mais une version de Plumed refusera un relais dont la page diffère).
+
+Limites honnêtes : cette vérification décourage une modification de masse de la page (un relais qui la modifierait pour tout le monde serait détecté par chaque Plumed), mais pas une attaque ciblée. Un relais malveillant peut distinguer la requête de Plumed de celle d'un vrai téléphone : empreinte TLS de `reqwest` différente de celle d'un navigateur, adresse IP de l'ordinateur déjà vue lors de la création du salon, absence des requêtes annexes d'un navigateur. Il pourrait alors servir la page honnête à Plumed et une page modifiée au téléphone.
+
+### Héberger son propre relais
+
+La vraie garantie reste donc la confiance dans le relais. Chacun est libre d'utiliser son propre relais : le code est public, le serveur tient dans un seul binaire (ou une image Docker) sans base de données ni stockage disque, et l'adresse se change dans les réglages de PhoneMic. Il peut tourner sur le serveur d'un établissement, derrière son pare-feu, ou sur une machine aussi sécurisée que nécessaire (serveur durci, hébergement certifié HDS, réseau interne uniquement accessible en VPN). Seule contrainte : le relais doit être joignable en `https://` par le téléphone, car un navigateur n'autorise ni le micro ni WebCrypto hors contexte sécurisé ; Plumed refuse d'ailleurs toute adresse `http://` autre que `localhost`.
