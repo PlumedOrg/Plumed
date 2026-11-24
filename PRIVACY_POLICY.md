@@ -121,7 +121,7 @@ Responsable du traitement : Olivier Cornelis, mainteneur de Plumed, contact : ht
 - **Destinataires** : le mainteneur uniquement. Aucun transfert hors de l'Union européenne.
 - **Hébergement** : Umami auto-hébergé sur un serveur en France.
 - **Durées** : statistiques supprimées après 25 mois ; l'adresse IP n'est jamais enregistrée dans les statistiques, seulement dans le journal technique du serveur, effacé après 24 heures.
-- **Sécurité** : HTTPS, seule l'adresse d'envoi des statistiques est exposée.
+- **Sécurité** : HTTPS, seule l'adresse d'envoi des statistiques est exposée. Les requêtes passent par le pare-feu applicatif CrowdSec : seule une requête reconnue comme une attaque fait enregistrer l'adresse IP dans sa liste de blocage, partagée avec la communauté CrowdSec (CrowdSec SAS, France).
 
 ### Relais PhoneMic (turn.plumed.fr)
 
@@ -132,6 +132,7 @@ Responsable du traitement : Olivier Cornelis, mainteneur de Plumed, contact : ht
 - **Destinataires** : aucun, le relais ne fait que transmettre.
 - **Hébergement** : serveur en France. Ce serveur n'est pas un hébergeur de données de santé (HDS) ; un autre relais, par exemple celui de votre établissement, peut être choisi à la place.
 - **Durées** : chaque paquet est supprimé dès sa livraison, tout reste en mémoire ; ni adresse IP ni identifiant de salon ne sont journalisés.
+- **Sécurité** : HTTPS et chiffrement de bout en bout. Les requêtes passent par le pare-feu applicatif CrowdSec : seule une requête reconnue comme une attaque fait enregistrer l'adresse IP dans sa liste de blocage, partagée avec la communauté CrowdSec (CrowdSec SAS, France).
 
 ### Relais des modèles et des mises à jour (models.plumed.fr)
 
