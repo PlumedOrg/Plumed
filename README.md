@@ -8,11 +8,12 @@ Plumed n'est pas un projet commercial et est donc **entièrement gratuite et san
 
 Plumed n'est cependant pas un dispositif médical certifié : l'application est fournie telle quelle, sans garantie autre que sa [politique de confidentialité](PRIVACY_POLICY.md). De principe, il convient de ne pas utiliser d'information identifiante (noms de patients, ...) dans Plumed.
 
+![Écran d'accueil de Plumed : statistiques, visualisation du micro et dernière dictée](docs/screenshots/accueil.png)
+
 ## Sommaire
 
 - [Installation](#installation)
 - [Fonctionnalités](#fonctionnalités)
-- [Captures d'écran](#captures-décran)
 - [Confidentialité](#confidentialité)
 - [Remerciements et licences](#remerciements-et-licences)
 
@@ -112,10 +113,6 @@ Seul le relais HTTPS est utilisé (pas de WebRTC, souvent bloqué sur les résea
 Une nouvelle installation de Plumed contient 45 règles de dictée médicale (unités, constantes, ponctuation et mise en page dictées) : la liste `dictation_rules.csv` d'[UltiMed-ASR-FR-v2-regex-fixes](https://github.com/UltiMed-Org/UltiMed-ASR-FR-v2-regex-fixes). Par exemple « tension 120 80 » devient « TA : 120/80 » et « 3 fois par jour » devient « 3/j ».
 
 Elles se trouvent dans **Paramètres > Corrections > Formatage**, comme règles personnalisées ordinaires : vous pouvez les modifier, les désactiver ou les supprimer, et ajouter les vôtres. Elles s'appliquent après la correction des médicaments. **Revenir à la liste d'origine** remet exactement ces règles.
-
-## Captures d'écran
-
-![Écran d'accueil de Plumed : statistiques, visualisation du micro et dernière dictée](docs/screenshots/accueil.png)
 
 ## Confidentialité
 
