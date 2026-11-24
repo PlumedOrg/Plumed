@@ -1,7 +1,8 @@
 #!/bin/sh
 # Builds plumed.fr in a Node container and publishes it to the folder Caddy
-# serves. Made for the VPS, which keeps a sparse clone of the repo (website/
-# and the root files: the privacy page imports ../PRIVACY_POLICY.md):
+# serves. Made for the VPS, which keeps a sparse clone of the repo (website/,
+# the root files, since the privacy page imports ../PRIVACY_POLICY.md, and
+# src-tauri/icons and docs/screenshots, which the symlinks in website/ point to):
 # deploy.sh pulls that clone and runs this script, and after editing the
 # clone on the VPS directly, running `sh website/build.sh` there publishes it.
 #
