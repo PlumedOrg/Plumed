@@ -2,8 +2,7 @@
 
 > **Expérimental :** PhoneMic (le microphone distant) est une fonctionnalité en préversion : attendez-vous à des bugs et à des changements de protocole incompatibles entre les versions de Plumed.
 
-Ce répertoire contient tout ce qui tourne côté serveur pour Plumed : le relais du microphone distant, un petit relais HTTPS en Rust (axum) qui sert aussi la page du téléphone, et, en tant que second service indépendant, le [relais de modèles](#relais-de-modèles) qui diffuse les modèles de reconnaissance vocale depuis Hugging Face. Il a été écrit avec Claude Code.
-
+Ce répertoire contient tout ce qui tourne côté serveur pour Plumed : le relais du microphone distant, un petit relais HTTPS en Rust (axum) qui sert aussi la page du téléphone, et, en tant que second service indépendant, le [relais de modèles](#relais-de-modèles) qui diffuse les modèles de reconnaissance vocale depuis Hugging Face.
 Fonctionnement :
 
 1. Plumed (sur l'ordinateur) crée un salon sur le relais et affiche un QR code : `https://turn.plumed.fr/#{room}.{phone secret}.{desktop public key}`. Le salon a un secret par côté, et le QR code ne porte que celui du téléphone : quiconque le photographie ne peut ni lire ce que les téléphones envoient à l'ordinateur, ni fermer le salon.
@@ -30,8 +29,8 @@ Les fichiers `wire.js` et `crypto.js` du téléphone reflètent le code Rust (`p
 ## Fonctionnalités de la page du téléphone
 
 - Mode manuel : touchez pour démarrer et arrêter, ou maintenez le bouton appuyé pour parler (push-to-talk).
-- Mode mains libres : le téléphone écoute en continu et n'envoie que la parole. Une VAD à base d'énergie avec un plancher de bruit adaptatif (trames de 20 ms) ouvre un énoncé après 60 ms de parole, inclut les 400 ms entendues juste avant, le ferme après 900 ms de silence, et l'abandonne s'il contenait moins de 250 ms de parole. Le silence ne quitte jamais le téléphone.
-- Pause et reprise, envoi d'un fichier audio (20 minutes maximum).
+- Mode mains libres : le téléphone écoute en continu et n'envoie que la parole. Une VAD à base d'énergie avec un plancher de bruit adaptatif (trames de 20 ms) ouvre un énoncé après 60 ms de parole, inclut les 400 ms entendues juste avant, le ferme après 900 ms de silence, l'abandonne s'il contenait moins de 250 ms de parole, et coupe tout énoncé à 60 s. Le silence ne quitte jamais le téléphone.
+- Pause et reprise, envoi d'un fichier audio (20 minutes et 256 Mio maximum).
 - Verrou de mise en veille de l'écran pendant la connexion, pour que le téléphone ne s'endorme pas.
 - Reconnexion automatique après une perte de réseau. Le secret du salon est retiré de la barre d'adresse dès qu'il est lu. Une fois appairé, le téléphone conserve sa session dans IndexedDB (clés AES non extractibles, salon privé, compteurs de séquence) pendant 12 h, la durée de vie de l'appairage côté ordinateur : un rechargement de la page, ou le téléphone qui tue l'onglet en arrière-plan, reprend la session sans nouveau scan. L'enregistrement est supprimé à toute erreur définitive (salon fermé, téléphone remplacé, appairage refusé) et lorsqu'un nouveau QR code est scanné.
 
@@ -65,7 +64,7 @@ Les trois dernières peuvent être définies dans `.env` (copiez `env.example`),
 
 ## Relais de modèles
 
-Plumed n'embarque pas son modèle de reconnaissance vocale : au premier lancement, l'application télécharge depuis Hugging Face le modèle choisi par l'utilisateur. Les réseaux hospitaliers bloquent souvent huggingface.co mais laissent passer plumed.fr, l'application se rabat donc sur `plumed-models`, un second service indépendant de ce répertoire : un portage en Rust du relais HuggingFace de ParakeetWeb (`signaling/hf-relay.js`), écrit avec Claude Code.
+Plumed n'embarque pas son modèle de reconnaissance vocale : au premier lancement, l'application télécharge depuis Hugging Face le modèle choisi par l'utilisateur. Les réseaux hospitaliers bloquent souvent huggingface.co mais laissent passer plumed.fr, l'application se rabat donc sur `plumed-models`, un second service indépendant de ce répertoire : un portage en Rust du relais HuggingFace de ParakeetWeb (`signaling/hf-relay.js`).
 
 - `GET` / `HEAD /models/<owner>/<name>/<path>?revision=<commit>` renvoie le fichier de ce dépôt à ce commit (le schéma se trouve dans `protocol/src/models.rs`, `relay_path`, utilisé aussi par l'application). `GET /healthz` répond `ok`.
 - Il diffuse depuis huggingface.co sans écrire sur disque et sans mise en tampon au-delà de la fenêtre de contre-pression du flux (mémoire constante, le coût n'est que de la bande passante). `Range`, `If-Range` et `If-None-Match` sont transmis ; `Content-Length`, `Content-Range`, `Accept-Ranges` et `ETag` reviennent, l'application peut donc reprendre un téléchargement interrompu. `HEAD` s'arrête au hub (`X-Linked-Size`, `X-Linked-Etag`) et ne touche jamais le CDN.
@@ -88,7 +87,7 @@ Toutes sauf l'adresse d'écoute peuvent être définies dans `.env`, `docker-com
 
 ### Versions de l'application
 
-Le même service relaie aussi les versions publiées de l'application, pour que la mise à jour automatique fonctionne là où github.com est bloqué (`models/src/releases.rs`, schéma dans `protocol/src/releases.rs`, partagé avec l'application ; écrit avec Claude Code). L'application interroge d'abord GitHub et n'utilise ces routes qu'en cas d'échec :
+Le même service relaie aussi les versions publiées de l'application, pour que la mise à jour automatique fonctionne là où github.com est bloqué (`models/src/releases.rs`, schéma dans `protocol/src/releases.rs`, partagé avec l'application). L'application interroge d'abord GitHub et n'utilise ces routes qu'en cas d'échec :
 
 - `GET /releases/latest/download/latest.json` : le manifeste de mise à jour de la dernière version stable, depuis `https://github.com/PlumedOrg/Plumed/releases/latest/download/latest.json`.
 - `GET /releases/download/<tag>/<asset>` : un fichier d'une version, depuis `https://github.com/PlumedOrg/Plumed/releases/download/<tag>/<asset>`. L'application réécrit vers cette route l'URL de l'installeur trouvée dans `latest.json` lorsqu'elle s'est rabattue sur le relais.
