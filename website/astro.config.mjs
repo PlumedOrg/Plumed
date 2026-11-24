@@ -22,25 +22,32 @@ export default defineConfig({
                 },
             ],
             customCss: ['./src/styles/plumed.css'],
+            components: {
+                // The "Documentation" link next to the GitHub icon
+                SocialIcons: './src/components/SocialIcons.astro',
+                // The "fresh paint" notice on the /docs pages
+                Banner: './src/components/Banner.astro',
+            },
             lastUpdated: false,
             sidebar: [
-                { label: 'Installation', slug: 'installation' },
+                { label: 'Présentation', slug: 'docs' },
+                { label: 'Installation', slug: 'docs/installation' },
                 {
                     label: 'Fonctionnalités',
-                    items: [{ autogenerate: { directory: 'fonctionnalites' } }],
+                    items: [{ autogenerate: { directory: 'docs/fonctionnalites' } }],
                 },
                 {
                     label: 'Aide',
                     items: [
-                        { label: 'Questions fréquentes', slug: 'faq' },
-                        { label: 'Dépannage', slug: 'depannage' },
+                        { label: 'Questions fréquentes', slug: 'docs/faq' },
+                        { label: 'Dépannage', slug: 'docs/depannage' },
                     ],
                 },
                 {
                     label: 'À propos',
                     items: [
                         { label: 'Confidentialité', link: '/confidentialite/' },
-                        { label: 'Remerciements et licences', slug: 'licences' },
+                        { label: 'Remerciements et licences', slug: 'docs/licences' },
                     ],
                 },
             ],

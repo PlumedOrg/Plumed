@@ -1,31 +1,34 @@
 ---
 title: Plumed
 description: Dictée vocale médicale en français, gratuite, hors ligne et respectueuse de la confidentialité.
-tableOfContents: false
+template: splash
 hero:
   tagline: La dictée vocale médicale en français, sur votre ordinateur. Gratuite, sans compte, sans pub, et qui fonctionne hors ligne. Pour le bien commun, sans aucun objectif commercial.
   image:
-    file: ../../assets/logo.svg
+    # A plain <img> (public/accueil.png) so the screenshot can have a caption
+    html: '<figure class="plumed-screenshot"><img src="/accueil.png" width="997" height="995" alt="Capture d''écran de l''application Plumed : statistiques, visualisation du micro et dernière dictée"><figcaption>Capture d''écran de l''application : l''écran d''accueil de Plumed.</figcaption></figure>'
   actions:
     - text: Installer Plumed
-      link: /installation/
+      link: /docs/installation/
       icon: right-arrow
-    - text: Code source
+    - text: Code source sur GitHub
       link: https://github.com/PlumedOrg/Plumed
       icon: github
+      variant: secondary
+    - text: Documentation
+      link: /docs/
+      icon: open-book
       variant: minimal
 ---
 
 import { Card, CardGrid } from '@astrojs/starlight/components';
-import { Image } from 'astro:assets';
-import accueil from '../../assets/accueil.png';
 
 <CardGrid>
     <Card title="Dans n'importe quelle application" icon="pencil">
         Un raccourci clavier, vous parlez, le texte s'écrit là où se trouve le curseur : logiciel métier, traitement de texte, messagerie. Sur Windows, macOS et Linux.
     </Card>
     <Card title="Vocabulaire médical français" icon="open-book">
-        Modèles UltiMed entraînés sur le vocabulaire médical, environ 45 000 corrections de noms de médicaments et de termes médicaux, règles de dictée (« 15 mg par kilo par jour » devient « 15 mg/kg/j »).
+        Modèles [UltiMed](https://github.com/UltiMed-Org) entraînés sur le vocabulaire médical, environ 45 000 corrections de noms de médicaments et de termes médicaux, règles de dictée (« 15 mg par kilo par jour » devient « 15 mg/kg/j »).
     </Card>
     <Card title="Hors ligne" icon="laptop">
         La reconnaissance tourne sur votre ordinateur : l'audio et les transcriptions ne partent jamais sur internet.
@@ -34,13 +37,8 @@ import accueil from '../../assets/accueil.png';
         **Pour le bien commun, sans aucun objectif commercial.** Sans compte, sans pub, sans pistage. Logiciel libre sous licence AGPL v3. Fait avec amour par un interne en psychiatrie, [Olivier Cornelis](https://olicorne.org/fr).
     </Card>
     <div class="plumed-wide">
-        <Card title="Pas un dispositif médical" icon="warning">
-            Plumed n'est pas un dispositif médical certifié : l'application est fournie telle quelle, sans garantie autre que sa [politique de confidentialité](/confidentialite/). Par principe, n'utilisez pas d'information identifiante (noms de patients, ...) dans Plumed.
+        <Card title="Pas (encore ?) un dispositif médical" icon="warning">
+            Plumed n'est cependant pas (encore ?) un dispositif médical certifié : l'application est fournie telle quelle, sans garantie autre que sa [politique de confidentialité](/confidentialite/). Par principe, n'utilisez pas d'information identifiante (noms de patients, ...) dans Plumed.
         </Card>
     </div>
 </CardGrid>
-
-<figure class="plumed-screenshot">
-    <Image src={accueil} alt="Capture d'écran de l'application Plumed : statistiques, visualisation du micro et dernière dictée" />
-    <figcaption>Capture d'écran de l'application : l'écran d'accueil de Plumed.</figcaption>
-</figure>

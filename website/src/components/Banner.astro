@@ -1,0 +1,26 @@
+---
+// A notice on top of every /docs page, while the site is young.
+import Default from '@astrojs/starlight/components/Banner.astro';
+
+const isDocs = Astro.url.pathname.startsWith('/docs');
+---
+
+{
+    isDocs ? (
+        <div class="sl-banner plumed-banner" data-pagefind-ignore>
+            Attention, peinture fraîche ! Ce site est encore tout neuf et il est en train d'être amélioré.
+        </div>
+    ) : (
+        <Default />
+    )
+}
+
+<style>
+    .plumed-banner {
+        padding: var(--sl-nav-pad-y) var(--sl-nav-pad-x);
+        background-color: var(--sl-color-bg-accent);
+        color: var(--sl-color-text-invert);
+        text-align: center;
+        line-height: var(--sl-line-height-headings);
+    }
+</style>

@@ -23,7 +23,7 @@ L'installateur s'installe sans droits d'administrateur. Il n'est pas signé : Wi
 
 ## Linux
 
-Sous Wayland, la saisie directe du texte demande une règle udev que l'application propose d'installer, et les raccourcis clavier se configurent dans votre système (voir [Dictée](/fonctionnalites/dictee/#sous-wayland)).
+Sous Wayland, la saisie directe du texte demande une règle udev que l'application propose d'installer, et les raccourcis clavier se configurent dans votre système (voir [Dictée](/docs/fonctionnalites/dictee/#sous-wayland)).
 
 ## macOS
 

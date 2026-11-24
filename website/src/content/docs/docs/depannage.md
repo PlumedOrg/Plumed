@@ -10,7 +10,7 @@ La transcription est toujours copiée dans le presse-papiers : appuyez sur `Ctrl
 ## Le raccourci ne fait rien
 
 - Un autre logiciel utilise peut-être déjà ce raccourci : changez-le dans **Paramètres > Raccourcis**.
-- Sous Wayland (Linux), les raccourcis doivent être créés dans les paramètres de votre bureau : voir [Sous Wayland](/fonctionnalites/dictee/#sous-wayland).
+- Sous Wayland (Linux), les raccourcis doivent être créés dans les paramètres de votre bureau : voir [Sous Wayland](/docs/fonctionnalites/dictee/#sous-wayland).
 
 ## Le microphone n'est pas détecté
 
@@ -18,13 +18,13 @@ Vérifiez le micro choisi dans **Paramètres > Général > Microphone** et qu'il
 
 ## Windows ou macOS bloque l'installation
 
-Plumed n'est pas signé par un certificat payant. Voir les instructions de [l'installation](/installation/) pour Windows (SmartScreen) et macOS (Gatekeeper).
+Plumed n'est pas signé par un certificat payant. Voir les instructions de [l'installation](/docs/installation/) pour Windows (SmartScreen) et macOS (Gatekeeper).
 
 ## La reconnaissance se trompe
 
 - Vérifiez qu'un modèle UltiMed est sélectionné dans **Paramètres > Modèle**.
 - Parlez distinctement, micro proche, sans bruit de fond.
-- Ajoutez les mots mal reconnus au dictionnaire personnel ou en règle de correction : voir la [FAQ](/faq/#plumed-reconnaît-mal-un-mot-que-jutilise-souvent-que-faire-).
+- Ajoutez les mots mal reconnus au dictionnaire personnel ou en règle de correction : voir la [FAQ](/docs/faq/#plumed-reconnaît-mal-un-mot-que-jutilise-souvent-que-faire-).
 - La flèche d'une transcription sur la page d'accueil montre ce que chaque étape des corrections a changé, pour repérer une règle qui corrige à tort.
 
 ## Signaler un problème

@@ -9,5 +9,5 @@ sidebar:
 
 - Appliqués en dernier, après la grammaire, pour que le texte soit inséré tel quel, avec la même tolérance que les autres commandes vocales.
 - Les textes fournis peuvent être lus et modifiés : la version modifiée devient la vôtre et l'originale est désactivée.
-- L'exemple fourni est désactivé tant que vous ne l'activez pas (le [Tutoriel](/fonctionnalites/dictee/) propose de l'essayer).
+- L'exemple fourni est désactivé tant que vous ne l'activez pas (le [Tutoriel](/docs/fonctionnalites/dictee/) propose de l'essayer).
 - Vous pouvez ajouter, modifier et supprimer vos propres textes.

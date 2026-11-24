@@ -1,0 +1,12 @@
+---
+// A link card to a documentation page, with that page's own title and
+// description, so they are written only once (in the page frontmatter).
+import { getEntry } from 'astro:content';
+import { LinkCard } from '@astrojs/starlight/components';
+
+const { slug } = Astro.props as { slug: string };
+const entry = await getEntry('docs', slug);
+if (!entry) throw new Error(`DocCard: no page ${slug}`);
+---
+
+<LinkCard title={entry.data.title} description={entry.data.description} href={`/${slug}/`} />

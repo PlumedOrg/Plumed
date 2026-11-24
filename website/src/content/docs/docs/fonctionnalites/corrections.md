@@ -11,10 +11,10 @@ sidebar:
 2. **Mots qui se ressemblent** : les groupes de mots que Plumed départage en réécoutant le passage (« ituximab » devient « rituximab » après « instaure », « cetuximab » après « on passe »).
 3. **Dictionnaire personnel** : vos mots, favorisés pendant la reconnaissance puis écrits avec votre orthographe.
 4. **Nettoyage et uniformisation** : les options préinstallées (hésitations, mots répétés, correction de texte court, espace avant ? et !, nombres en chiffres, espace finale). La correction de texte court s'applique en fait après l'étape 5 et la mise en forme préinstallée après l'étape 6, ce qui est indiqué à côté d'elles.
-5. **Erreurs résiduelles** : les règles qui corrigent les erreurs fréquentes du modèle (« veine lafaxine » devient « venlafaxine »). Voir [Médicaments et termes médicaux](/fonctionnalites/medicaments/).
+5. **Erreurs résiduelles** : les règles qui corrigent les erreurs fréquentes du modèle (« veine lafaxine » devient « venlafaxine »). Voir [Médicaments et termes médicaux](/docs/fonctionnalites/medicaments/).
 6. **Formatage** : vos propres règles de mise en forme, au départ les [règles de dictée](#règles-de-dictée) d'UltiMed.
 7. **Grammaire** : le correcteur grammatical Grammalecte, qui n'applique que les corrections sûres des règles activées.
-8. **Textes types** : voir [Textes types](/fonctionnalites/textes-types/).
+8. **Textes types** : voir [Textes types](/docs/fonctionnalites/textes-types/).
 
 ## Modifier les listes
 

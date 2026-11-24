@@ -40,4 +40,4 @@ La saisie directe du texte demande l'accès à `/dev/uinput`, par une règle ude
 
 ## Historique
 
-La page d'accueil garde les dernières transcriptions. La flèche d'une transcription montre le texte complet et ce que chaque étape des [corrections](/fonctionnalites/corrections/) a changé.
+La page d'accueil garde les dernières transcriptions. La flèche d'une transcription montre le texte complet et ce que chaque étape des [corrections](/docs/fonctionnalites/corrections/) a changé.

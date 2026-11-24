@@ -1,0 +1,19 @@
+---
+title: Documentation
+description: Installer et utiliser Plumed, la dictée vocale médicale en français.
+tableOfContents: false
+---
+
+import { CardGrid } from '@astrojs/starlight/components';
+import DocCard from '../../../components/DocCard.astro';
+
+Tout ce qu'il faut pour installer Plumed et en tirer le meilleur. Commencez par l'installation, puis parcourez les fonctionnalités dans la barre latérale.
+
+<CardGrid>
+    <DocCard slug="docs/installation" />
+    <DocCard slug="docs/fonctionnalites/dictee" />
+    <DocCard slug="docs/fonctionnalites/corrections" />
+    <DocCard slug="docs/fonctionnalites/medicaments" />
+    <DocCard slug="docs/faq" />
+    <DocCard slug="docs/depannage" />
+</CardGrid>

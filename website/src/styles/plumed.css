@@ -34,8 +34,9 @@
     display: none;
 }
 
-/* Home page: rounded cards, and a card spanning the whole grid. */
-.card {
+/* Rounded cards, and a home page card spanning the whole grid. */
+.card,
+.sl-link-card {
     border-radius: 1rem;
 }
 
@@ -48,15 +49,18 @@
     flex: 1;
 }
 
-/* The home page screenshot: small, framed like a window, captioned, so it
-   reads as a picture of the app and not as part of the site. */
+/* The home page screenshot, in place of the hero image: framed like a
+   window and captioned, so it reads as a picture of the app and not as part
+   of the site. */
 .plumed-screenshot {
     max-width: 22rem;
-    margin-inline: auto;
+    margin: 0 auto;
     text-align: center;
 }
 
 .plumed-screenshot img {
+    width: 100%;
+    height: auto;
     border: 1px solid var(--sl-color-gray-5);
     border-radius: 0.75rem;
     box-shadow: 0 0.75rem 2rem rgb(0 0 0 / 0.35);
@@ -67,4 +71,32 @@
     font-size: var(--sl-text-sm);
     font-style: italic;
     color: var(--sl-color-gray-3);
+}
+
+/* Home page buttons, one below the other: install, GitHub, documentation. */
+.hero .actions {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+@media (min-width: 50rem) {
+    .hero .actions {
+        align-items: flex-start;
+    }
+}
+
+/* Search: only the magnifier icon in the top bar, the field opens on click. */
+site-search button[data-open-modal] {
+    width: auto;
+    padding: 0.5rem;
+    border: 0;
+    background-color: transparent;
+    color: var(--sl-color-gray-1);
+    font-size: var(--sl-text-xl);
+}
+
+site-search button[data-open-modal] > span,
+site-search button[data-open-modal] > kbd {
+    display: none !important;
 }

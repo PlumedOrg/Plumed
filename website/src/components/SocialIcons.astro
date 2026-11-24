@@ -1,0 +1,18 @@
+---
+// Starlight's social icons, preceded by a "Documentation" link.
+import Default from '@astrojs/starlight/components/SocialIcons.astro';
+---
+
+<a href="/docs/" class="plumed-docs-link">Documentation</a>
+<Default />
+
+<style>
+    .plumed-docs-link {
+        color: var(--sl-color-white);
+        font-weight: 600;
+        text-decoration: none;
+    }
+    .plumed-docs-link:hover {
+        color: var(--sl-color-text-accent);
+    }
+</style>
