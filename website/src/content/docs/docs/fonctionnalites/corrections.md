@@ -1,41 +1,117 @@
 ---
 title: Corrections
-description: Les étapes qui corrigent et mettent en forme le texte transcrit.
+description: Comment Plumed passe de ce que vous dites au texte final, étape par étape.
 sidebar:
   order: 2
 ---
 
-**Paramètres > Corrections** regroupe tout ce qui modifie le texte transcrit. Le texte passe par plusieurs étapes, toujours dans cet ordre.
+Un modèle de reconnaissance vocale généraliste connaît mal notre vocabulaire. Dictez « venlafaxine » et il peut écrire « veine la faxine » ; dictez « 15 mg par kilo par jour » et il l'écrit en toutes lettres. Ces erreurs reviennent toujours de la même façon, donc on peut les prévoir.
 
-1. **Vocabulaire médical** : les quelque 77 000 expressions vers lesquelles le modèle est orienté pendant la reconnaissance (« microangiopathie » rend « thrombotique » plus probable). En bas de l'onglet, le **poids** et la **marge (min-p)** du renforcement sont réglables (vides, ils gardent les valeurs d'origine de la liste) et un bouton rétablit ces valeurs ; ils font partie de l'export des paramètres.
-2. **Mots qui se ressemblent** : les groupes de mots que Plumed départage en réécoutant le passage (« ituximab » devient « rituximab » après « instaure », « cetuximab » après « on passe »).
-3. **Dictionnaire personnel** : vos mots, favorisés pendant la reconnaissance puis écrits avec votre orthographe.
-4. **Nettoyage et uniformisation** : les options préinstallées (hésitations, mots répétés, correction de texte court, espace avant ? et !, nombres en chiffres, espace finale). La correction de texte court s'applique en fait après l'étape 5 et la mise en forme préinstallée après l'étape 6, ce qui est indiqué à côté d'elles.
-5. **Erreurs résiduelles** : les règles qui corrigent les erreurs fréquentes du modèle (« veine lafaxine » devient « venlafaxine »). Voir [Médicaments et termes médicaux](/docs/fonctionnalites/medicaments/).
-6. **Formatage** : vos propres règles de mise en forme, au départ les [règles de dictée](#règles-de-dictée) d'UltiMed.
-7. **Grammaire** : le correcteur grammatical Grammalecte, qui n'applique que les corrections sûres des règles activées.
-8. **Textes types** : voir [Textes types](/docs/fonctionnalites/textes-types/).
+Plumed intervient à deux moments :
 
-## Modifier les listes
+- **pendant la reconnaissance**, il aide le modèle à choisir le bon mot, en lui donnant une liste de termes médicaux à privilégier ;
+- **après la reconnaissance**, il corrige et met en forme le texte écrit, avec des listes de corrections connues.
 
-Chaque liste se recherche (sans tenir compte des accents ni des majuscules), et chaque entrée préinstallée peut être désactivée ou complétée par les vôtres. Chaque onglet a aussi :
+Tout se règle dans **Paramètres > Corrections**, avec un onglet par étape. Chaque liste fournie est un simple fichier texte, que vous pouvez lire sur GitHub (liens ci-dessous) ; dans l'application, vous pouvez désactiver une entrée ou ajouter les vôtres.
 
-- **Importer** et **Exporter**, dans le format de la liste : une expression par ligne pour le vocabulaire, JSONL comme les fichiers d'UltiMed pour les mots qui se ressemblent et les erreurs résiduelles, fichier `.murmure` pour les règles de mise en forme. Un import invalide (expression régulière incorrecte, groupe de moins de 2 candidats) est refusé en entier, avec la liste des erreurs.
-- **Revenir à la liste d'origine**, qui supprime vos modifications après confirmation.
+## Les étapes en bref
 
-Vos modifications des listes médicales sont enregistrées à part et conservées lors d'une mise à jour des règles médicales.
+Le texte passe par ces étapes, dans cet ordre :
 
-## Règles de dictée
+| Étape | Ce qu'elle fait | Exemple |
+| --- | --- | --- |
+| 1. Vocabulaire médical | oriente le modèle vers 77 000 termes médicaux | « thrombotique » plus probable après « microangiopathie » |
+| 2. Mots qui se ressemblent | départage des mots proches selon le contexte | « étuximab » devient « rituximab » ou « cetuximab » |
+| 3. Dictionnaire personnel | ajoute vos propres mots | le nom de votre service |
+| 4. Nettoyage | retire les hésitations, écrit les nombres en chiffres | « euh trois comprimés » devient « 3 comprimés » |
+| 5. Erreurs résiduelles | corrige les erreurs fréquentes du modèle | « veine la faxine » devient « venlafaxine » |
+| 6. Formatage | applique les règles de dictée | « 2 comprimés » devient « 2 cp » |
+| 7. Grammaire | corrige les fautes sûres | accords, espaces |
+| 8. Textes types | insère un texte préparé | « Insère l'examen clinique normal. » |
 
-Une nouvelle installation contient 45 règles de dictée médicale (unités, constantes, ponctuation et mise en page dictées), la liste `dictation_rules.csv` d'[UltiMed-ASR-FR-v2-regex-fixes](https://github.com/UltiMed-Org/UltiMed-ASR-FR-v2-regex-fixes). Par exemple :
+Le détail de chaque étape suit.
+
+## Vocabulaire médical
+
+Avant même d'écrire, le modèle hésite souvent entre plusieurs mots qui sonnent pareil. Plumed lui donne une liste d'environ 77 000 termes et expressions médicales (maladies, médicaments, anatomie, bactéries...) qu'il doit privilégier. Après « microangiopathie », par exemple, « thrombotique » devient plus probable.
+
+- La liste : [french_medical.txt](https://github.com/PlumedOrg/Plumed/blob/medmain/src-tauri/medical-data/phrase-boosting/french_medical.txt), une expression par ligne (exemples : « Entamoeba hartmanni », « crête uréthrale de la femme »).
+- Réglages : en bas de l'onglet, le **poids** (la force du coup de pouce) et la **marge (min-p)** (jusqu'où un terme peu probable peut être repêché). Laissés vides, ils gardent les valeurs prévues pour la liste, et un bouton les rétablit.
+
+## Mots qui se ressemblent
+
+Certains mots sont si proches que le modèle ne peut pas trancher seul : il entend « étuximab », qui peut être « cetuximab » ou « rituximab ». Pour ces cas, Plumed réécoute le passage avec chaque candidat et garde celui qui colle le mieux au contexte : « rituximab » après « on instaure », « cetuximab » après « on passe au ».
+
+- La liste : [confusion_groups.jsonl](https://github.com/PlumedOrg/Plumed/blob/medmain/src-tauri/medical-data/regex-fixes/confusion_groups.jsonl), environ 400 groupes. Chaque ligne donne le mot entendu et ses candidats, par exemple `{"heard": "torvastatine", "candidates": [{"text": "atorvastatine"}, ...]}`.
+
+## Dictionnaire personnel
+
+Vos mots à vous : noms de collègues, de services, de médicaments rares. Ils sont favorisés pendant la reconnaissance, puis écrits avec votre orthographe. Cette liste est vide au départ.
+
+## Nettoyage et uniformisation
+
+Des options simples, à cocher : retirer les hésitations (« euh ») et les mots répétés, écrire les nombres en chiffres, mettre une espace avant ? et !, ajouter une espace finale, corriger les textes très courts.
+
+Deux de ces options s'appliquent en fait plus loin, ce qui est indiqué à côté d'elles : la correction des textes courts après l'étape 5, et la mise en forme après l'étape 6.
+
+## Erreurs résiduelles
+
+Même aidé, le modèle se trompe encore, et souvent de la même façon. Ces erreurs ont été relevées sur des milliers de termes médicaux passés au modèle, puis transformées en règles de correction (environ 45 000) : « veine la faxine », « veine lofaxine » ou « venlofaxine » deviennent « venlafaxine », « par acétamol » devient « paracétamol ».
+
+Les règles viennent du projet [UltiMed-ASR-FR-v2-regex-fixes](https://github.com/UltiMed-Org/UltiMed-ASR-FR-v2-regex-fixes), en plusieurs fichiers selon leur origine :
+
+| Fichier | Contenu |
+| --- | --- |
+| [drug_fix_rules.jsonl](https://github.com/PlumedOrg/Plumed/blob/medmain/src-tauri/medical-data/regex-fixes/drug_fix_rules.jsonl) | noms de médicaments |
+| [dictionary_fix_rules.jsonl](https://github.com/PlumedOrg/Plumed/blob/medmain/src-tauri/medical-data/regex-fixes/dictionary_fix_rules.jsonl) | termes du dictionnaire médical (le plus gros fichier) |
+| [parhaf_fix_rules.jsonl](https://github.com/PlumedOrg/Plumed/blob/medmain/src-tauri/medical-data/regex-fixes/parhaf_fix_rules.jsonl) | termes du corpus médical PARHAF |
+| [acronyms_fix_rules.jsonl](https://github.com/PlumedOrg/Plumed/blob/medmain/src-tauri/medical-data/regex-fixes/acronyms_fix_rules.jsonl) | sigles |
+| [parrot_fix_rules.jsonl](https://github.com/PlumedOrg/Plumed/blob/medmain/src-tauri/medical-data/regex-fixes/parrot_fix_rules.jsonl) | termes du corpus PARROT |
+| [manual_fix_rules.jsonl](https://github.com/PlumedOrg/Plumed/blob/medmain/src-tauri/medical-data/regex-fixes/manual_fix_rules.jsonl) | règles écrites à la main, appliquées en dernier |
+
+Chaque ligne contient le mot correct (`replacement`), les formes erronées entendues (`variants`) et une expression régulière (`pattern`) qui les reconnaît, avec ou sans accents. Ces règles sont mises à jour sans attendre une nouvelle version de Plumed : voir [Médicaments et termes médicaux](/docs/fonctionnalites/medicaments/).
+
+## Formatage
+
+Vos règles de mise en forme : « dire ceci » donne « écrire cela ». Au départ, l'onglet contient les règles de dictée ci-dessous, que vous pouvez modifier, désactiver ou supprimer, et compléter par les vôtres.
+
+### Règles de dictée
+
+Une nouvelle installation contient 45 règles de dictée médicale : unités, constantes, ponctuation et mise en page dictées. Quelques exemples :
 
 | Vous dites | Plumed écrit |
 | --- | --- |
 | 15 mg par kilo par jour | 15 mg/kg/j |
 | 3 fois par jour | 3/j |
+| 2 comprimés | 2 cp |
+| température 38 2 | T° 38,2 |
+| mètre carré | m2 |
+| ouvrez la parenthèse | ( |
+| point d'interrogation | ? |
+| saute une ligne | (retour à la ligne) |
 
-Elles se trouvent dans **Paramètres > Corrections > Formatage**, comme règles personnalisées ordinaires : vous pouvez les modifier, les désactiver ou les supprimer, et ajouter les vôtres. **Revenir à la liste d'origine** remet exactement ces règles.
+- La liste : [dictation_rules.csv](https://github.com/PlumedOrg/Plumed/blob/medmain/src-tauri/medical-data/regex-fixes/dictation_rules.csv), d'UltiMed, avec pour chaque règle un exemple avant et après.
+- **Revenir à la liste d'origine** remet exactement ces 45 règles.
+
+## Grammaire
+
+Le correcteur [Grammalecte](https://grammalecte.net) relit le texte. Plumed n'applique que ses corrections sûres (celles qui n'ont qu'une seule proposition), et seulement pour les règles cochées dans l'onglet.
+
+## Textes types
+
+Une phrase déclencheuse insère un texte préparé. Dictez « Insère l'examen clinique normal. » et Plumed écrit un examen clinique normal complet, à compléter. Voir [Textes types](/docs/fonctionnalites/textes-types/) ; la liste fournie est [templates.jsonl](https://github.com/PlumedOrg/Plumed/blob/medmain/src-tauri/medical-data/text-templates/templates.jsonl).
+
+## Modifier les listes
+
+Dans chaque onglet :
+
+- la **recherche** ignore les accents et les majuscules ;
+- chaque entrée fournie peut être **désactivée**, et vous pouvez **ajouter** les vôtres ;
+- **Importer** et **Exporter** utilisent le format des fichiers ci-dessus (une expression par ligne pour le vocabulaire, JSONL pour les mots qui se ressemblent et les erreurs résiduelles, fichier `.murmure` pour le formatage). Un import invalide, par exemple une expression régulière incorrecte ou un groupe de moins de 2 candidats, est refusé en entier, avec la liste des erreurs ;
+- **Revenir à la liste d'origine** efface vos modifications, après confirmation.
+
+Vos modifications sont enregistrées à part : une mise à jour des règles médicales ne les écrase pas.
 
 ## Exporter et importer ses réglages
 
-**Paramètres > Importer / Exporter** enregistre vos réglages dans un fichier `.murmure`, avec une catégorie par onglet des corrections. Seules vos modifications sont exportées, jamais les listes fournies, et jamais les réglages réseau. À l'import, chaque liste est vérifiée comme dans son onglet, et l'aperçu détaille les entrées ajoutées, modifiées et désactivées avant d'appliquer.
+Pour retrouver vos réglages sur un autre ordinateur ou les partager avec un collègue : **Paramètres > Importer / Exporter** crée un fichier `.murmure`, avec une catégorie par onglet des corrections. Seules vos modifications y sont, jamais les listes fournies, et jamais les réglages réseau. À l'import, chaque liste est vérifiée comme dans son onglet, et un aperçu montre les entrées ajoutées, modifiées et désactivées avant d'appliquer.
