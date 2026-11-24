@@ -6,16 +6,11 @@ Plumed est une application de dictée vocale respectueuse de la confidentialité
 
 Plumed n'est pas un projet commercial et est donc **entièrement gratuite et sans pub**, ne nécessite **pas de compte**, ne piste pas ses utilisateurs, **tourne directement sur votre ordinateur**, **fonctionne hors ligne** une fois le modèle téléchargé et permet de dicter dans **n'importe quelle application** (logiciel métier, traitement de texte, messagerie, etc.), avec une reconnaissance adaptée au **vocabulaire médical français** (médicaments, termes médicaux, comptes rendus, ...).
 
-Plumed n'est cependant pas un dispositif médical certifié : l'application est fournie telle quelle, sans garantie autre que sa [politique de confidentialité](PRIVACY_POLICY.md). De principe, il convient de ne pas utiliser d'information identifiante (noms de patients, ...) dans Plumed.
+**Site et documentation : [plumed.fr](https://plumed.fr)**
+
+Plumed n'est cependant pas (encore ?) un dispositif médical certifié : l'application est fournie telle quelle, sans garantie autre que sa [politique de confidentialité](PRIVACY_POLICY.md). De principe, il convient de ne pas utiliser d'information identifiante (noms de patients, ...) dans Plumed.
 
 ![Écran d'accueil de Plumed : statistiques, visualisation du micro et dernière dictée](docs/screenshots/accueil.png)
-
-## Sommaire
-
-- [Installation](#installation)
-- [Fonctionnalités](#fonctionnalités)
-- [Confidentialité](#confidentialité)
-- [Remerciements et licences](#remerciements-et-licences)
 
 ## Installation
 
@@ -33,112 +28,22 @@ Téléchargement direct de la dernière version stable :
 
 Les versions bêta sont sur la [page des releases](https://github.com/PlumedOrg/Plumed/releases), et Plumed peut aussi les proposer lui-même (canal bêta dans **Paramètres > En ligne**).
 
-- **Windows** : l'installateur (NSIS) s'installe sans droits d'administrateur. Il n'est pas signé : Windows SmartScreen affiche un avertissement, il faut choisir « Informations complémentaires » puis « Exécuter quand même ».
-- **Linux** : sous Wayland, la saisie directe demande une règle udev que l'application propose d'installer.
-- **macOS** (13.4 ou plus récent) : l'application est signée ad hoc mais pas notarisée (pas de compte développeur Apple), macOS la bloque donc au premier lancement. Autorisez-la dans Réglages Système > Confidentialité et sécurité (« Ouvrir quand même »), ou exécutez `xattr -dr com.apple.quarantine /Applications/Plumed.app`.
+Windows et macOS affichent un avertissement au premier lancement (l'application n'est pas signée par un certificat payant), et la saisie directe sous Wayland demande une règle udev : voir le [guide d'installation](https://plumed.fr/docs/installation/).
 
 ## Fonctionnalités
 
-- **Dictée par raccourci clavier** dans n'importe quelle application, avec aperçu en cours de dictée.
-- **Fonctionne hors ligne** : la reconnaissance et les corrections tournent sur l'ordinateur, internet ne sert qu'aux fonctions facultatives listées dans **Paramètres > En ligne**.
-- **Corrections en 8 étapes** adaptées au vocabulaire médical, détaillées ci-dessous.
-- **Textes types** : une phrase dite est remplacée par un texte plus long, utile pour les modèles répétitifs.
-- **PhoneMic** (expérimental) : le téléphone sert de micro, l'audio étant chiffré de bout en bout jusqu'à l'ordinateur.
-- **API de transcription locale** (désactivée par défaut) : vos programmes peuvent faire transcrire des fichiers WAV par Plumed, avec vos corrections, via une API compatible OpenAI.
+- **[Dictée par raccourci clavier](https://plumed.fr/docs/fonctionnalites/dictee/)** dans n'importe quelle application, sur Windows, macOS et Linux.
+- **Fonctionne hors ligne** : la reconnaissance et les corrections tournent sur l'ordinateur, internet ne sert qu'aux [fonctions facultatives](https://plumed.fr/docs/fonctionnalites/en-ligne/) listées dans **Paramètres > En ligne**.
+- **[Corrections en 8 étapes](https://plumed.fr/docs/fonctionnalites/corrections/)** adaptées au vocabulaire médical, dont environ 45 000 [corrections de noms de médicaments et de termes médicaux](https://plumed.fr/docs/fonctionnalites/medicaments/) et les règles de dictée d'UltiMed (« 15 mg par kilo par jour » devient « 15 mg/kg/j »).
+- **[Textes types](https://plumed.fr/docs/fonctionnalites/textes-types/)** : une phrase dite est remplacée par un texte plus long, utile pour les modèles répétitifs.
+- **[Contexte pour les dictées courtes](https://plumed.fr/docs/fonctionnalites/dictees-courtes/)** : un mot isolé est mieux reconnu grâce à la fin de la dictée précédente.
+- **[PhoneMic](https://plumed.fr/docs/fonctionnalites/phonemic/)** (expérimental) : le téléphone sert de micro, l'audio étant chiffré de bout en bout jusqu'à l'ordinateur.
+- **[API de transcription locale](https://plumed.fr/docs/fonctionnalites/api-locale/)** (désactivée par défaut) : vos programmes peuvent faire transcrire des fichiers WAV par Plumed, avec vos corrections, via une API compatible OpenAI.
 - **Tutoriel** intégré dans la barre latérale.
-
-### Corrections
-
-**Paramètres > Corrections** regroupe tout ce qui modifie le texte transcrit. Le texte passe par huit étapes, toujours dans cet ordre, une par onglet (le numéro de l'étape est affiché dans une pastille devant le nom de l'onglet) :
-
-- **Explications** : une carte par étape, reliées par des flèches. Chaque carte montre un exemple avant et après, si l'étape est activée, et un bouton vers sa liste ou son option.
-- **1 Vocabulaire médical** : les quelque 77 000 expressions vers lesquelles le modèle est orienté pendant la reconnaissance (« microangiopathie » rend « thrombotique » plus probable). En bas de l'onglet, le **poids** et la **marge (min-p)** du renforcement sont réglables (vides, ils gardent les valeurs d'origine de la liste) et un bouton rétablit ces valeurs ; ils font partie de l'export des paramètres.
-- **2 Mots qui se ressemblent** : les groupes de mots que Plumed départage en réécoutant le passage (« ituximab » devient « rituximab » après « instaure », « cetuximab » après « on passe »).
-- **3 Dictionnaire personnel** : vos mots, favorisés pendant la reconnaissance puis écrits avec votre orthographe.
-- **4 Nettoyage et uniformisation** : les options préinstallées (hésitations, mots répétés, correction de texte court, espace avant ? et !, nombres en chiffres, espace finale). La correction de texte court s'applique en fait après l'étape 5 et la mise en forme préinstallée après l'étape 6, ce qui est indiqué à côté d'elles.
-- **5 Erreurs résiduelles** : les règles qui corrigent les erreurs fréquentes du modèle (« veine lafaxine » devient « venlafaxine »).
-- **6 Formatage** : vos propres règles de mise en forme (au départ les règles de dictée d'UltiMed).
-- **7 Grammaire** : le correcteur grammatical Grammalecte, qui n'applique que les corrections sûres des règles activées.
-- **8 Textes types** : une phrase dite est remplacée par un texte plus long, éventuellement sur plusieurs lignes (« Insère l'examen clinique normal. » donne un examen clinique normal complet). Appliqué en dernier, après la grammaire, pour que le texte soit inséré tel quel, avec la même tolérance que les autres commandes vocales. Les textes fournis peuvent être lus et modifiés (la version modifiée devient la vôtre et l'originale est désactivée). L'exemple fourni est désactivé tant que vous ne l'activez pas ; vous pouvez ajouter, modifier et supprimer vos propres textes.
-
-Dans l'historique de la page d'accueil, chaque transcription est abrégée (les retours à la ligne y sont affichés « ↵ ») ; sa flèche montre le texte complet et ce que chaque étape a changé ; la correction de texte court et la mise en forme préinstallée y apparaissent sous l'étape 4.
-
-Chaque liste se recherche (sans tenir compte des accents ni des majuscules), et chaque entrée préinstallée peut être désactivée ou complétée par les vôtres. Chaque onglet a aussi **Importer**, **Exporter** (dans le format de la liste : une expression par ligne pour le vocabulaire, JSONL comme les fichiers d'UltiMed pour les mots qui se ressemblent et les erreurs résiduelles, fichier `.murmure` pour les règles de mise en forme) et **Revenir à la liste d'origine**, qui supprime vos modifications après confirmation. Un import invalide (expression régulière incorrecte, groupe de moins de 2 candidats) est refusé en entier, avec la liste des erreurs.
-
-Vos modifications des listes médicales sont enregistrées à part, une liste par fichier (`medical_rules.json`, `medical_phrases.json`, `medical_confusion_groups.json`), et conservées lors d'une mise à jour des règles médicales. L'export des paramètres (**Paramètres > Importer / Exporter**, fichier `.murmure`) les contient, une catégorie par onglet (Vocabulaire médical, Mots qui se ressemblent, Erreurs résiduelles, Grammaire, Textes types) : seules vos modifications sont exportées, jamais les listes fournies. À l'import, chaque liste est vérifiée comme dans son onglet, et une liste invalide n'enregistre rien ; avant d'appliquer, l'aperçu détaille pour chaque liste les entrées ajoutées, modifiées et désactivées. Les fichiers `.murmure` plus anciens, sans ces catégories, s'importent comme avant.
-
-### Correction des noms de médicaments et des termes médicaux
-
-Activée par défaut : **Paramètres > Corrections > Erreurs résiduelles**, interrupteur en haut de l'onglet.
-
-Environ 45 000 règles préinstallées corrigent les noms de médicaments et les termes médicaux que la reconnaissance vocale entend mal, par exemple « tacadol » devient « Takadol », « polllachiurie » devient « pollakiurie » et « soucrural » devient « sous-crural ». Ce sont les mêmes règles que le mode médical de [ParakeetWeb](http://parakeetweb.olicorne.org/?mode=med), appliquées en local, avant toutes les autres règles de formatage. Provenance et licence (AGPL-3.0-or-later) : [`src-tauri/medical-data/SOURCE.md`](src-tauri/medical-data/SOURCE.md).
-
-Dans l'onglet **Erreurs résiduelles**, la section **Règles de correction** permet de :
-
-- **Essayer les règles** : tapez une phrase pour voir ce que les règles en font.
-- **Trouver une règle préinstallée** : cherchez par le mot correct (« Takadol ») ou par ce que la transcription a écrit (« tacadol »), puis modifiez le texte reconnu ou le remplacement, ou désactivez la règle.
-- **Ajouter une règle** : un texte mal reconnu (expression régulière, sans distinction de casse, limites de mot ajoutées automatiquement) et son remplacement. Les règles ajoutées passent avant les règles préinstallées.
-- **Vos modifications** montre tout ce que vous avez changé. Chaque règle peut être rétablie, et **Revenir à la liste d'origine** revient exactement aux règles préinstallées.
-
-Ces modifications sont enregistrées à part (`medical_rules.json`), séparément de vos règles de mise en forme : importer ou réinitialiser l'un ne touche pas l'autre (dans l'export des paramètres, ce sont deux catégories distinctes). Pour corriger autre chose qu'un médicament (un nom propre, par exemple), utilisez plutôt les règles personnalisées.
-
-### Contexte pour les dictées courtes
-
-Activé par défaut : **Paramètres > Avancé > Contexte pour les dictées courtes**.
-
-Une dictée très courte, par exemple un seul mot que l'on redicte pour le corriger, se reconnaît mal toute seule : le modèle n'a ni le timbre de votre voix ni la phrase autour. Quand une dictée dure moins de 2 secondes ou donne 3 mots au plus, Plumed la retranscrit derrière les 10 dernières secondes de la dictée précédente, séparées par 2 secondes de silence, puis ne garde que les mots prononcés après ce silence (repérés par leur horodatage, pas en comparant les textes).
-
-Cet audio reste uniquement en mémoire vive, n'est jamais écrit sur le disque, et est oublié 5 minutes après la dernière dictée, à la fermeture de Plumed, ou dès que l'option est désactivée.
-
-### API de transcription locale
-
-Désactivée par défaut : **Paramètres > Avancé > API de transcription locale**.
-
-Une fois activée, Plumed sert sur `http://127.0.0.1:4800/v1` (port modifiable) une API compatible avec celle d'OpenAI : un programme ou un script qui sait parler à `POST /v1/audio/transcriptions` d'OpenAI fonctionne en changeant seulement son adresse de base. Le texte est transcrit exactement comme une dictée (vocabulaire médical, dictionnaire personnel, règles de correction et de formatage, grammaire, textes types), mais il n'est ajouté ni à l'historique ni aux statistiques de la page d'accueil.
-
-```sh
-curl http://127.0.0.1:4800/v1/audio/transcriptions \
-  -H "Authorization: Bearer <CLÉ>" \
-  -F file=@dictee.wav
-# {"text":"..."}
-```
-
-- **Format** : fichiers WAV PCM 16 bits uniquement (mono ou stéréo, toute fréquence d'échantillonnage), 100 Mo au plus. `response_format` vaut `json` (par défaut, `{"text": "..."}`) ou `text` ; `model`, `language` et `prompt` sont acceptés et ignorés. `GET /v1/models` liste un seul modèle, `plumed`.
-- **Sécurité** : l'API n'écoute que sur cet ordinateur (127.0.0.1), jamais sur le réseau. Chaque requête doit porter la clé affichée dans le réglage (`Authorization: Bearer <CLÉ>`), générée au hasard et régénérable. Les requêtes venant d'une page web (en-tête `Origin`) ou adressées à un autre nom que `localhost` ou `127.0.0.1` sont refusées, pour qu'un site ouvert dans le navigateur ne puisse pas s'en servir. Une seule transcription à la fois.
-- **Sans fenêtre** : `plumed serve [--port 4800]` sert la même API sans ouvrir l'application, jusqu'à Ctrl-C. Il refuse de démarrer tant que le réglage est désactivé, et lit la clé au démarrage (le relancer après avoir régénéré la clé). L'application et `plumed serve` ne peuvent pas utiliser le même port en même temps.
-
-Ces réglages, la clé comprise, ne font jamais partie de l'export des paramètres.
-
-### PhoneMic (dicter depuis son téléphone, expérimental)
-
-> **Expérimental :** cette fonctionnalité est une préversion, attendez-vous à des bugs, et évitez d'y faire passer des contenus sensibles.
-
-Désactivé par défaut : **PhoneMic** dans la barre latérale.
-
-Avec PhoneMic, le téléphone sert de micro, même s'il n'est pas sur le même réseau que l'ordinateur (4G, Wi-Fi invité d'un établissement) :
-
-1. Cliquer sur **Connecter un téléphone** : un QR code s'affiche.
-2. Le scanner avec l'appareil photo du téléphone. La page PhoneMic de Plumed s'ouvre (en français, ou en anglais), sans rien installer.
-3. L'ordinateur demande « Un téléphone a scanné le QR code. Le connecter ? » : cliquer sur **Connecter**.
-4. Dicter sur le téléphone : le texte transcrit est collé dans l'application active de l'ordinateur, comme pour une dictée normale. En mode mains libres, le téléphone écoute en continu et n'envoie que la parole, jamais les silences.
-
-L'audio passe par un serveur relais (`https://turn.plumed.fr` par défaut, modifiable), mais il est chiffré de bout en bout entre le téléphone et Plumed : le relais ne peut pas l'écouter. Le QR code contient un secret d'appairage que le relais ne voit jamais : il ne peut donc ni se faire passer pour le téléphone ni s'intercaler. Cette garantie suppose que le relais sert une page téléphone non modifiée (la page et son code de chiffrement viennent du relais). Plumed vérifie une fois par session que la page servie est identique à celle qu'il embarque, ce qui décourage une modification de masse mais pas une attaque ciblée : n'utilisez qu'un relais de confiance, ou hébergez le vôtre. Le relais voit en revanche les adresses IP et la taille des paquets chiffrés.
-
-Le téléphone se reconnecte tout seul après une coupure réseau et renvoie les paquets perdus en route. Une fois appairé, il garde sa session 12 h : recharger la page ne demande pas de scanner à nouveau le QR code. Pour ne pas coller du texte dans une fenêtre que vous avez quittée entre-temps, une transcription prête plus de 20 secondes après la fin de l'enregistrement est seulement conservée dans l'historique, sans être collée, et un enregistrement en attente depuis plus de 30 secondes est abandonné. Une fois connecté, le bouton « Appairer un autre téléphone » réaffiche le QR code pour changer de téléphone.
-
-Seul le relais HTTPS est utilisé (pas de WebRTC, souvent bloqué sur les réseaux d'établissement), et le proxy système est respecté.
-
-### Règles de dictée (installées par défaut)
-
-Une nouvelle installation de Plumed contient 45 règles de dictée médicale (unités, constantes, ponctuation et mise en page dictées) : la liste `dictation_rules.csv` d'[UltiMed-ASR-FR-v2-regex-fixes](https://github.com/UltiMed-Org/UltiMed-ASR-FR-v2-regex-fixes). Par exemple « 15 mg par kilo par jour » devient « 15 mg/kg/j » et « 3 fois par jour » devient « 3/j ».
-
-Elles se trouvent dans **Paramètres > Corrections > Formatage**, comme règles personnalisées ordinaires : vous pouvez les modifier, les désactiver ou les supprimer, et ajouter les vôtres. Elles s'appliquent après la correction des médicaments. **Revenir à la liste d'origine** remet exactement ces règles.
 
 ## Confidentialité
 
-La reconnaissance se fait sur votre ordinateur : l'audio et les transcriptions ne sont jamais envoyés sur internet. Une fois le modèle de reconnaissance vocale téléchargé, Plumed fonctionne entièrement hors ligne : aucune des connexions ci-dessous n'est nécessaire pour dicter.
-
-**Paramètres > En ligne** liste tout ce qui passe par le réseau : la vérification des mises à jour de l'application (à chaque démarrage, sur le canal stable ou bêta, désactivable ; rien n'est installé sans votre clic), le téléchargement du modèle de reconnaissance vocale (une seule fois, quand vous le choisissez, depuis Hugging Face ou à défaut depuis le relais Plumed `models.plumed.fr` ; il est conservé lors des mises à jour et se gère dans **Paramètres > Modèle**), la vérification des mises à jour des règles médicales (rien n'est téléchargé sans votre clic ; « Voir les changements » dans la fenêtre de mise à jour montre les lignes ajoutées et retirées avant d'installer) et les statistiques d'utilisation anonymes (des totaux agrégés, jamais de texte ni d'audio ; désactivées sauf si vous avez accepté, réglables dans cet onglet), et PhoneMic (seulement si vous l'activez). Ces réglages ne font jamais partie de l'export des paramètres. L'[API de transcription locale](#api-de-transcription-locale), désactivée par défaut, n'écoute que sur l'ordinateur lui-même et ne passe pas par internet. Voir la [politique de confidentialité](PRIVACY_POLICY.md).
+La reconnaissance se fait sur votre ordinateur : l'audio et les transcriptions ne sont jamais envoyés sur internet. Une fois le modèle de reconnaissance vocale téléchargé, Plumed fonctionne entièrement hors ligne. Voir la [politique de confidentialité](PRIVACY_POLICY.md) et la [liste des connexions réseau](https://plumed.fr/docs/fonctionnalites/en-ligne/).
 
 ## Remerciements et licences
 
