@@ -1,12 +1,14 @@
 # Plumed 0.2.0-beta.1 (2026-11-23)
 
 **🔒 Removed: network access and data leaving the machine** (Plumed is local-first, so features that open network access were removed to reduce the attack surface)
+
 - **Local API**: the local HTTP server (Extensions > Local API) and its transcription endpoints are gone. Settings files and `.murmure` exports that still contain its options load without errors.
 - **Command Mode and Prompt Mode (LLM Connect)**: everything that sent text to an LLM is gone: Ollama and remote LLM servers, the Command and Prompt shortcuts, CLI flags and wake words, and the SmartMic LLM and live translation modes (SmartMic is now pure dictation). The "Show result after dictation" setting keeps Off and All dictations; the old Command choices become Off. Old settings and `.murmure` exports with LLM options still load, the options are ignored. Plumed does not delete what it left on your computer: `llm_connect.json` in the app data folder and the `plumed` keyring entry holding a remote server API key, remove them by hand if you want.
 - **SmartMic**: the phone microphone over the local network (its local HTTPS server, QR pairing, paired devices, reverse proxy relay settings and phone page) is gone, replaced by the end-to-end encrypted phone microphone through a relay. Old settings and `.murmure` exports with SmartMic options still load, the options are ignored. Plumed does not delete the SmartMic certificate and paired devices it left in the app data folder (`smartmic` folder), remove it by hand if you want.
 - **Voice Mode**: hands-free wake word listening is gone, with its page, its toggle shortcut and the `--voice-mode` CLI flag. Old settings and `.murmure` exports with Voice Mode options still load, the options are ignored.
 
 **✨ New Features**
+
 - **App update channel**: Settings > Online > App updates offers stable versions (default), beta versions (pre-releases, which then lead to the final release) or no automatic check (a sidebar button then checks on demand). The "Check for updates" button only shows when an update is available or the check is disabled. When GitHub is unreachable, the check and the download go through the Plumed relay (models.plumed.fr); the installer signature is still verified, so the relay cannot forge an update.
 - **Speech model downloaded on first launch**: the installer no longer ships the speech model, so it is much smaller. On first launch a dialog lets you pick a model (UltiMed v2 Ultra int8, 668 MB, or the lighter w4a8, 402 MB) and downloads it once, with progress, resume after an interruption and SHA-256 checks. The model is kept across updates.
 - **Model tab**: Settings > System > Model shows the catalog and lets you switch, check, re-download or delete a model.
@@ -32,10 +34,10 @@
 - **Online tab**: Settings > System > Online says what goes online and when (the app update check at every start, which cannot be turned off, the medical data update check and the usage statistics, both off unless you agreed, and PhoneMic's relay), and holds the usage statistics and medical data update settings, moved from the end of the Advanced tab and from the Corrections page.
 - **Corrections lists in the settings export**: the `.murmure` export and import (and `plumed import`) now carry your changes to the medical vocabulary, the sound-alike words and the residual errors, one category each named after its tab, checked like an import in that tab. Only your changes are exported, never the provided lists. Older `.murmure` files import as before.
 - **Getting started checklist removed**: the "Getting started" checklist of the sidebar is gone. The startup questions (PhoneMic, usage statistics, medical data) and the Wayland setup help stay.
-**🐛 Bug Fixes**
+  **🐛 Bug Fixes**
 - **PhoneMic**: dictations made with the phone microphone now appear in the home page history and count in the stats and usage statistics, like keyboard dictations.
 - **French previews**: the overlay preview text and the examples of the clean-up options were in English in the French interface; they are now French medical examples.
-**🔒 Security**
+  **🔒 Security**
 - **Recordings folder per user**: the temporary audio files are no longer in the shared temporary folder (`/tmp/plumed_recordings` on Linux), where another account of the computer could create the folder first. They now go to a folder of your own account: on Linux the session runtime folder (`$XDG_RUNTIME_DIR/plumed_recordings`, in memory, erased at logout), otherwise `plumed_recordings` in the Plumed cache folder. "Keep audio recordings" keeps them there too. An old `/tmp/plumed_recordings` folder is left untouched, you can delete it.
 - **Content Security Policy**: the app windows now run under a strict Content Security Policy: only the app's own scripts, styles, images and the connection to the Plumed core are allowed, no remote site, no frame, no plugin. Network calls (updates, PhoneMic relay, statistics) are made by the Rust core, not by the interface, so they are not affected.
 - **Command-line import off by default**: on a new install, `plumed import` is refused until you turn off "Block command-line import" (Settings > System > Advanced), so another program running on your account cannot silently replace your settings. The error message says how to allow it. Existing installs keep their current choice. Importing from the app window is unchanged.

@@ -1,6 +1,7 @@
 # Murmure 1.11.3 (upstream) (2026-08-31)
 
 **✨ New Features**
+
 - **Dictionary** — Word counter with a green/yellow/red indicator ([#386](https://github.com/Kieirra/murmure/issues/386)).
 - **Dictionary** — Support the full Parakeet vocabulary and accept two-word entries, so expressions with a space or a hyphen can be added ([#386](https://github.com/Kieirra/murmure/issues/386)).
 - **Dictionary** — Export as .txt, and accept .txt on import alongside the legacy .csv ([#386](https://github.com/Kieirra/murmure/issues/386)).
@@ -13,7 +14,7 @@
 - **API** — Cancel the running transcription when the client closes the connection, and free the queue as soon as the abandoned work has stopped ([#411](https://github.com/Kieirra/murmure/discussions/411)).
 - **Packaging** — New pacman package for Arch-based distros ([#358](https://github.com/Kieirra/murmure/issues/358)).
 - **CLI** — New --hidden flag to launch Murmure without showing the window, combined with control commands such as --transcription or --llm-mode.
-**🐛 Bug Fixes**
+  **🐛 Bug Fixes**
 - **Audio** — Pad each chunk with silence before inference, fixing chunks the model could not decode which silently truncated the transcription.
 - **Audio** — Adapt the voice detection to microphone gain and background noise for wake word, chunking, and silence auto-stop ([#381](https://github.com/Kieirra/murmure/discussions/381)).
 - **Audio** — List Bluetooth microphones on Linux, PipeWire only sets the property the enumeration required on ALSA sources ([#421](https://github.com/Kieirra/murmure/issues/421)).
@@ -30,7 +31,7 @@
 - **Logs** — Reset the log file above 1 MB while the app is running, instead of only checking at startup, and add an Off level to disable logging completely ([#417](https://github.com/Kieirra/murmure/issues/417)).
 - **Packaging** — Set the Linux desktop file category so Murmure appears under Utility instead of Other ([#385](https://github.com/Kieirra/murmure/issues/385)).
 - **Security** — Fix vulnerabilities flagged by Dependabot.
-**🙏 Thanks**
+  **🙏 Thanks**
 - Beta testers: @tomsquest, @laurentkempe
 - Contributors: @flomillot, @nicob3y, @gregoryrivage
 - Donors: Nicholas, Nutwing, Ubertartine, Chase, Gizmo38, Aparrot, scwall, Prometee

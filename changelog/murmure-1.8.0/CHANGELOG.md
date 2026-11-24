@@ -1,6 +1,7 @@
 # Murmure 1.8.0 (upstream) (2026-03-28)
 
 **✨ New Features**
+
 - **(Major) Voice Mode** — Activate Murmure by voice with customizable wake words, no keyboard needed. Includes auto-send enter, and wake word listener stays active during keyboard-triggered recording.
 - **(Major) LLM Remote Servers** — Connect to remote OpenAI-compatible API servers for LLM Connect, with per-mode provider switching, model search, per-mode voice triggers, and onboarding flow.
 - **(Major) Import/Export Settings** — Import and export configuration settings partially or fully. Add CLI import support (`murmure import <file>`) for sysadmin mass deployment.
@@ -15,7 +16,7 @@
 - **Update** — Update `tauri-plugin-updater` to 2.10.0 for multi-format support (.deb, .exe, macOS Intel).
 - **Sidebar** — Add "Release notes" link in sidebar footer.
 - **Defaults** — Improve default settings for new users (transcription in RAM, trailing space).
-**🐛 Bug Fixes**
+  **🐛 Bug Fixes**
 - Fix overlay scrollbar on Windows, overlay stealing focus, overlay freeze on audio timeout.
 - Fix double percentage display during download.
 - Use dark mode colors consistently.
