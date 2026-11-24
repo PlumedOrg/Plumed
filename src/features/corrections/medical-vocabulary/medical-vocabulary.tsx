@@ -7,11 +7,12 @@ import { useListFile } from '../hooks/use-list-file';
 import { useListOverlay } from '../hooks/use-list-overlay';
 import { ListHeader } from '../list-header/list-header';
 import { OverlayList } from '../overlay-list/overlay-list';
+import { BoostTuning } from './boost-tuning';
 
 /** "Medical vocabulary" tab: the phrase boosting list, searchable, with the user's changes. */
 export const MedicalVocabulary = () => {
     const { t } = useTranslation();
-    const { settings, updateBuiltInOption } = useFormattingRules();
+    const { settings, saveSettings, updateBuiltInOption } = useFormattingRules();
     const { overlay, saveOverlay, reload, changeCount } = useListOverlay<string>(
         'get_phrase_overlay',
         'set_phrase_overlay'
@@ -74,6 +75,17 @@ export const MedicalVocabulary = () => {
                     </Button>
                 </div>
             </OverlayList>
+            <BoostTuning
+                weight={settings.built_in.phrase_boost_weight}
+                minp={settings.built_in.phrase_boost_minp}
+                onChange={updateBuiltInOption}
+                onReset={() =>
+                    saveSettings({
+                        ...settings,
+                        built_in: { ...settings.built_in, phrase_boost_weight: null, phrase_boost_minp: null },
+                    })
+                }
+            />
         </div>
     );
 };

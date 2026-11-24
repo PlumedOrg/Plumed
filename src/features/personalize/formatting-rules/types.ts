@@ -18,6 +18,10 @@ export interface BuiltInOptions {
     text_numbers_threshold: number;
     medical_fixes: boolean;
     phrase_boosting: boolean;
+    /** Replaces the phrase list's default weight, `null` keeps the list's own. */
+    phrase_boost_weight: number | null;
+    /** Replaces the phrase list's default min-p (margin), `null` keeps the list's own. */
+    phrase_boost_minp: number | null;
     confusion_rescoring: boolean;
     grammar: boolean;
 }
@@ -37,6 +41,8 @@ export const defaultFormattingSettings: FormattingSettings = {
         text_numbers_threshold: 0,
         medical_fixes: true,
         phrase_boosting: true,
+        phrase_boost_weight: null,
+        phrase_boost_minp: null,
         confusion_rescoring: true,
         grammar: true,
     },

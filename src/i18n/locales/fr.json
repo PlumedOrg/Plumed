@@ -183,7 +183,7 @@
     "Importing medical vocabulary changes...": "Importation des modifications du vocabulaire médical...",
     "Importing sound-alike word changes...": "Importation des modifications des mots qui se ressemblent...",
     "Importing residual error changes...": "Importation des modifications des erreurs résiduelles...",
-    "Options of the Clean-up and standardization tab": "Options de l'onglet Nettoyage et uniformisation",
+    "Options of the Corrections page (switches, boost tuning)": "Options de la page Corrections (interrupteurs, réglage du renforcement)",
     "For the medical vocabulary, the sound-alike words, the residual errors, the grammar rules and the text templates, only your changes are exported, not the provided lists. Online settings (PhoneMic, usage statistics, medical rules updates) are never exported.": "Pour le vocabulaire médical, les mots qui se ressemblent, les erreurs résiduelles, les règles de grammaire et les textes types, seules vos modifications sont exportées, pas les listes fournies. Les réglages en ligne (PhoneMic, statistiques d'utilisation, mises à jour des règles médicales) ne sont jamais exportés.",
     "In {{path}}": "Dans {{path}}",
     "Info": "Info",
@@ -726,5 +726,11 @@
     "Turned off": "Désactivé",
     "Review the changes": "Voir les changements",
     "No line changes compared with the rules in use.": "Aucune ligne ne change par rapport aux règles utilisées.",
-    "Only the first lines are shown.": "Seules les premières lignes sont affichées."
+    "Only the first lines are shown.": "Seules les premières lignes sont affichées.",
+    "Boost weight": "Poids du renforcement",
+    "How strongly the phrases of the list are favoured, from above 0 to 10. Higher finds more medical words but invents more of them. Leave empty for the original value.": "Force avec laquelle les termes de la liste sont favorisés, de plus de 0 à 10. Plus haut, le modèle trouve plus de mots médicaux mais en invente aussi davantage. Laissez vide pour la valeur d'origine.",
+    "Boost margin (min-p)": "Marge du renforcement (min-p)",
+    "A phrase is only favoured once the model already finds it this likely compared to its best guess, from above 0 to 1. Lower boosts more often. Leave empty for the original value.": "Un terme n'est favorisé que si le modèle le juge déjà au moins aussi probable, rapporté à sa meilleure hypothèse, de plus de 0 à 1. Plus bas, le renforcement intervient plus souvent. Laissez vide pour la valeur d'origine.",
+    "Original values: weight {{weight}}, margin {{minp}}.": "Valeurs d'origine : poids {{weight}}, marge {{minp}}.",
+    "Restore the original values": "Rétablir les valeurs d'origine"
 }

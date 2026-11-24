@@ -34,7 +34,7 @@ export const CATEGORY_DEFINITIONS: CategoryDefinition[] = [
         label: CORRECTIONS_TAB_LABELS.formatting,
         icon: AlignLeft,
         supportsMerge: true,
-        subItems: [{ key: 'built_in', label: 'Options of the Clean-up and standardization tab' }],
+        subItems: [{ key: 'built_in', label: 'Options of the Corrections page (switches, boost tuning)' }],
     },
     {
         key: 'dictionary',
