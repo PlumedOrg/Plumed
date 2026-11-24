@@ -137,3 +137,46 @@ site-search button[data-open-modal] > kbd {
 .sl-markdown-content .plumed-toc li {
     margin-top: 0.125rem;
 }
+
+/* Starlight keeps the documentation link, GitHub and the theme selector for
+   wide screens (they move into the menu); on the pages without a menu (the
+   home page), show them in the top bar on phones too, without the divider
+   that separates them from the theme selector. */
+@media (max-width: 50rem) {
+    :root:not([data-has-sidebar]) .header .right-group {
+        display: flex;
+        gap: 0.75rem;
+    }
+
+    :root:not([data-has-sidebar]) .header .social-icons::after {
+        display: none;
+    }
+
+    /* The theme selector shrunk to its icon, so the logo keeps its room */
+    :root:not([data-has-sidebar]) .header starlight-theme-select select {
+        width: calc(var(--sl-label-icon-size) + 1rem);
+        margin-inline: 0;
+        padding-inline: 0;
+        color: transparent;
+    }
+
+    :root:not([data-has-sidebar]) .header starlight-theme-select option {
+        color: var(--sl-color-white);
+        background-color: var(--sl-color-black);
+    }
+
+    :root:not([data-has-sidebar]) .header starlight-theme-select .caret {
+        display: none;
+    }
+
+    :root:not([data-has-sidebar]) .header .title-wrapper {
+        flex-shrink: 0;
+    }
+}
+
+/* On the narrowest phones, the logo alone, so the top bar still fits */
+@media (max-width: 23rem) {
+    :root:not([data-has-sidebar]) .header .site-title span {
+        display: none;
+    }
+}
