@@ -182,7 +182,13 @@ pub fn cleanup_recordings(app: &tauri::AppHandle) -> Result<()> {
 }
 
 pub(crate) fn read_wav_mono_native(wav_path: &Path) -> Result<(Vec<f32>, u32)> {
-    let mut reader = hound::WavReader::open(wav_path)?;
+    decode_wav_mono(std::io::BufReader::new(std::fs::File::open(wav_path)?))
+}
+
+/// Decodes 16-bit integer PCM WAV from any reader (a file or uploaded bytes)
+/// into mono f32 samples at their native rate.
+pub(crate) fn decode_wav_mono<R: std::io::Read>(source: R) -> Result<(Vec<f32>, u32)> {
+    let mut reader = hound::WavReader::new(source)?;
     let spec = reader.spec();
 
     if spec.bits_per_sample != 16 {

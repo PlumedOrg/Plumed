@@ -10,6 +10,7 @@ mod engine;
 mod formatting_rules;
 mod grammar;
 mod history;
+mod local_api;
 mod medical;
 mod model;
 mod overlay;
@@ -67,13 +68,16 @@ pub fn run() {
         log::warn!("Rustls crypto provider was already installed");
     }
 
-    let is_transcribe = matches!(
+    // `transcribe` and `serve` run headless, beside a running app if any.
+    let is_headless = matches!(
         cli::parse_raw_args(&std::env::args().collect::<Vec<_>>()),
-        Ok(Some(cli::CliCommand::Transcribe { .. }))
+        Ok(Some(
+            cli::CliCommand::Transcribe { .. } | cli::CliCommand::Serve { .. }
+        ))
     );
 
     // transcribe keeps stdout for the transcription only; logs go to stderr.
-    let log_targets = if is_transcribe {
+    let log_targets = if is_headless {
         vec![Target::new(TargetKind::Stderr)]
     } else {
         vec![
@@ -107,7 +111,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build());
 
-    if !is_transcribe {
+    if !is_headless {
         builder = builder.plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
             match cli::parse_raw_args(&args) {
                 Ok(Some(cli::CliCommand::Import {
@@ -242,6 +246,13 @@ pub fn run() {
                 } else {
                     log::LevelFilter::Error
                 });
+            } else if matches!(pending_cli_action, Some(cli::CliCommand::Serve { .. })) {
+                let verbose = std::env::args().any(|a| a == "-v" || a == "--verbose");
+                log::set_max_level(if verbose {
+                    log::LevelFilter::Debug
+                } else {
+                    log::LevelFilter::Info
+                });
             } else if let Ok(level) = log::LevelFilter::from_str(&s.log_level) {
                 log::set_max_level(level);
             }
@@ -308,6 +319,25 @@ pub fn run() {
                     }
                 }
                 return Ok(());
+            }
+
+            app.manage(local_api::LocalApiState::default());
+            if let Some(cli::CliCommand::Serve { port }) = &pending_cli_action {
+                if let Some(main_window) = app.get_webview_window("main") {
+                    let _ = main_window.hide();
+                }
+                crate::medical::init(app.handle());
+                match local_api::serve_headless(app.handle(), *port) {
+                    Ok(()) => app.handle().exit(0),
+                    Err(e) => {
+                        eprintln!("{}", e);
+                        app.handle().exit(1);
+                    }
+                }
+                return Ok(());
+            }
+            if let Err(e) = local_api::apply_settings(app.handle()) {
+                error!("Local API not started: {}", e);
             }
 
             app.manage(remote_mic::session::RemoteMicState::default());
@@ -501,6 +531,10 @@ pub fn run() {
             set_keep_recordings,
             set_remove_hesitations,
             set_block_cli_import,
+            get_local_api_status,
+            set_local_api_enabled,
+            set_local_api_port,
+            regenerate_local_api_token,
             set_short_dictation_context,
             set_remote_mic_url,
             set_remote_mic_enabled,

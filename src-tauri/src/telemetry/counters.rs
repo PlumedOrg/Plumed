@@ -23,9 +23,10 @@ pub struct ErrorCounts {
     pub paste: u64,
 }
 
+/// Sums over the transcriptions of one source during the period.
 #[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq)]
 #[serde(default)]
-pub struct Counters {
+pub struct Usage {
     pub transcriptions: u64,
     pub audio_secs_sum: f64,
     pub audio_secs_sq_sum: f64,
@@ -35,6 +36,24 @@ pub struct Counters {
     pub chars_sq_sum: f64,
     /// Sum of processing time / audio duration, one term per transcription.
     pub rtf_sum: f64,
+}
+
+/// Where a transcription came from.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Source {
+    /// Keyboard shortcut or PhoneMic.
+    Dictation,
+    /// The local transcription API (`plumed serve` or the in-app server).
+    Api,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq)]
+#[serde(default)]
+pub struct Counters {
+    /// Flattened so state files written before the API was counted still load.
+    #[serde(flatten)]
+    pub dictation: Usage,
+    pub api: Usage,
     pub errors: ErrorCounts,
 }
 
@@ -58,8 +77,8 @@ pub fn mean_stdev(n: u64, sum: f64, sq_sum: f64) -> (f64, f64) {
     (mean, variance.sqrt())
 }
 
-impl Counters {
-    pub fn add_transcription(&mut self, audio_secs: f64, chars: usize, processing_secs: f64) {
+impl Usage {
+    fn add(&mut self, audio_secs: f64, chars: usize, processing_secs: f64) {
         let chars = chars as f64;
         self.transcriptions += 1;
         self.audio_secs_sum += audio_secs;
@@ -72,23 +91,14 @@ impl Counters {
         }
     }
 
-    pub fn add_error(&mut self, kind: ErrorKind) {
-        match kind {
-            ErrorKind::ModelLoad => self.errors.model_load += 1,
-            ErrorKind::Microphone => self.errors.microphone += 1,
-            ErrorKind::Paste => self.errors.paste += 1,
-        }
-    }
-
-    /// Nothing happened during the period (no dictation, no error).
-    pub fn is_empty(&self) -> bool {
-        self.transcriptions == 0 && self.errors == ErrorCounts::default()
-    }
-
-    /// Removes what was `sent`, keeping what was counted while it was sent.
-    pub fn subtract(&mut self, sent: &Counters) {
+    fn subtract(&mut self, sent: &Usage) {
         let sub = |a: f64, b: f64| (a - b).max(0.0);
         self.transcriptions = self.transcriptions.saturating_sub(sent.transcriptions);
+        if self.transcriptions == 0 {
+            // Float sums may keep a rounding residue: reset them exactly.
+            *self = Usage::default();
+            return;
+        }
         self.audio_secs_sum = sub(self.audio_secs_sum, sent.audio_secs_sum);
         self.audio_secs_sq_sum = sub(self.audio_secs_sq_sum, sent.audio_secs_sq_sum);
         for (bucket, sent_bucket) in self.audio_buckets.iter_mut().zip(sent.audio_buckets) {
@@ -97,6 +107,43 @@ impl Counters {
         self.chars_sum = sub(self.chars_sum, sent.chars_sum);
         self.chars_sq_sum = sub(self.chars_sq_sum, sent.chars_sq_sum);
         self.rtf_sum = sub(self.rtf_sum, sent.rtf_sum);
+    }
+}
+
+impl Counters {
+    pub fn add_transcription(
+        &mut self,
+        source: Source,
+        audio_secs: f64,
+        chars: usize,
+        processing_secs: f64,
+    ) {
+        let usage = match source {
+            Source::Dictation => &mut self.dictation,
+            Source::Api => &mut self.api,
+        };
+        usage.add(audio_secs, chars, processing_secs);
+    }
+
+    pub fn add_error(&mut self, kind: ErrorKind) {
+        match kind {
+            ErrorKind::ModelLoad => self.errors.model_load += 1,
+            ErrorKind::Microphone => self.errors.microphone += 1,
+            ErrorKind::Paste => self.errors.paste += 1,
+        }
+    }
+
+    /// Nothing happened during the period (no transcription, no error).
+    pub fn is_empty(&self) -> bool {
+        self.dictation.transcriptions == 0
+            && self.api.transcriptions == 0
+            && self.errors == ErrorCounts::default()
+    }
+
+    /// Removes what was `sent`, keeping what was counted while it was sent.
+    pub fn subtract(&mut self, sent: &Counters) {
+        self.dictation.subtract(&sent.dictation);
+        self.api.subtract(&sent.api);
         self.errors.model_load = self
             .errors
             .model_load
@@ -106,13 +153,6 @@ impl Counters {
             .microphone
             .saturating_sub(sent.errors.microphone);
         self.errors.paste = self.errors.paste.saturating_sub(sent.errors.paste);
-        if self.transcriptions == 0 {
-            // Float sums may keep a rounding residue: reset them exactly.
-            *self = Counters {
-                errors: self.errors.clone(),
-                ..Counters::default()
-            };
-        }
     }
 }
 
@@ -147,16 +187,36 @@ mod tests {
     #[test]
     fn subtracting_what_was_sent_keeps_later_counts() {
         let mut sent = Counters::default();
-        sent.add_transcription(5.0, 40, 2.5);
+        sent.add_transcription(Source::Dictation, 5.0, 40, 2.5);
+        sent.add_transcription(Source::Api, 3.0, 20, 0.5);
         sent.add_error(ErrorKind::Paste);
         let mut current = sent.clone();
-        current.add_transcription(40.0, 300, 10.0);
+        current.add_transcription(Source::Dictation, 40.0, 300, 10.0);
         current.subtract(&sent);
         let mut expected = Counters::default();
-        expected.add_transcription(40.0, 300, 10.0);
+        expected.add_transcription(Source::Dictation, 40.0, 300, 10.0);
         assert_eq!(current, expected);
 
         current.subtract(&expected);
         assert!(current.is_empty());
+    }
+
+    #[test]
+    fn state_files_from_before_api_counting_still_load() {
+        let old = r#"{"transcriptions":2,"audio_secs_sum":30.0,"errors":{"paste":1}}"#;
+        let counters: Counters = serde_json::from_str(old).unwrap();
+        assert_eq!(counters.dictation.transcriptions, 2);
+        assert_eq!(counters.dictation.audio_secs_sum, 30.0);
+        assert_eq!(counters.api, Usage::default());
+        assert_eq!(counters.errors.paste, 1);
+    }
+
+    #[test]
+    fn api_use_alone_makes_the_period_non_empty() {
+        let mut counters = Counters::default();
+        counters.add_transcription(Source::Api, 4.0, 30, 0.4);
+        assert!(!counters.is_empty());
+        assert_eq!(counters.dictation.transcriptions, 0);
+        assert_eq!(counters.api.transcriptions, 1);
     }
 }

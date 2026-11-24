@@ -41,6 +41,7 @@ USAGE:
     plumed [OPTIONS]
     plumed import <FILE> [IMPORT_OPTIONS]
     plumed transcribe <FILE>
+    plumed serve [SERVE_OPTIONS]
 
 OPTIONS:
     --transcription              Toggle standard transcription on/off
@@ -77,6 +78,20 @@ TRANSCRIBE:
         --no-dictionary          Disable boosting and fuzzy post-correction (baseline)
         --dictionary-file <F>    Load the dictionary from a file (one word per line)
 
+SERVE:
+    Serve the OpenAI-compatible transcription API on 127.0.0.1 without a
+    window, until Ctrl-C. Same transcription as a dictation (dictionary,
+    formatting rules, grammar, text templates). Refuses to start unless
+    Settings > System > Advanced > Local transcription API is turned on;
+    requests need the API key shown there (Authorization: Bearer <KEY>).
+
+    USAGE:
+        plumed serve [SERVE_OPTIONS]
+
+    SERVE_OPTIONS:
+        --port <PORT>            Port to listen on (default: the one in the settings, 4800)
+        -v, --verbose            Print full logs to stderr (errors and requests by default)
+
 EXAMPLES:
     plumed --transcription
     plumed --paste-last
@@ -85,7 +100,8 @@ EXAMPLES:
     plumed import config.murmure --strategy merge
     plumed import config.murmure -s replace
     plumed transcribe recording.wav
-    plumed transcribe recording.wav -v",
+    plumed transcribe recording.wav -v
+    plumed serve --port 4800",
         VERSION
     );
 }
@@ -130,6 +146,10 @@ pub fn parse_raw_args(args: &[String]) -> Result<Option<CliCommand>, String> {
         };
     }
 
+    if let Some(index) = args.iter().position(|a| a == "serve") {
+        return parse_serve_args(&args[index + 1..]).map(Some);
+    }
+
     if let Some(import_index) = args.iter().position(|a| a == "import") {
         let file_path = match parse_file_arg(args, "import") {
             Some(p) => p,
@@ -166,6 +186,30 @@ pub fn parse_raw_args(args: &[String]) -> Result<Option<CliCommand>, String> {
         }
     }
     Ok(None)
+}
+
+/// Options of `plumed serve`: only `--port <PORT>` and `-v` are known.
+fn parse_serve_args(rest: &[String]) -> Result<CliCommand, String> {
+    let mut port = None;
+    let mut args = rest.iter();
+    while let Some(arg) = args.next() {
+        match arg.as_str() {
+            "--port" => {
+                let value = args.next().ok_or("--port requires a value")?;
+                port = Some(match value.parse::<u16>() {
+                    Ok(p) if p > 0 => p,
+                    _ => return Err(format!("Invalid port: {value} (expected 1-65535)")),
+                });
+            }
+            "-v" | "--verbose" => {}
+            other => {
+                return Err(format!(
+                    "Unknown serve option: {other}. Usage: plumed serve [--port <PORT>] [-v]"
+                ))
+            }
+        }
+    }
+    Ok(CliCommand::Serve { port })
 }
 
 #[cfg(test)]
@@ -404,5 +448,31 @@ mod tests {
             parse_raw_args(&args).unwrap(),
             Some(CliCommand::Transcription)
         );
+    }
+
+    fn serve_args(rest: &[&str]) -> Result<Option<CliCommand>, String> {
+        let args: Vec<String> = ["plumed", "serve"]
+            .iter()
+            .chain(rest)
+            .map(|a| a.to_string())
+            .collect();
+        parse_raw_args(&args)
+    }
+
+    #[test]
+    fn serve_parses_its_port() {
+        assert_eq!(serve_args(&[]), Ok(Some(CliCommand::Serve { port: None })));
+        assert_eq!(
+            serve_args(&["--port", "4900", "-v"]),
+            Ok(Some(CliCommand::Serve { port: Some(4900) }))
+        );
+    }
+
+    #[test]
+    fn serve_refuses_bad_ports_and_unknown_options() {
+        assert!(serve_args(&["--port"]).is_err());
+        assert!(serve_args(&["--port", "0"]).is_err());
+        assert!(serve_args(&["--port", "70000"]).is_err());
+        assert!(serve_args(&["--host", "0.0.0.0"]).is_err());
     }
 }

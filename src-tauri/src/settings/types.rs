@@ -93,6 +93,13 @@ pub struct AppSettings {
     // carry. Never exported.
     pub tutorial_opened: bool,
     pub tutorial_completed: bool,
+    // Plumed fork: OpenAI-compatible transcription API on 127.0.0.1 (see
+    // `local_api`), off by default. New key names on purpose: Murmure's old
+    // `api_enabled` stays ignored, so a migrated settings file cannot open the
+    // port. The bearer token is generated on first use. Never exported.
+    pub local_api_enabled: bool,
+    pub local_api_port: u16,
+    pub local_api_token: String,
 }
 
 /// Plumed: new installs type the text (Direct), which needs no clipboard and
@@ -198,6 +205,9 @@ impl Default for AppSettings {
             app_update_channel_asked: false,
             tutorial_opened: false,
             tutorial_completed: false,
+            local_api_enabled: false,
+            local_api_port: 4800,
+            local_api_token: String::new(),
         }
     }
 }

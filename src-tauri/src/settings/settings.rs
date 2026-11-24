@@ -89,6 +89,9 @@ mod tests {
         );
 
         assert_eq!(settings.sound_volume, 42);
+        // Murmure's old API keys must never turn the new local API on.
+        assert!(!settings.local_api_enabled);
+        assert_eq!(settings.local_api_port, 4800);
     }
 
     #[test]

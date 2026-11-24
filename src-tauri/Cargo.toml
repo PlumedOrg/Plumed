@@ -38,7 +38,9 @@ rayon = "1.12"
 tokenizers = { version = "0.23.1", default-features = false, features = ["fancy-regex"] }
 log = "0.4.29"
 enigo = "0.6"
-tokio = { version = "1", features = ["macros", "rt-multi-thread", "time", "sync"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "time", "sync", "net", "signal"] }
+# Plumed fork: the local transcription API (`local_api`), off by default.
+axum = { version = "0.8", default-features = false, features = ["http1", "tokio", "multipart", "json"] }
 text2num = "2.6.2"
 uuid = { version = "1", features = ["v4", "v5"] }
 tauri-plugin-dialog = "~2.6"
@@ -134,6 +136,8 @@ libc = "0.2"
 # Plumed fork: the model download tests run a local HTTP server.
 [dev-dependencies]
 tokio = { version = "1", features = ["net", "io-util"] }
+# Plumed fork: drives the local API router in tests (`ServiceExt::oneshot`).
+tower = { version = "0.5", features = ["util"] }
 
 # panic = "abort" deliberately omitted, changes thread-panic behaviour.
 [profile.release]

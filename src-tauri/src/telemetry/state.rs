@@ -106,6 +106,7 @@ pub fn delete(app: &AppHandle) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::telemetry::counters::Source;
 
     fn date(y: i32, m: u32, d: u32) -> NaiveDate {
         NaiveDate::from_ymd_opt(y, m, d).unwrap()
@@ -131,7 +132,9 @@ mod tests {
         let mut state = TelemetryState::new(date(2026, 11, 1));
         assert!(!state.send_due(today), "no usage, nothing to send");
 
-        state.counters.add_transcription(12.0, 80, 1.0);
+        state
+            .counters
+            .add_transcription(Source::Dictation, 12.0, 80, 1.0);
         assert!(state.send_due(today));
 
         state.last_sent = Some(today);

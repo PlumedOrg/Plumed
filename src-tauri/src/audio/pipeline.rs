@@ -161,6 +161,17 @@ pub fn post_process_chunks(app: &AppHandle, chunks: ChunkText, trace: &mut StepT
 
 pub fn transcribe_file_chunked(app: &AppHandle, file_path: &Path) -> Result<String> {
     let (samples, sample_rate) = read_wav_mono_native(file_path)?;
+    transcribe_samples_chunked(app, &samples, sample_rate)
+}
+
+/// Transcribes mono samples headlessly (CLI `transcribe`, local API) with the
+/// same chunking and post-processing as a dictation, without touching the
+/// history, the stats or a live dictation.
+pub fn transcribe_samples_chunked(
+    app: &AppHandle,
+    samples: &[f32],
+    sample_rate: u32,
+) -> Result<String> {
     if samples.is_empty() {
         return Err(anyhow::anyhow!("Audio file contains no samples"));
     }
@@ -277,7 +288,13 @@ pub fn record_dictation(
     if let Err(e) = stats::add_transcription_session(app, word_count, audio.seconds, audio.bytes) {
         error!("Failed to save stats session: {}", e);
     }
-    crate::telemetry::record_transcription(app, audio.seconds, text, processing);
+    crate::telemetry::record_transcription(
+        app,
+        crate::telemetry::Source::Dictation,
+        audio.seconds,
+        text,
+        processing,
+    );
 }
 
 /// Process a recording from raw samples (no WAV file), used by the remote mic.

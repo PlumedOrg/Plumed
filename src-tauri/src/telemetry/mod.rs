@@ -11,7 +11,7 @@ mod payload;
 mod reask;
 mod state;
 
-pub use counters::ErrorKind;
+pub use counters::{ErrorKind, Source};
 pub use reask::Question;
 
 use crate::formatting_rules::BuiltInOptions;
@@ -108,6 +108,7 @@ fn feature_flags(app: &AppHandle, settings: &AppSettings) -> FeatureFlags {
         phrase_boosting: built_in.phrase_boosting,
         grammar: built_in.grammar,
         tutorial_completed: settings.tutorial_completed,
+        local_api: settings.local_api_enabled,
     }
 }
 
@@ -148,20 +149,31 @@ fn request(
 }
 
 /// Counts a finished transcription (`processing` is the time from the end
-/// of the recording to the final text). Does nothing unless enabled.
-pub fn record_transcription(app: &AppHandle, audio_secs: f64, text: &str, processing: Duration) {
+/// of the recording, or of the upload, to the final text). Does nothing
+/// unless enabled.
+pub fn record_transcription(
+    app: &AppHandle,
+    source: Source,
+    audio_secs: f64,
+    text: &str,
+    processing: Duration,
+) {
     if text.trim().is_empty() {
         return;
     }
     if !is_enabled(app) {
-        reask::count_transcription(app);
+        // Only dictations bring the question back: API calls come from a
+        // script, not from someone in front of the app.
+        if source == Source::Dictation {
+            reask::count_transcription(app);
+        }
         return;
     }
     let chars = text.chars().count();
     let today = today();
     let updated = state::update(app, today, |s| {
         s.counters
-            .add_transcription(audio_secs, chars, processing.as_secs_f64())
+            .add_transcription(source, audio_secs, chars, processing.as_secs_f64())
     });
     match updated {
         Ok(s) if s.send_due(today) => send_if_due(app),

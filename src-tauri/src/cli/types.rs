@@ -14,6 +14,11 @@ pub enum CliCommand {
     Transcribe {
         file_path: String,
     },
+    /// Headless local transcription API (`plumed serve`); `None` keeps the
+    /// port saved in the settings.
+    Serve {
+        port: Option<u16>,
+    },
     Transcription,
     PasteLast,
     Cancel,

@@ -24,6 +24,9 @@ pub fn dispatch(app: &AppHandle, cmd: &CliCommand) {
         CliCommand::Transcribe { .. } => {
             warn!("cli_dispatch::dispatch called with Transcribe; handled separately");
         }
+        CliCommand::Serve { .. } => {
+            warn!("cli_dispatch::dispatch called with Serve; handled separately");
+        }
     }
 }
 
