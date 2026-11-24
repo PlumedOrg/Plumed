@@ -1,9 +1,10 @@
-/* Plumed's colors: the violet of the logo (src-tauri/icons/icon.svg) on the
-   zinc grays of the app (src/tailwind.css). */
+/* Plumed's colors: the violet of the logo (src-tauri/icons/icon.svg) and of
+   the app's links (violet-400) on the zinc grays of the app (src/tailwind.css).
+   accent-high colors the links and the main button in the dark theme. */
 :root {
-    --sl-color-accent-low: #2e1065; /* violet-950 */
+    --sl-color-accent-low: #4c1d95; /* violet-900 */
     --sl-color-accent: #8b5cf6; /* violet-500, logo background */
-    --sl-color-accent-high: #ddd6fe; /* violet-200 */
+    --sl-color-accent-high: #a78bfa; /* violet-400, the app's links */
     --sl-color-white: #f4f4f5; /* zinc-100 */
     --sl-color-gray-1: #e4e4e7; /* zinc-200 */
     --sl-color-gray-2: #d4d4d8; /* zinc-300 */
@@ -16,7 +17,7 @@
 
 :root[data-theme='light'] {
     --sl-color-accent-low: #ede9fe; /* violet-100 */
-    --sl-color-accent: #6d28d9; /* violet-700, logo pen */
+    --sl-color-accent: #7c3aed; /* violet-600 */
     --sl-color-accent-high: #4c1d95; /* violet-900 */
     --sl-color-white: #18181b;
     --sl-color-gray-1: #27272a;
@@ -73,17 +74,31 @@
     color: var(--sl-color-gray-3);
 }
 
-/* Home page buttons, one below the other: install, GitHub, documentation. */
+/* Home page buttons, one below the other and all as wide as the widest:
+   install, GitHub, documentation. */
 .hero .actions {
     flex-direction: column;
-    align-items: center;
+    align-items: stretch;
+    width: fit-content;
     gap: 0.75rem;
 }
 
-@media (min-width: 50rem) {
+.hero .actions .sl-link-button {
+    justify-content: center;
+}
+
+@media (max-width: 49.99rem) {
     .hero .actions {
-        align-items: flex-start;
+        margin-inline: auto;
     }
+}
+
+/* Main buttons in the violet of the logo, with white text, as in the app. */
+.sl-link-button.primary,
+.sl-link-button.primary:hover {
+    background: var(--sl-color-accent);
+    border-color: var(--sl-color-accent);
+    color: #ffffff;
 }
 
 /* Search: only the magnifier icon in the top bar, the field opens on click. */
