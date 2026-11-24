@@ -76,3 +76,6 @@ When a developer asks for help, use your knowledge of these guidelines to provid
 
 - ✅ "Generate a new React component for the history feature named `TranscriptionItem`." -> _You should create `src/features/history/transcription-item/transcription-item.tsx` and ensure the component name is `TranscriptionItem`, following guideline 1.2._
 - ✅ "Review this Rust function. Does it follow the project's error handling guidelines?" -> _You should check for the use of `Result<T, E>` and the absence of `panic!`, as required by guideline 3.1._
+
+
+@AGENTS.FORK.md
