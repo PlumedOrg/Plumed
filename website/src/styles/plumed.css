@@ -115,3 +115,25 @@ site-search button[data-open-modal] > span,
 site-search button[data-open-modal] > kbd {
     display: none !important;
 }
+
+/* The table of contents after a page's introduction (MarkdownContent.astro). */
+.sl-markdown-content .plumed-toc {
+    padding: 0.75rem 1.25rem;
+    border: 1px solid var(--sl-color-gray-5);
+    border-inline-start: 4px solid var(--sl-color-accent);
+    border-radius: 0.75rem;
+}
+
+.sl-markdown-content .plumed-toc-title {
+    font-weight: 600;
+    color: var(--sl-color-white);
+}
+
+.sl-markdown-content .plumed-toc ol {
+    margin-top: 0.25rem;
+    padding-inline-start: 1.25rem;
+}
+
+.sl-markdown-content .plumed-toc li {
+    margin-top: 0.125rem;
+}

@@ -1,0 +1,19 @@
+---
+// One level of the inline table of contents (MarkdownContent.astro), nested
+// for the subheadings.
+import type { MarkdownHeading } from 'astro';
+
+type TocItem = MarkdownHeading & { children: TocItem[] };
+const { items } = Astro.props as { items: TocItem[] };
+---
+
+<ol>
+    {
+        items.map((item) => (
+            <li>
+                <a href={`#${item.slug}`}>{item.text}</a>
+                {item.children.length > 0 && <Astro.self items={item.children} />}
+            </li>
+        ))
+    }
+</ol>

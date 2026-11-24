@@ -1,11 +1,24 @@
 ---
-// Starlight's page content, preceded on the /docs pages (except Installation)
-// by a warning while the site is young.
+// Starlight's page content, with two additions:
+// - on the /docs pages (except Installation), a warning while the site is young;
+// - on every page with at least two sections, a table of contents after the
+//   introduction (before the first H2), the same entries as Starlight's
+//   "Sur cette page".
 import { Aside } from '@astrojs/starlight/components';
 import Default from '@astrojs/starlight/components/MarkdownContent.astro';
+import TocList from './TocList.astro';
 
 const path = Astro.url.pathname;
 const showNotice = path.startsWith('/docs') && !path.startsWith('/docs/installation');
+
+// The first entry is the page title ("Vue d'ensemble"), not a section
+const sections = Astro.locals.starlightRoute.toc?.items.slice(1) ?? [];
+const html = await Astro.slots.render('default');
+// Starlight wraps each heading in a div for its anchor link
+const firstH2 = html.search(/<div class="sl-heading-wrapper level-h2|<h2[\s>]/);
+const split = sections.length >= 2 && firstH2 > -1;
+const intro = split ? html.slice(0, firstH2) : html;
+const rest = split ? html.slice(firstH2) : '';
 ---
 
 <Default>
@@ -16,5 +29,14 @@ const showNotice = path.startsWith('/docs') && !path.startsWith('/docs/installat
             </Aside>
         )
     }
-    <slot />
+    <Fragment set:html={intro} />
+    {
+        split && (
+            <nav class="plumed-toc" aria-labelledby="plumed-toc-title" data-pagefind-ignore>
+                <p id="plumed-toc-title" class="plumed-toc-title">Sommaire</p>
+                <TocList items={sections} />
+            </nav>
+        )
+    }
+    <Fragment set:html={rest} />
 </Default>
