@@ -35,7 +35,7 @@ La page du téléphone a sa propre version, `PAGE_VERSION` (un entier) dans `pro
 - Si le relais ne sert pas la version de Plumed : s'il n'en a que de plus récentes, Plumed n'est pas à jour et propose de se mettre à jour (même si la vérification automatique des mises à jour est désactivée) ; sinon c'est le relais qui n'est pas à jour.
 - Toute modification de `server/static/` impose d'archiver la page précédente dans `server/pages/<ancienne version>/` et d'incrémenter `PAGE_VERSION` (un test épingle une somme de contrôle de la page avec sa version et échoue sinon). Une même version désigne donc toujours exactement les mêmes octets.
 - Le relais ne parle qu'un protocole : un changement de protocole vide `server/pages/` (un test vérifie que chaque page archivée parle le protocole courant).
-- Les pages archivées peuvent être retirées au bout de quelques mois : les Plumed qui les utilisaient sont alors invités à se mettre à jour.
+- Les pages archivées sont gardées indéfiniment (quelques centaines de Kio chacune) : un changement de protocole les retire de toute façon.
 
 ## 1. Salons et boîtes de réception
 

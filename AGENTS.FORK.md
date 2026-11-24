@@ -100,6 +100,11 @@ Each release:
 3. Run the `Release Plumed` workflow, create a GitHub release tagged with the version from its artifacts (betas like `0.2.0-beta.1` marked pre-release).
 4. `python scripts/make-latest-json.py <artifacts folder> --notes "..."` and upload `latest.json` (installer URL + `.sig` per platform, format https://v2.tauri.app/plugin/updater/#static-json-file; workflows don't generate it). Every release, beta included, needs it.
 
+Releases touching `PhoneMic_server/` (the relay has no backward compatibility on purpose, see `PhoneMic_server/protocol_details.md` section 0):
+- Phone page only (`server/static/`): copy the previous page (from git) to `server/pages/<old PAGE_VERSION>/`, bump `PAGE_VERSION` in `protocol/src/page.rs`, update the checksum pin of its test. The relay serves every page under `/p/<version>/` and each Plumed links to and checks its own, so nobody is cut off: deploy the relay before publishing the app, any time before. Archived pages are kept forever (cheap, and protocol bumps empty them anyway).
+- Protocol (`PROTOCOL_VERSION`): empty `server/pages/`, bump `PAGE_VERSION` too, regenerate the test vectors. Apps and relays on different protocols refuse each other, so build the release first without publishing, then publish it and deploy the relay back to back (the upstream author does both with one local script, since the deploy asks for an ssh passphrase).
+- Anything else in `PhoneMic_server/`: deploy the relay whenever, as long as Plumed does not depend on the change.
+
 Code signing: no Apple developer account ever, so macOS is unsigned, not notarized (users allow it in Privacy & Security or `xattr -dr com.apple.quarantine /Applications/Plumed.app`). Apple cert/DMG/notarization steps run only if `MACOS_CODESIGN_P12_B64` exists, else ad-hoc signing (`APPLE_SIGNING_IDENTITY=-`, required on Apple Silicon). Windows SignPath runs only if `SIGNPATH_API_TOKEN` exists, else unsigned (SmartScreen). The updater `.sig` is always made.
 
 WinGet (`.github/workflows/publish-winget.yml`, id `Olicorne.Plumed`, NSIS only): runs on every published release but only updates an existing package in microsoft/winget-pkgs. Submit the first version by hand (`komac new` or `wingetcreate new`), then add secret `WINGET_TOKEN` (token allowed to open PRs on winget-pkgs).
