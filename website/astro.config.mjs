@@ -44,8 +44,8 @@ export default defineConfig({
             components: {
                 // The "Documentation" link next to the GitHub icon
                 SocialIcons: './src/components/SocialIcons.astro',
-                // The "fresh paint" notice on the /docs pages
-                Banner: './src/components/Banner.astro',
+                // The "fresh paint" warning on the /docs pages
+                MarkdownContent: './src/components/MarkdownContent.astro',
             },
             lastUpdated: false,
             sidebar: [

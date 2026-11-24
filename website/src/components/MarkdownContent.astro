@@ -1,0 +1,20 @@
+---
+// Starlight's page content, preceded on the /docs pages (except Installation)
+// by a warning while the site is young.
+import { Aside } from '@astrojs/starlight/components';
+import Default from '@astrojs/starlight/components/MarkdownContent.astro';
+
+const path = Astro.url.pathname;
+const showNotice = path.startsWith('/docs') && !path.startsWith('/docs/installation');
+---
+
+<Default>
+    {
+        showNotice && (
+            <Aside type="caution" title="Attention, peinture fraîche !">
+                Ce site est encore tout neuf et il est en train d'être amélioré.
+            </Aside>
+        )
+    }
+    <slot />
+</Default>
