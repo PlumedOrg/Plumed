@@ -20,11 +20,22 @@ Les routes HTTP, les codes de réponse et les limites du relais sont décrits da
 
 Le protocole entier (format filaire, cryptographie, appairage) porte une version, `PROTOCOL_VERSION` dans `protocol/src/lib.rs` (actuellement `5.0.0`), reprise dans `wire.js` et dans `test-vectors.json`.
 
-- Le relais la sert sur `GET /api/version` : `{"protocol": "5.0.0"}`.
+- Le relais la sert sur `GET /api/version` : `{"protocol": "5.0.0", "pages": [1, 2]}`, `pages` listant les versions de la page téléphone qu'il sert (voir ci-dessous).
 - Avant d'ouvrir le moindre salon, Plumed la compare à la sienne et refuse toute différence (ou un `404`, relais antérieur au versionnage) avec le message : « Le relais utilise le protocole de chiffrement vX.Y.Z et notre version est vA.B.C : impossible de l'utiliser. La rétrocompatibilité du protocole n'est volontairement pas prise en charge, pour réduire la surface d'attaque. »
 - Elle fait partie du sel HKDF (section 4) : même un pair d'une autre version qui passerait la vérification ne pourrait rien déchiffrer.
 
 Toute modification du protocole doit incrémenter la version et régénérer les vecteurs de test : `node protocol/gen-test-vectors.mjs protocol/test-vectors.json <version>`.
+
+### Version de la page
+
+La page du téléphone a sa propre version, `PAGE_VERSION` (un entier) dans `protocol/src/page.rs`, indépendante du protocole : un changement purement cosmétique de la page n'oblige donc ni à changer de protocole ni à mettre Plumed à jour.
+
+- Le relais sert chaque version de la page sous `/p/<version>/` : la page courante (`server/static/`) et les anciennes archivées dans `server/pages/<version>/`. `/` redirige vers la page courante.
+- Chaque Plumed envoie le téléphone vers sa propre version de page (lien du QR code, section 3) et ne vérifie que celle-là.
+- Si le relais ne sert pas la version de Plumed : s'il n'en a que de plus récentes, Plumed n'est pas à jour et propose de se mettre à jour (même si la vérification automatique des mises à jour est désactivée) ; sinon c'est le relais qui n'est pas à jour.
+- Toute modification de `server/static/` impose d'archiver la page précédente dans `server/pages/<ancienne version>/` et d'incrémenter `PAGE_VERSION` (un test épingle une somme de contrôle de la page avec sa version et échoue sinon). Une même version désigne donc toujours exactement les mêmes octets.
+- Le relais ne parle qu'un protocole : un changement de protocole vide `server/pages/` (un test vérifie que chaque page archivée parle le protocole courant).
+- Les pages archivées peuvent être retirées au bout de quelques mois : les Plumed qui les utilisaient sont alors invités à se mettre à jour.
 
 ## 1. Salons et boîtes de réception
 
@@ -56,7 +67,7 @@ Exemple : une trame texte `"hi"` suivie d'une trame binaire `[0xAB]` donne `00 0
 ## 3. Lien du QR code
 
 ```
-https://turn.plumed.fr/#{room}.{secret du téléphone}.{clé publique de l'ordinateur}.{secret d'appairage}
+https://turn.plumed.fr/p/{version de page}/#{room}.{secret du téléphone}.{clé publique de l'ordinateur}.{secret d'appairage}
 ```
 
 La clé publique est un point P-256 non compressé (65 octets, préfixe `0x04`), le secret d'appairage 32 octets aléatoires, tous deux encodés en base64url sans remplissage. Le secret d'appairage change en même temps que la clé. Tout est dans le fragment (`#`), donc jamais envoyé au serveur. La page retire le fragment de la barre d'adresse dès qu'elle l'a lu.
@@ -164,13 +175,7 @@ Le relais ne voit que des octets opaques et des identifiants aléatoires ; il ga
 
 Pour limiter ce risque, Plumed embarque à la compilation une copie exacte des fichiers de la page (`protocol/src/page.rs`, la même table que celle que sert le relais). Une seule fois par session, entre 2 et 9 s (au hasard) après l'affichage du QR code, Plumed télécharge chaque fichier de la page comme le ferait un téléphone (nouvelle connexion, User-Agent et en-têtes d'un navigateur mobile, sans secret de salon) et le compare octet par octet à sa copie. À la moindre différence, PhoneMic s'arrête avec un message d'erreur. La vérification n'est jamais périodique : elle coûte au relais un chargement de page par session.
 
-Pour que cette vérification ne confonde pas un relais simplement plus récent avec un relais compromis, la page est liée à la version du protocole : toute modification de la page impose d'incrémenter `PROTOCOL_VERSION` (un test de `protocol/src/page.rs` épingle une somme de contrôle de la page avec la version et échoue sinon). La version étant vérifiée avant la page, il y a donc trois cas :
-
-- relais sur une version plus récente : Plumed n'est pas à jour, il le dit et propose de se mettre à jour, même si la vérification automatique des mises à jour est désactivée ;
-- relais sur une version plus ancienne : le relais n'est pas à jour, Plumed le dit ;
-- même version mais page différente : le relais est peut-être compromis, PhoneMic s'arrête.
-
-Le relais et Plumed doivent donc être publiés ensemble à chaque changement de la page ou du protocole.
+Puisqu'une même version de page désigne toujours les mêmes octets (section 0), une différence ne peut pas venir d'un relais simplement plus récent : un relais qui n'a pas la page de Plumed le dit dans `/api/version`, avant toute vérification. Une page différente sous la même version signale donc un relais peut-être compromis.
 
 Limites honnêtes : cette vérification décourage une modification de masse de la page (un relais qui la modifierait pour tout le monde serait détecté par chaque Plumed), mais pas une attaque ciblée. Un relais malveillant peut distinguer la requête de Plumed de celle d'un vrai téléphone : empreinte TLS de `reqwest` différente de celle d'un navigateur, adresse IP de l'ordinateur déjà vue lors de la création du salon, absence des requêtes annexes d'un navigateur. Il pourrait alors servir la page honnête à Plumed et une page modifiée au téléphone.
 
