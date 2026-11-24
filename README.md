@@ -2,25 +2,20 @@
 
 # Plumed
 
-Plumed est une application entièrement gratuite et open source de dictée vocale respectueuse de la vie privée : elle fonctionne localement sur votre ordinateur et permet de dicter dans **n'importe quelle application** (logiciel métier, traitement de texte, messagerie, etc.), avec une reconnaissance adaptée au **vocabulaire médical français** (médicaments, termes médicaux, comptes rendus, courriers). C'est un fork de [Murmure](https://github.com/Kieirra/murmure) qui reprend les modèles [UltiMed](https://github.com/UltiMed-Org) et les fonctionnalités du mode médical de [ParakeetWeb](http://parakeetweb.olicorne.org/?mode=med), la version navigateur. UltiMed et ParakeetWeb sont du même auteur que Plumed.
-
-Plumed n'est pas un dispositif médical certifié : l'application est fournie telle quelle, sans garantie autre que sa [politique de confidentialité](PRIVACY_POLICY.md). Elle est distribuée sous licence [AGPL v3](LICENSE).
+Plumed est une application entièrement gratuite et open source de dictée vocale respectueuse de la confidentialité : elle fonctionne localement sur votre ordinateur et permet de dicter dans **n'importe quelle application** (logiciel métier, traitement de texte, messagerie, etc.), avec une reconnaissance adaptée au **vocabulaire médical français** (médicaments, termes médicaux, comptes rendus, courriers). C'est initialement un fork de [Murmure](https://github.com/Kieirra/murmure) qui intègre les modèles [UltiMed](https://github.com/UltiMed-Org) et les fonctionnalités du mode médical de [ParakeetWeb](http://parakeetweb.olicorne.org/?mode=med), la version navigateur. UltiMed et ParakeetWeb sont du même auteur que Plumed.
 
 Plumed est réalisé par [Olivier Cornelis](https://olicorne.org/fr), interne en psychiatrie et développeur.
 
+Plumed n'est pas un dispositif médical certifié : l'application est fournie telle quelle, sans garantie autre que sa [politique de confidentialité](PRIVACY_POLICY.md). Par principe général, il convient de ne pas utiliser de nom de patients dans Plumed. Elle est distribuée sous licence [AGPL v3](LICENSE).
+
 ## Sommaire
 
-- [Statut](#statut)
 - [Installation](#installation)
 - [Fonctionnalités](#fonctionnalités)
 - [Captures d'écran](#captures-décran)
 - [Confidentialité](#confidentialité)
 - [Licence](#licence)
 - [Remerciements et licences](#remerciements-et-licences)
-
-## Statut
-
-Version stable `1.0.0`. Les versions sont sur la [page des releases](https://github.com/PlumedOrg/Plumed/releases) ; la mise à jour automatique propose un canal stable et un canal bêta (**Paramètres > En ligne**).
 
 ## Installation
 
@@ -45,11 +40,11 @@ Les versions bêta sont sur la [page des releases](https://github.com/PlumedOrg/
 ## Fonctionnalités
 
 - **Dictée par raccourci clavier** dans n'importe quelle application, avec aperçu en cours de dictée.
-- **Pipeline de correction en 8 étapes** Voir [MEDICAL.fr.md](MEDICAL.fr.md).
-- **Textes types** : une phrase dite est remplacée par un texte plus long.
-- **Contexte pour les dictées courtes** : une dictée très brève est mieux reconnue grâce à la fin de la précédente.
-- **PhoneMic** (expérimental, désactivé par défaut) : utiliser son smartphone comme micro, via un relais HTTPS chiffré de bout en bout (pas de stockage sur le téléphone, le relai ne peut rien déchiffrer, seul l'ordinateur a les données).
+- **Pipeline de correction de texte avancée** 8 étapes d'enchainent pour améliorer la transcription, voir [MEDICAL.fr.md](MEDICAL.fr.md).
+- **Textes types** : l'utilisateur peut specifier des phrase à automatiquement remplacer par un texte plus long. Utile pour de la saisie répétitive de modèles.
+- **PhoneMic** (expérimental) : si l'utilisateur n'a pas de micro, il peut utiliser son smartphone. Les données audio transitent alors via un relais HTTPS chiffré jusqu'à l'ordinateur où il est transcrit. Les données ne sont pas stockées sur le téléphone. Le chiffrement de bout en bout garantie que le relais ne peut pas y accéder. Le relais est [également open source](./remote_microphone_server/README.md) et le créateur de Plumed en héberge une instance mais chaque utilisateur peut utiliser le relais qu'il souhaite.
 - **Tutoriel** intégré dans la barre latérale.
+- **Contexte pour les dictées courtes** : une dictée très brève est mieux reconnue grâce à la fin de la précédente.
 
 ## Captures d'écran
 
@@ -71,6 +66,5 @@ Plumed est un logiciel libre sous licence [GNU AGPL v3](LICENSE), comme Murmure 
 - **[UltiMed-ASR-FR-v2-regex-fixes](https://github.com/UltiMed-Org/UltiMed-ASR-FR-v2-regex-fixes)** (liste `dictation_rules.csv`) : règles de dictée médicale (unités, constantes, ponctuation dictée), proposées par défaut comme règles de formatage (AGPL-3.0-or-later).
 - **[LPSN](https://lpsn.dsmz.de/)** (List of Prokaryotic names with Standing in Nomenclature) : noms de bactéries inclus dans la liste d'amplification de phrases, sous licence [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Citation requise : Parte, A.C., Sardà Carbasse, J., Meier-Kolthoff, J.P., Reimer, L.C. & Göker, M. (2020). List of Prokaryotic names with Standing in Nomenclature (LPSN) moves to the DSMZ. _International Journal of Systematic and Evolutionary Microbiology_ 70, 5607-5612. https://doi.org/10.1099/ijsem.0.004332
 - **[Grammalecte](https://grammalecte.net)** par Olivier R. : le correcteur grammatical de l'étape 7 des corrections, version 2.3.0 (GNU GPL v3 ou ultérieure), inclus sans modification (sa version JavaScript, celle de l'extension Firefox) avec sa licence. Sources : [le paquet inclus](https://addons.mozilla.org/firefox/downloads/file/4643560/grammalecte_fr-2.3.0.xpi) et [l'archive des sources de la même version](https://grammalecte.net/zip/Grammalecte-fr-v2.3.0.zip). Détails dans [src-tauri/grammar-data/SOURCE.md](src-tauri/grammar-data/SOURCE.md).
-- **[NVIDIA Parakeet TDT 0.6B v3](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3)** : le modèle de reconnaissance vocale.
 
 Le détail des règles médicales incluses (provenance, mise à jour) est dans [src-tauri/medical-data/SOURCE.md](src-tauri/medical-data/SOURCE.md).
