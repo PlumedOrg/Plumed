@@ -14,7 +14,7 @@ use std::fs::{File, OpenOptions};
 use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-const DEVICE_NAME: &[u8] = b"Murmure virtual keyboard";
+const DEVICE_NAME: &[u8] = b"Plumed virtual keyboard";
 const DEVICE_BUS: u16 = 0x03;
 const DEVICE_VENDOR: u16 = 0x2333;
 const DEVICE_PRODUCT: u16 = 0x6666;

@@ -47,7 +47,7 @@ OPTIONS:
     --transcription              Toggle standard transcription on/off
     --paste-last                 Paste the last transcription
     --cancel                     Cancel the current recording
-    --quit                       Quit the running instance of Murmure
+    --quit                       Quit the running instance of Plumed
     --hidden                     Start without showing the main window
     -h, --help                   Print help information
     -V, --version                Print version information

@@ -1,1 +1,1 @@
-export const EXAMPLE_WORDS = ['Murmure', 'Parakeet', 'Wayland'];
+export const EXAMPLE_WORDS = ['Plumed', 'Parakeet', 'Wayland'];
