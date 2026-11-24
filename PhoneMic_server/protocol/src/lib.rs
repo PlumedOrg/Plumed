@@ -36,6 +36,7 @@
 use std::fmt;
 
 /// The speech model repositories and the model relay's URL scheme.
+pub mod page;
 pub mod models;
 pub mod releases;
 
