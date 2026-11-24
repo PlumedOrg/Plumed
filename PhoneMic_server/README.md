@@ -59,14 +59,14 @@ Toute requête peut aussi recevoir `429` lorsque son client a déjà 4 requêtes
 | `PLUMED_RELAY_BIND` | `0.0.0.0:5174` | Adresse d'écoute (définie par `docker-compose.yml`) |
 | `PLUMED_RELAY_TRUST_PROXY` | `false` | Prendre l'IP du client dans la dernière entrée de `X-Forwarded-For`, uniquement quand la requête vient d'une adresse de loopback ou privée (le reverse proxy). `docker-compose.yml` la met à `true` |
 | `PLUMED_RELAY_MAX_ROOMS` | `500` | Salons ouverts simultanément |
-| `PLUMED_RELAY_ROOMS_PER_IP` | `100` | Salons ouverts simultanément pour une IP cliente (IPv6 : par /64), ce qui fixe aussi sa part de requêtes en cours (4 par salon). Un hôpital derrière une seule adresse NAT la partage |
+| `PLUMED_RELAY_ROOMS_PER_IP` | `100` | Salons ouverts simultanément pour une IP cliente (IPv6 : par /64), ce qui fixe aussi sa part de requêtes en cours (4 par salon). Une entreprise ou un établissement derrière une seule adresse NAT la partage |
 | `PLUMED_RELAY_ROOMS_PER_IP_PER_HOUR` | `300` | Créations de salon par IP cliente et par heure |
 
 Les trois dernières peuvent être définies dans `.env` (copiez `env.example`), `docker-compose.yml` les transmet au conteneur.
 
 ## Relais de modèles
 
-Plumed n'embarque pas son modèle de reconnaissance vocale : au premier lancement, l'application télécharge depuis Hugging Face le modèle choisi par l'utilisateur. Les réseaux hospitaliers bloquent souvent huggingface.co mais laissent passer plumed.fr, l'application se rabat donc sur `plumed-models`, un second service indépendant de ce répertoire : un portage en Rust du relais HuggingFace de ParakeetWeb (`signaling/hf-relay.js`).
+Plumed n'embarque pas son modèle de reconnaissance vocale : au premier lancement, l'application télécharge depuis Hugging Face le modèle choisi par l'utilisateur. Les réseaux d'entreprise ou d'établissement bloquent souvent huggingface.co mais laissent passer plumed.fr, l'application se rabat donc sur `plumed-models`, un second service indépendant de ce répertoire : un portage en Rust du relais HuggingFace de ParakeetWeb (`signaling/hf-relay.js`).
 
 - `GET` / `HEAD /models/<owner>/<name>/<path>?revision=<commit>` renvoie le fichier de ce dépôt à ce commit (le schéma se trouve dans `protocol/src/models.rs`, `relay_path`, utilisé aussi par l'application). `GET /healthz` répond `ok`.
 - Il diffuse depuis huggingface.co sans écrire sur disque et sans mise en tampon au-delà de la fenêtre de contre-pression du flux (mémoire constante, le coût n'est que de la bande passante). `Range`, `If-Range` et `If-None-Match` sont transmis ; `Content-Length`, `Content-Range`, `Accept-Ranges` et `ETag` reviennent, l'application peut donc reprendre un téléchargement interrompu. `HEAD` s'arrête au hub (`X-Linked-Size`, `X-Linked-Etag`) et ne touche jamais le CDN.
