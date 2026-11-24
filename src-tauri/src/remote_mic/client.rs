@@ -35,8 +35,25 @@ pub enum ClientError {
     PageTampered,
 }
 
+/// Translation key of a [`ClientError::ProtocolMismatch`] when
+/// [`relay_is_newer`]: not suspicious, Plumed just needs an update.
+pub const APP_OUTDATED: &str = "The relay uses a newer PhoneMic protocol (v{{relay}}, ours v{{ours}}): update Plumed to use it.";
+
+/// A relay on a newer protocol version than ours means Plumed is out of date.
+/// The page is pinned to the protocol version (see `page.rs`), so a newer
+/// page always comes with a newer version and never looks like tampering.
+pub fn relay_is_newer(relay: &str) -> bool {
+    match (
+        semver::Version::parse(relay),
+        semver::Version::parse(PROTOCOL_VERSION),
+    ) {
+        (Ok(relay), Ok(ours)) => relay > ours,
+        _ => false,
+    }
+}
+
 /// Translation key of [`ClientError::PageTampered`].
-pub const PAGE_TAMPERED: &str = "The relay served a phone page that differs from the one of this Plumed version: it may be compromised (or not up to date). PhoneMic was stopped.";
+pub const PAGE_TAMPERED: &str = "The relay served a phone page that differs from the one of its protocol version: it may be compromised. PhoneMic was stopped.";
 
 /// What a phone browser sends, so the page check looks like a phone. Only the
 /// headers: the TLS handshake of reqwest still differs from a browser's (see
@@ -282,6 +299,14 @@ impl RelayClient {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn only_a_newer_relay_means_plumed_is_out_of_date() {
+        assert!(relay_is_newer("999.0.0"));
+        assert!(!relay_is_newer("0.0.1"));
+        assert!(!relay_is_newer(PROTOCOL_VERSION));
+        assert!(!relay_is_newer("garbage"));
+    }
 
     #[test]
     fn only_the_embedded_page_passes_the_check() {

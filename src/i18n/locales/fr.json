@@ -705,5 +705,7 @@
     "Choose it anyway": "Le choisir quand même",
     "Stick to UltiMed v1": "Rester sur UltiMed v1",
     "The relay is serving encryption protocol v{{relay}} and our version is v{{ours}}, so we can't use it. Backward compatibility of the protocol is not supported on purpose, to reduce the attack surface.": "Le relais utilise le protocole de chiffrement v{{relay}} et notre version est v{{ours}} : impossible de l'utiliser. La rétrocompatibilité du protocole n'est volontairement pas prise en charge, pour réduire la surface d'attaque.",
-    "The relay served a phone page that differs from the one of this Plumed version: it may be compromised (or not up to date). PhoneMic was stopped.": "Le relais a servi une page téléphone différente de celle de cette version de Plumed : il est peut-être compromis (ou pas à jour). PhoneMic a été arrêté."
+    "The relay served a phone page that differs from the one of its protocol version: it may be compromised. PhoneMic was stopped.": "Le relais a servi une page téléphone différente de celle de sa version de protocole : il est peut-être compromis. PhoneMic a été arrêté.",
+    "The relay uses a newer PhoneMic protocol (v{{relay}}, ours v{{ours}}): update Plumed to use it.": "Le relais utilise un protocole PhoneMic plus récent (v{{relay}}, le nôtre v{{ours}}) : mettez Plumed à jour pour l'utiliser.",
+    "Update Plumed": "Mettre à jour Plumed"
 }

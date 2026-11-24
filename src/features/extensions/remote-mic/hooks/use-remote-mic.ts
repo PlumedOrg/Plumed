@@ -5,7 +5,15 @@ import { toast } from 'react-toastify';
 import { useTranslation } from '@/i18n';
 import { RemoteMicSnapshot } from '../remote-mic.types';
 
-const STOPPED: RemoteMicSnapshot = { status: 'stopped', qr: null, link: null, fingerprint: null, error: null, error_params: null };
+const STOPPED: RemoteMicSnapshot = {
+    status: 'stopped',
+    qr: null,
+    link: null,
+    fingerprint: null,
+    error: null,
+    error_params: null,
+    update_app: false,
+};
 
 /** Follows the Rust remote-mic session and exposes its commands. */
 export const useRemoteMic = () => {

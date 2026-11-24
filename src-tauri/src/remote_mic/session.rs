@@ -11,7 +11,9 @@
 //! must scan again.
 
 use super::audio::transcribe_pcm;
-use super::client::{phone_link, ClientError, RelayClient, Room, PROTOCOL_MISMATCH};
+use super::client::{
+    phone_link, relay_is_newer, ClientError, RelayClient, Room, APP_OUTDATED, PROTOCOL_MISMATCH,
+};
 use super::protocol::{Event, Outgoing, Pairing, Step, Via, CANDIDATE_TTL};
 use log::{info, warn};
 use parking_lot::Mutex;
@@ -69,6 +71,9 @@ pub struct Snapshot {
     pub error: Option<String>,
     /// Values interpolated into `error` (a translation key) by the interface.
     pub error_params: Option<std::collections::BTreeMap<&'static str, String>>,
+    /// The relay is on a newer protocol: the interface offers to update Plumed,
+    /// even when the automatic update check is disabled.
+    pub update_app: bool,
 }
 
 pub enum Command {
@@ -158,14 +163,19 @@ impl Ui<'_> {
     }
 
     fn protocol_mismatch(&self, relay: Option<String>) {
+        let update_app = relay.as_deref().is_some_and(relay_is_newer);
         let params = [
             ("relay", relay.unwrap_or_else(|| "?".to_string())),
             ("ours", PROTOCOL_VERSION.to_string()),
         ];
         self.update(|s| {
             *s = Snapshot {
-                error: Some(PROTOCOL_MISMATCH.to_string()),
+                error: Some(match update_app {
+                    true => APP_OUTDATED.to_string(),
+                    false => PROTOCOL_MISMATCH.to_string(),
+                }),
                 error_params: Some(params.into_iter().collect()),
+                update_app,
                 ..Snapshot::default()
             }
         });

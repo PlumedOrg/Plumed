@@ -9,4 +9,6 @@ export interface RemoteMicSnapshot {
     error: string | null;
     /** Values interpolated into `error` (a translation key). */
     error_params: Record<string, string> | null;
+    /** The relay is on a newer protocol: offer to update Plumed, even with the automatic check disabled. */
+    update_app: boolean;
 }

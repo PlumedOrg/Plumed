@@ -1,10 +1,27 @@
 import { useState } from 'react';
-import { Check, FlaskConical, Loader2, QrCode, ShieldCheck, Smartphone, X } from 'lucide-react';
+import { Check, Download, FlaskConical, Loader2, QrCode, ShieldCheck, Smartphone, X } from 'lucide-react';
 import { SettingsUI } from '@/components/settings-ui';
 import { Typography } from '@/components/typography';
 import { Page } from '@/components/page';
 import { useTranslation } from '@/i18n';
 import { RemoteMicSnapshot } from '../remote-mic.types';
+import { useAppUpdate } from '@/features/update-checker/hooks/use-app-update';
+
+/** Checks on demand (even with the automatic check disabled), then installs and relaunches. */
+const UpdatePlumed = () => {
+    const { t } = useTranslation();
+    const { isChecking, isInstalling, checkForUpdates, installUpdate } = useAppUpdate();
+    const busy = isChecking || isInstalling;
+    const update = async () => {
+        if (await checkForUpdates(true)) await installUpdate();
+    };
+    return (
+        <Page.PrimaryButton onClick={() => void update()} disabled={busy}>
+            {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            {t('Update Plumed')}
+        </Page.PrimaryButton>
+    );
+};
 
 interface RemoteMicSessionProps {
     snapshot: RemoteMicSnapshot;
@@ -83,6 +100,7 @@ const Body = ({ snapshot, start, stop, confirm }: RemoteMicSessionProps) => {
                             {t(snapshot.error, snapshot.error_params ?? {})}
                         </Typography.Paragraph>
                     )}
+                    {snapshot.update_app && <UpdatePlumed />}
                     <Page.PrimaryButton onClick={start}>
                         <Smartphone className="w-4 h-4" />
                         {t('Connect a phone')}
@@ -106,9 +124,7 @@ const Body = ({ snapshot, start, stop, confirm }: RemoteMicSessionProps) => {
         case 'verify':
             return (
                 <>
-                    {snapshot.fingerprint != null && (
-                        <Candidate fingerprint={snapshot.fingerprint} confirm={confirm} />
-                    )}
+                    {snapshot.fingerprint != null && <Candidate fingerprint={snapshot.fingerprint} confirm={confirm} />}
                     {stopButton}
                 </>
             );
