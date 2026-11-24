@@ -133,6 +133,14 @@ AI-assisted contributions are welcome, but the contributor answers for every lin
 - Machine-specific notes (testable OSes): `AGENTS.local.md` (gitignored), read it if present.
 - Architecture and feature notes: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), included below.
 
-@docs/ARCHITECTURE.md
+---
+
+I opted to put in the default Claude Code context the readme, privacy policy and architecture file so you never get them out of sync.
 
 @AGENTS.local.md
+
+@docs/ARCHITECTURE.md
+
+@PRIVACY_POLICY.md
+
+@README.md
