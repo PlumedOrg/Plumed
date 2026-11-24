@@ -164,7 +164,13 @@ Le relais ne voit que des octets opaques et des identifiants aléatoires ; il ga
 
 Pour limiter ce risque, Plumed embarque à la compilation une copie exacte des fichiers de la page (`protocol/src/page.rs`, la même table que celle que sert le relais). Une seule fois par session, entre 2 et 9 s (au hasard) après l'affichage du QR code, Plumed télécharge chaque fichier de la page comme le ferait un téléphone (nouvelle connexion, User-Agent et en-têtes d'un navigateur mobile, sans secret de salon) et le compare octet par octet à sa copie. À la moindre différence, PhoneMic s'arrête avec un message d'erreur. La vérification n'est jamais périodique : elle coûte au relais un chargement de page par session.
 
-Conséquence pratique : le relais et Plumed doivent être compilés à partir des mêmes fichiers `server/static/`. Toute modification de la page impose de publier les deux ensemble (l'ordre n'importe pas, mais une version de Plumed refusera un relais dont la page diffère).
+Pour que cette vérification ne confonde pas un relais simplement plus récent avec un relais compromis, la page est liée à la version du protocole : toute modification de la page impose d'incrémenter `PROTOCOL_VERSION` (un test de `protocol/src/page.rs` épingle une somme de contrôle de la page avec la version et échoue sinon). La version étant vérifiée avant la page, il y a donc trois cas :
+
+- relais sur une version plus récente : Plumed n'est pas à jour, il le dit et propose de se mettre à jour, même si la vérification automatique des mises à jour est désactivée ;
+- relais sur une version plus ancienne : le relais n'est pas à jour, Plumed le dit ;
+- même version mais page différente : le relais est peut-être compromis, PhoneMic s'arrête.
+
+Le relais et Plumed doivent donc être publiés ensemble à chaque changement de la page ou du protocole.
 
 Limites honnêtes : cette vérification décourage une modification de masse de la page (un relais qui la modifierait pour tout le monde serait détecté par chaque Plumed), mais pas une attaque ciblée. Un relais malveillant peut distinguer la requête de Plumed de celle d'un vrai téléphone : empreinte TLS de `reqwest` différente de celle d'un navigateur, adresse IP de l'ordinateur déjà vue lors de la création du salon, absence des requêtes annexes d'un navigateur. Il pourrait alors servir la page honnête à Plumed et une page modifiée au téléphone.
 
