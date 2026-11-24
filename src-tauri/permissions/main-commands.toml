@@ -67,6 +67,7 @@ permissions = [
     "allow-preview-medical-fixes",
     "allow-get-orphaned-medical-rule-edits",
     "allow-get-default-formatting-rules",
+    "allow-get-phrase-boost-defaults",
     "allow-get-phrase-overlay",
     "allow-set-phrase-overlay",
     "allow-search-phrases",
