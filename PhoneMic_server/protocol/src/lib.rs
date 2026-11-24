@@ -10,7 +10,8 @@
 //! [`PROTOCOL_VERSION`] is served at [`VERSION_PATH`] and mixed into the HKDF
 //! salt ([`HKDF_SALT`]). The desktop refuses a relay with any other version:
 //! no backward compatibility, on purpose, to keep the attack surface small.
-//! Bump it (and regenerate the crypto test vectors) on any wire change.
+//! Bump it (and regenerate the crypto test vectors) on any wire change, and on
+//! any change of the phone page (pinned in `page.rs`).
 //!
 //! # Transport (what the relay sees)
 //! A room has one secret per [`Role`] (header [`SECRET_HEADER`]) and one inbox

@@ -42,6 +42,33 @@ pub const PAGE: &[Asset] = &[
 #[cfg(test)]
 mod tests {
     use super::PAGE;
+    use crate::PROTOCOL_VERSION;
+
+    /// FNV-1a 64 of every path and body: a guard against forgetting the
+    /// version bump, not a security check (Plumed compares the bytes).
+    fn page_checksum() -> String {
+        let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
+        for asset in PAGE {
+            let len = (asset.body.len() as u64).to_be_bytes();
+            for byte in [asset.path.as_bytes(), &[0], &len, asset.body].concat() {
+                hash = (hash ^ u64::from(byte)).wrapping_mul(0x0100_0000_01b3);
+            }
+        }
+        format!("{hash:016x}")
+    }
+
+    /// Plumed tells "relay on another version" (update needed) from "same
+    /// version, other page" (tampering) only if the page never changes
+    /// without a protocol version bump. When this fails after a page change:
+    /// bump PROTOCOL_VERSION (and its mirrors, see lib.rs), then pin both here.
+    #[test]
+    fn the_page_changes_only_with_the_protocol_version() {
+        assert_eq!(
+            (PROTOCOL_VERSION, page_checksum().as_str()),
+            ("5.0.0", "838e4b863bbb9da2"),
+            "the phone page changed: bump PROTOCOL_VERSION, then update this pin"
+        );
+    }
 
     /// Every `./x.js` a served file imports (or loads as a worklet) is served too.
     #[test]
