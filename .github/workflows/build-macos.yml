@@ -34,7 +34,7 @@ permissions:
 
 jobs:
     build-macos:
-        runs-on: macos-14
+        runs-on: macos-15
         timeout-minutes: 200
         # Plumed: no Apple Developer account, so the Apple certificate,
         # DMG signing and notarization steps only run when the secret exists;
