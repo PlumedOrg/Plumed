@@ -7,7 +7,7 @@ sidebar:
 
 **Paramètres > Corrections** regroupe tout ce qui modifie le texte transcrit. Le texte passe par huit étapes, toujours dans cet ordre, une par onglet (le numéro de l'étape est affiché dans une pastille devant le nom de l'onglet). L'onglet **Explications** montre une carte par étape, avec un exemple avant et après.
 
-1. **Vocabulaire médical** : les quelque 77 000 expressions vers lesquelles le modèle est orienté pendant la reconnaissance (« microangiopathie » rend « thrombotique » plus probable).
+1. **Vocabulaire médical** : les quelque 77 000 expressions vers lesquelles le modèle est orienté pendant la reconnaissance (« microangiopathie » rend « thrombotique » plus probable). En bas de l'onglet, le **poids** et la **marge (min-p)** du renforcement sont réglables (vides, ils gardent les valeurs d'origine de la liste) et un bouton rétablit ces valeurs ; ils font partie de l'export des paramètres.
 2. **Mots qui se ressemblent** : les groupes de mots que Plumed départage en réécoutant le passage (« ituximab » devient « rituximab » après « instaure », « cetuximab » après « on passe »).
 3. **Dictionnaire personnel** : vos mots, favorisés pendant la reconnaissance puis écrits avec votre orthographe.
 4. **Nettoyage et uniformisation** : les options préinstallées (hésitations, mots répétés, correction de texte court, espace avant ? et !, nombres en chiffres, espace finale). La correction de texte court s'applique en fait après l'étape 5 et la mise en forme préinstallée après l'étape 6, ce qui est indiqué à côté d'elles.
