@@ -19,6 +19,7 @@ import { LogLevelSettings } from './log-level-settings/log-level-settings';
 import { KeepRecordingsSettings } from './keep-recordings-settings/keep-recordings-settings';
 import { ShortDictationContextSettings } from './short-dictation-context-settings/short-dictation-context-settings';
 import { BlockCliImportSettings } from './block-cli-import-settings/block-cli-import-settings';
+import { LocalApiSettings } from './local-api-settings/local-api-settings';
 import { OnlineSettings } from './online-settings/online-settings';
 import { ArrowDownUp, Brain, Globe, Keyboard, Monitor, Settings, Wrench } from 'lucide-react';
 import { ImportExport } from '@/features/settings/import-export/import-export';
@@ -107,6 +108,8 @@ export const System = () => {
                             <CopyToClipboardSettings />
                             <SettingsUI.Separator />
                             <BlockCliImportSettings />
+                            <SettingsUI.Separator />
+                            <LocalApiSettings />
                         </SettingsUI.Container>
                     )}
                     {activeTab === 'online' && <OnlineSettings />}
