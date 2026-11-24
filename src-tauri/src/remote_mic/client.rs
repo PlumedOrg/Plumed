@@ -2,6 +2,7 @@
 //! Requests go through `reqwest`, which honors the system proxy: hospital
 //! networks often force an HTTP proxy that would break a WebSocket.
 
+use plumed_relay_protocol::page::PAGE;
 use plumed_relay_protocol::{
     decode, desktop_inbox_path, encode, phone_inbox_path, Frame, MAX_BODY, PROTOCOL_VERSION,
     ROOMS_PATH, SECRET_HEADER, VERSION_PATH,
@@ -29,6 +30,26 @@ pub enum ClientError {
     /// The relay speaks another protocol version (`None`: too old to say).
     #[error("{}", protocol_mismatch_message(.0.as_deref().unwrap_or("?")))]
     ProtocolMismatch(Option<String>),
+    /// The relay served a phone page that is not the one embedded in Plumed.
+    #[error("{}", PAGE_TAMPERED)]
+    PageTampered,
+}
+
+/// Translation key of [`ClientError::PageTampered`].
+pub const PAGE_TAMPERED: &str = "The relay served a phone page that differs from the one of this Plumed version: it may be compromised (or not up to date). PhoneMic was stopped.";
+
+/// What a phone browser sends, so the page check looks like a phone. Only the
+/// headers: the TLS handshake of reqwest still differs from a browser's (see
+/// the threat model in protocol_details.md).
+const PHONE_USER_AGENT: &str = "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36";
+
+/// `Ok` only when the relay served `path` exactly as embedded in Plumed.
+pub fn check_page_answer(path: &str, status: StatusCode, body: &[u8]) -> Result<(), ClientError> {
+    let expected = PAGE.iter().find(|a| a.path == path).map(|a| a.body);
+    match status.is_success() && expected == Some(body) {
+        true => Ok(()),
+        false => Err(ClientError::PageTampered),
+    }
 }
 
 /// Translation key of [`ClientError::ProtocolMismatch`], `{{relay}}` and
@@ -165,6 +186,25 @@ impl RelayClient {
         &self.origin
     }
 
+    /// Fetches every file of the phone page like a phone would (fresh
+    /// connection, phone headers, no room secret) and compares it with the
+    /// page embedded in Plumed.
+    pub async fn check_page(&self) -> Result<(), ClientError> {
+        let http = Self::builder(&self.origin)
+            .user_agent(PHONE_USER_AGENT)
+            .build()?;
+        for asset in PAGE {
+            let resp = http
+                .get(format!("{}{}", self.origin, asset.path))
+                .header(header::ACCEPT_LANGUAGE, "fr-FR,fr;q=0.9")
+                .send()
+                .await?;
+            let status = resp.status();
+            check_page_answer(asset.path, status, &bounded_body(resp).await?)?;
+        }
+        Ok(())
+    }
+
     /// Refuses a relay on another protocol version (see [`PROTOCOL_VERSION`]).
     pub async fn check_version(&self) -> Result<(), ClientError> {
         let url = format!("{}{}", self.origin, VERSION_PATH);
@@ -242,6 +282,24 @@ impl RelayClient {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn only_the_embedded_page_passes_the_check() {
+        let index = &PAGE[0];
+        assert!(check_page_answer(index.path, StatusCode::OK, index.body).is_ok());
+        let mut tampered = index.body.to_vec();
+        tampered.extend_from_slice(b"<script src=//evil.example></script>");
+        for (path, status, body) in [
+            (index.path, StatusCode::OK, &tampered[..]),
+            (index.path, StatusCode::NOT_FOUND, index.body),
+            ("/unknown.js", StatusCode::OK, index.body),
+        ] {
+            assert!(matches!(
+                check_page_answer(path, status, body),
+                Err(ClientError::PageTampered)
+            ));
+        }
+    }
 
     #[test]
     fn only_the_exact_protocol_version_is_accepted() {

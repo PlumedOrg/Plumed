@@ -320,6 +320,17 @@ enum Wake {
     Expiry,
     Command(Option<Command>),
     Polled(Option<Polled>),
+    PageChecked(Result<(), ClientError>),
+}
+
+/// Delay before the one page check, after the QR code is shown: random in
+/// 2..=9 s so the request does not stand out as the desktop's (a phone fetches
+/// the page some seconds after the QR code appears). Once per session, never
+/// periodic, so it costs the relay one page load per session.
+fn page_check_delay() -> Duration {
+    let mut byte = [0u8];
+    let _ = ring::rand::SecureRandom::fill(&ring::rand::SystemRandom::new(), &mut byte);
+    Duration::from_millis(2_000 + u64::from(byte[0]) * 7_000 / 255)
 }
 
 /// Serves the lobby (the room of the QR code) and the private room of the
@@ -342,6 +353,12 @@ async fn serve(
     // `BOUND` resends left, plus one tick that replaces the lobby
     let mut bound_ticks = 0;
     let mut expiry = tokio::time::interval(CANDIDATE_TTL / 6);
+    let page_check = async {
+        tokio::time::sleep(page_check_delay()).await;
+        client.check_page().await
+    };
+    tokio::pin!(page_check);
+    let mut page_checked = false;
 
     let outcome = loop {
         ui.show(client.origin(), &lobby.room, &pairing);
@@ -350,8 +367,19 @@ async fn serve(
             _ = expiry.tick() => Wake::Expiry,
             cmd = commands.recv() => Wake::Command(cmd),
             polled = incoming.recv() => Wake::Polled(polled),
+            checked = &mut page_check, if !page_checked => Wake::PageChecked(checked),
         };
         let step = match wake {
+            Wake::PageChecked(checked) => {
+                page_checked = true;
+                match checked {
+                    Err(e @ ClientError::PageTampered) => break Err(e.to_string()),
+                    // An unreachable relay shows up through the polls anyway
+                    Err(e) => warn!("phone page check failed: {e}"),
+                    Ok(()) => info!("phone page served by the relay is genuine"),
+                }
+                continue;
+            }
             Wake::Resend => {
                 bound_ticks -= 1;
                 match bound_ticks {
