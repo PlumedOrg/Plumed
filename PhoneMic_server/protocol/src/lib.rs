@@ -10,8 +10,8 @@
 //! [`PROTOCOL_VERSION`] is served at [`VERSION_PATH`] and mixed into the HKDF
 //! salt ([`HKDF_SALT`]). The desktop refuses a relay with any other version:
 //! no backward compatibility, on purpose, to keep the attack surface small.
-//! Bump it (and regenerate the crypto test vectors) on any wire change, and on
-//! any change of the phone page (pinned in `page.rs`).
+//! Bump it (and regenerate the crypto test vectors) on any wire change. The
+//! phone page has its own version (`page.rs`).
 //!
 //! # Transport (what the relay sees)
 //! A room has one secret per [`Role`] (header [`SECRET_HEADER`]) and one inbox
@@ -36,9 +36,9 @@
 
 use std::fmt;
 
+pub mod models;
 /// The speech model repositories and the model relay's URL scheme.
 pub mod page;
-pub mod models;
 pub mod releases;
 
 macro_rules! protocol_version {
@@ -51,7 +51,8 @@ macro_rules! protocol_version {
 pub const PROTOCOL_VERSION: &str = protocol_version!();
 /// HKDF salt of the end-to-end keys: a peer on another version can never decrypt.
 pub const HKDF_SALT: &str = concat!("Plumed-RemoteMic-", protocol_version!());
-/// `GET` answers `{"protocol": PROTOCOL_VERSION}`.
+/// `GET` answers `{"protocol": PROTOCOL_VERSION, "pages": [1, 2]}`, `pages`
+/// listing the page versions the relay serves (see `page.rs`).
 pub const VERSION_PATH: &str = "/api/version";
 
 /// Header carrying the role's secret on every room request.

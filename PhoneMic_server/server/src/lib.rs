@@ -156,7 +156,10 @@ async fn limit_in_flight(State(state): State<AppState>, req: Request, next: Next
 async fn version() -> Response {
     (
         [(header::CONTENT_TYPE, "application/json")],
-        format!(r#"{{"protocol":"{PROTOCOL_VERSION}"}}"#),
+        format!(
+            r#"{{"protocol":"{PROTOCOL_VERSION}","pages":{:?}}}"#,
+            assets::page_versions()
+        ),
     )
         .into_response()
 }

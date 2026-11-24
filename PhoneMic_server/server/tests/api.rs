@@ -6,6 +6,7 @@ use axum::response::Response;
 use axum::Router;
 use http_body_util::BodyExt;
 use plumed_relay::{app, Config};
+use plumed_relay_protocol::page::{page_path, PAGE_VERSION};
 use plumed_relay_protocol::{
     desktop_inbox_path, encode, phone_inbox_path, Frame, PROTOCOL_VERSION, ROOMS_PATH,
     SECRET_HEADER, VERSION_PATH,
@@ -99,11 +100,16 @@ async fn version_is_served() {
     assert_eq!(resp.status(), StatusCode::OK);
     let json: serde_json::Value = serde_json::from_slice(&body(resp).await).unwrap();
     assert_eq!(json["protocol"], PROTOCOL_VERSION);
+    let pages = json["pages"].as_array().unwrap();
+    assert_eq!(pages.last().unwrap(), &serde_json::json!(PAGE_VERSION));
 }
 
 #[tokio::test]
 async fn phone_page_is_served() {
-    let resp = call(&router(10, 10), Method::GET, "/", "", vec![]).await;
+    let root = call(&router(10, 10), Method::GET, "/", "", vec![]).await;
+    let current = page_path(PAGE_VERSION, "/");
+    assert_eq!(root.headers()[header::LOCATION], current.as_str());
+    let resp = call(&router(10, 10), Method::GET, &current, "", vec![]).await;
     assert_eq!(resp.status(), StatusCode::OK);
     assert!(resp.headers()[header::CONTENT_TYPE]
         .to_str()
