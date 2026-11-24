@@ -2,13 +2,11 @@
 
 # Plumed
 
-Plumed est une application de dictée vocale respectueuse de la confidentialité.
+Plumed est une application de dictée vocale respectueuse de la confidentialité, réalisée par [Olivier Cornelis](https://olicorne.org/fr), interne en psychiatrie et développeur.
 
-Elle est ne participe à **aucune activité commerciale** (entièrement gratuite et sans de pub), ne nécessite **pas de compte**, elle fonctionne localement sur votre ordinateur et permet de dicter dans **n'importe quelle application** (logiciel métier, traitement de texte, messagerie, etc.), avec une reconnaissance adaptée au **vocabulaire médical français** (médicaments, termes médicaux, comptes rendus, courriers). C'est initialement un fork de [Murmure](https://github.com/Kieirra/murmure) qui intègre les modèles [UltiMed](https://github.com/UltiMed-Org) et les fonctionnalités du mode médical de [ParakeetWeb](http://parakeetweb.olicorne.org/?mode=med), la version navigateur. UltiMed et ParakeetWeb sont du même auteur que Plumed.
+Plumed n'est pas un projet commercial et est donc **entièrement gratuite et sans pub**, ne nécessite **pas de compte**, ne piste pas ses utilisateurs, **tourne directement sur votre ordinateur** et permet de dicter dans **n'importe quelle application** (logiciel métier, traitement de texte, messagerie, etc.), avec une reconnaissance adaptée au **vocabulaire médical français** (médicaments, termes médicaux, comptes rendus, ...).
 
-Plumed est réalisé par [Olivier Cornelis](https://olicorne.org/fr), interne en psychiatrie et développeur.
-
-Plumed n'est pas un dispositif médical certifié : l'application est fournie telle quelle, sans garantie autre que sa [politique de confidentialité](PRIVACY_POLICY.md). Par principe général, il convient de ne pas utiliser de nom de patients dans Plumed. Elle est distribuée sous licence [AGPL v3](LICENSE).
+Plumed n'est cependant pas un dispositif médical certifié : l'application est fournie telle quelle, sans garantie autre que sa [politique de confidentialité](PRIVACY_POLICY.md). De principe, il convient de ne pas utiliser d'information identifiante (noms de patients, ...) dans Plumed.
 
 ## Sommaire
 
@@ -16,7 +14,6 @@ Plumed n'est pas un dispositif médical certifié : l'application est fournie te
 - [Fonctionnalités](#fonctionnalités)
 - [Captures d'écran](#captures-décran)
 - [Confidentialité](#confidentialité)
-- [Licence](#licence)
 - [Remerciements et licences](#remerciements-et-licences)
 
 ## Installation
@@ -56,15 +53,16 @@ Les versions bêta sont sur la [page des releases](https://github.com/PlumedOrg/
 
 La reconnaissance se fait sur votre ordinateur : l'audio et les transcriptions ne sont jamais envoyés sur internet. Les seules connexions réseau possibles sont listées dans **Paramètres > En ligne** : la vérification des mises à jour de l'application, le téléchargement du modèle, les mises à jour des données médicales (sur demande), les statistiques d'utilisation anonymes (facultatives, des totaux agrégés, jamais de texte ni d'audio) et le relais de PhoneMic. Voir la [politique de confidentialité](PRIVACY_POLICY.md).
 
-## Licence
-
-Plumed est un logiciel libre sous licence [GNU AGPL v3](LICENSE), comme Murmure dont il est issu.
 
 ## Remerciements et licences
 
+Plumed est initialement un fork de [Murmure](https://github.com/Kieirra/murmure) qui intègre les fonctionnalités du mode médical de [ParakeetWeb](http://parakeetweb.olicorne.org/?mode=med) et les modèles [UltiMed](https://github.com/UltiMed-Org). UltiMed et ParakeetWeb sont du même auteur que Plumed.
+
+Plumed est un logiciel libre sous licence [GNU AGPL v3](LICENSE), comme Murmure.
+
 - **[Murmure](https://www.murmure.app/)** par [Al1x-ai](https://www.al1x-ai.com/) : l'application dont Plumed est un fork (AGPL v3, [code source](https://github.com/Kieirra/murmure)). Soutenez le projet original !
-- **[ParakeetWeb](https://github.com/thiswillbeyourgithub/parakeet_web)** : le mode médical porté ici, et la liste d'amplification de phrases médicales (AGPL v3).
-- **[UltiMed](https://github.com/UltiMed-Org)** : les modèles de reconnaissance vocale [UltiMed v1](https://huggingface.co/Olicorne/parakeet-tdt-0.6b-v3-ultra-UltiMed-v1-onnx) et [UltiMed v2](https://huggingface.co/Olicorne/parakeet-tdt-0.6b-v3-ultra-UltiMed-v2-onnx) (CC BY 4.0), et ses [règles de correction des médicaments et termes médicaux](https://github.com/UltiMed-Org/UltiMed-ASR-FR-v2-regex-fixes) (AGPL-3.0-or-later), construites à partir des données ouvertes françaises sur le médicament (Licence Ouverte / Etalab 2.0 : OPEN_MEDIC, RETROCEDAM, BDPM).
+- **[ParakeetWeb](https://github.com/thiswillbeyourgithub/parakeet_web)** : dont le mode médical était un précurseur de Plumed (AGPL v3).
+- **[UltiMed](https://github.com/UltiMed-Org)** : les modèles de reconnaissance vocale [UltiMed v1](https://huggingface.co/Olicorne/parakeet-tdt-0.6b-v3-ultra-UltiMed-v1-onnx) et [UltiMed v2](https://huggingface.co/Olicorne/parakeet-tdt-0.6b-v3-ultra-UltiMed-v2-onnx) (CC BY 4.0), et ses [règles de correction des médicaments et termes médicaux](https://github.com/UltiMed-Org/UltiMed-ASR-FR-v2-regex-fixes) (AGPL-3.0-or-later), construites à partir des données ouvertes françaises sur le médicament.
 - **[UltiMed-ASR-FR-v2-regex-fixes](https://github.com/UltiMed-Org/UltiMed-ASR-FR-v2-regex-fixes)** (liste `dictation_rules.csv`) : règles de dictée médicale (unités, constantes, ponctuation dictée), proposées par défaut comme règles de formatage (AGPL-3.0-or-later).
 - **[LPSN](https://lpsn.dsmz.de/)** (List of Prokaryotic names with Standing in Nomenclature) : noms de bactéries inclus dans la liste d'amplification de phrases, sous licence [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Citation requise : Parte, A.C., Sardà Carbasse, J., Meier-Kolthoff, J.P., Reimer, L.C. & Göker, M. (2020). List of Prokaryotic names with Standing in Nomenclature (LPSN) moves to the DSMZ. _International Journal of Systematic and Evolutionary Microbiology_ 70, 5607-5612. https://doi.org/10.1099/ijsem.0.004332
 - **[Grammalecte](https://grammalecte.net)** par Olivier R. : le correcteur grammatical de l'étape 7 des corrections, version 2.3.0 (GNU GPL v3 ou ultérieure), inclus sans modification (sa version JavaScript, celle de l'extension Firefox) avec sa licence. Sources : [le paquet inclus](https://addons.mozilla.org/firefox/downloads/file/4643560/grammalecte_fr-2.3.0.xpi) et [l'archive des sources de la même version](https://grammalecte.net/zip/Grammalecte-fr-v2.3.0.zip). Détails dans [src-tauri/grammar-data/SOURCE.md](src-tauri/grammar-data/SOURCE.md).
