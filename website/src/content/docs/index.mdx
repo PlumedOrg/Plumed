@@ -6,7 +6,7 @@ hero:
   tagline: La dictée vocale médicale en français, sur votre ordinateur. Gratuite, sans compte, sans pub, et qui fonctionne hors ligne. Pour le bien commun, sans aucun objectif commercial.
   image:
     # A plain <img> (public/accueil.png) so the screenshot can have a caption
-    html: '<figure class="plumed-screenshot"><img src="/accueil.png" width="997" height="995" alt="Capture d''écran de l''application Plumed : statistiques, visualisation du micro et dernière dictée"><figcaption>Capture d''écran de l''application : l''écran d''accueil de Plumed.</figcaption></figure>'
+    html: '<figure class="plumed-screenshot"><img src="/accueil.png" width="997" height="995" alt="Capture d''écran de l''application Plumed : statistiques, visualisation du micro et dernière dictée"><figcaption>Capture d''écran de l''application</figcaption></figure>'
   actions:
     - text: Installer Plumed
       link: /docs/installation/
@@ -18,7 +18,7 @@ hero:
     - text: Documentation
       link: /docs/
       icon: open-book
-      variant: minimal
+      variant: secondary
 ---
 
 import { Card, CardGrid } from '@astrojs/starlight/components';
@@ -28,7 +28,7 @@ import { Card, CardGrid } from '@astrojs/starlight/components';
         Un raccourci clavier, vous parlez, le texte s'écrit là où se trouve le curseur : logiciel métier, traitement de texte, messagerie. Sur Windows, macOS et Linux.
     </Card>
     <Card title="Vocabulaire médical français" icon="open-book">
-        Modèles [UltiMed](https://github.com/UltiMed-Org) entraînés sur le vocabulaire médical, environ 45 000 corrections de noms de médicaments et de termes médicaux, règles de dictée (« 15 mg par kilo par jour » devient « 15 mg/kg/j »).
+        Modèles [UltiMed](https://github.com/UltiMed-Org) entraînés sur le vocabulaire médical, environ 45 000 corrections de noms de médicaments et de termes médicaux, règles de dictée (« 15 mg par kilo par jour » devient « 15 mg/kg/j »). Plumed est pensé pour le français, mais l'objectif est à terme de le rendre multilingue.
     </Card>
     <Card title="Hors ligne" icon="laptop">
         La reconnaissance tourne sur votre ordinateur : l'audio et les transcriptions ne partent jamais sur internet.
