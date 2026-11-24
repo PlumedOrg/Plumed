@@ -37,6 +37,8 @@ Windows, macOS (13.4 ou plus récent) ou Linux. La reconnaissance utilise le pro
 
 Ajoutez-le au **dictionnaire personnel** (**Paramètres > Corrections > Dictionnaire personnel**) : il sera favorisé pendant la reconnaissance et écrit avec votre orthographe. Pour un nom de médicament mal reconnu, une [règle de correction](/docs/fonctionnalites/medicaments/#règles-de-correction) convient mieux. Pour redicter un seul mot, le [contexte pour les dictées courtes](/docs/fonctionnalites/dictees-courtes/) aide le modèle.
 
+Si l'erreur revient malgré tout, signalez-la : ouvrez un ticket sur [GitHub](https://github.com/PlumedOrg/Plumed/issues/new/choose) si vous avez un compte, sinon écrivez-moi via [olicorne.org/fr/contact](https://olicorne.org/fr/contact). Chaque retour permet d'améliorer Plumed pour tout le monde.
+
 ## Puis-je retrouver mes réglages sur un autre ordinateur ?
 
 Oui : **Paramètres > Importer / Exporter** enregistre vos réglages dans un fichier à importer sur l'autre poste. Voir [Exporter et importer ses réglages](/docs/fonctionnalites/corrections/#exporter-et-importer-ses-réglages).
