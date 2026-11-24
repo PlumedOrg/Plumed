@@ -41,7 +41,7 @@ pub mod releases;
 
 macro_rules! protocol_version {
     () => {
-        "4.0.0"
+        "5.0.0"
     };
 }
 /// Version of the whole PhoneMic protocol (wire format, crypto, pairing).
@@ -244,7 +244,7 @@ pub mod op {
     pub const END: u8 = 3;
     /// phone -> desktop: drop the current recording.
     pub const CANCEL: u8 = 4;
-    /// desktop -> phone: the user confirmed the code, pairing bound. Payload:
+    /// desktop -> phone: the user accepted the phone, pairing bound. Payload:
     /// `<room id>.<phone secret>` (ASCII) of the private room the phone moves to.
     pub const BOUND: u8 = 0x10;
     /// desktop -> phone: a recording was received and is being transcribed.
@@ -253,6 +253,10 @@ pub mod op {
     pub const DENIED: u8 = 0x12;
     /// desktop -> phone: the user paired another phone instead of this one.
     pub const REPLACED: u8 = 0x13;
+    /// desktop -> phone: payload `seq(u64 BE)`, the last phone packet received
+    /// with no gap before it. The phone forgets the packets up to it and
+    /// resends the others (a lower value than what it sent means a gap).
+    pub const ACK: u8 = 0x14;
 }
 
 const SEQ_LEN: usize = 8;

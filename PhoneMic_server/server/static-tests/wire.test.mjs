@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { PROTOCOL_VERSION, encode, decode, sealInner, openInner, parseRoom } from '../static/wire.js';
+import { PROTOCOL_VERSION, encode, decode, sealInner, openInner, parseRoom, parseAck } from '../static/wire.js';
 
 const vectors = JSON.parse(readFileSync(new URL('../../protocol/test-vectors.json', import.meta.url)));
 const hex = (s) => Uint8Array.from(Buffer.from(s, 'hex'));
@@ -41,4 +41,9 @@ test('a BOUND payload names the private room', () => {
 
 test('protocol version matches the shared vector', () => {
     assert.equal(PROTOCOL_VERSION, vectors.protocol_version);
+});
+
+test('ACK payload is a u64 BE sequence number', () => {
+    assert.equal(parseAck(Uint8Array.from([0, 0, 0, 0, 0, 0, 1, 2])), 258);
+    assert.equal(parseAck(Uint8Array.from([1, 2])), null);
 });

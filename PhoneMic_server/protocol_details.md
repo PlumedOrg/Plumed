@@ -10,7 +10,7 @@ Sources de vérité, à modifier en même temps que ce document :
 | Cryptographie | `src-tauri/src/remote_mic/crypto.rs` | `server/static/crypto.js` |
 | Appairage côté ordinateur (sans E/S) | `src-tauri/src/remote_mic/protocol.rs` | |
 | Cycle de vie de la session côté ordinateur | `src-tauri/src/remote_mic/session.rs` | |
-| Session côté téléphone | | `server/static/app.js`, `store.js` |
+| Session côté téléphone | | `server/static/app.js`, `store.js`, `outbox.js` |
 
 Les deux implémentations sont verrouillées par `protocol/test-vectors.json` (tests `cargo test` et `node --test server/static-tests/*.test.mjs`).
 
@@ -18,9 +18,9 @@ Les routes HTTP, les codes de réponse et les limites du relais sont décrits da
 
 ## 0. Version
 
-Le protocole entier (format filaire, cryptographie, appairage) porte une version, `PROTOCOL_VERSION` dans `protocol/src/lib.rs` (actuellement `4.0.0`), reprise dans `wire.js` et dans `test-vectors.json`.
+Le protocole entier (format filaire, cryptographie, appairage) porte une version, `PROTOCOL_VERSION` dans `protocol/src/lib.rs` (actuellement `5.0.0`), reprise dans `wire.js` et dans `test-vectors.json`.
 
-- Le relais la sert sur `GET /api/version` : `{"protocol": "4.0.0"}`.
+- Le relais la sert sur `GET /api/version` : `{"protocol": "5.0.0"}`.
 - Avant d'ouvrir le moindre salon, Plumed la compare à la sienne et refuse toute différence (ou un `404`, relais antérieur au versionnage) avec le message : « Le relais utilise le protocole de chiffrement vX.Y.Z et notre version est vA.B.C : impossible de l'utiliser. La rétrocompatibilité du protocole n'est volontairement pas prise en charge, pour réduire la surface d'attaque. »
 - Elle fait partie du sel HKDF (section 4) : même un pair d'une autre version qui passerait la vérification ne pourrait rien déchiffrer.
 
@@ -66,7 +66,7 @@ La clé publique est un point P-256 non compressé (65 octets, préfixe `0x04`),
 - Échange de clés : ECDH P-256. Chaque côté génère une paire éphémère ; côté ordinateur, une clé ne sert qu'à une seule poignée de main.
 - Dérivation : HKDF-SHA256 avec
   - IKM = coordonnée x du secret partagé (32 octets) `||` secret d'appairage du QR code (32 octets),
-  - sel = UTF-8 `Plumed-RemoteMic-{version}`, par exemple `Plumed-RemoteMic-4.0.0`,
+  - sel = UTF-8 `Plumed-RemoteMic-{version}`, par exemple `Plumed-RemoteMic-5.0.0`,
   - info = `label || clé publique de l'ordinateur (65) || clé publique du téléphone (65)`,
   - label = `phone-to-desktop`, `desktop-to-phone` ou `hello-proof`,
   - L = 32 octets.
@@ -82,7 +82,16 @@ Le secret d'appairage ne passe jamais par le relais (il est dans le fragment). S
 seq(u64 big-endian) || op(u8) || payload
 ```
 
-Chaque côté numérote ses paquets à partir de 1. Le récepteur ignore tout `seq` inférieur ou égal au dernier reçu (rejeu, réordonnancement). Côté ordinateur, un trou dans la numérotation (`seq != dernier + 1`) abandonne l'enregistrement en cours : un relais qui retiendrait un morceau ne peut pas faire transcrire une phrase amputée (un « pas » manquant inverse son sens).
+Chaque côté numérote ses paquets à partir de 1. Le récepteur ignore tout `seq` inférieur ou égal au dernier reçu (rejeu, réordonnancement).
+
+### Acquittement et renvoi (téléphone -> ordinateur)
+
+Le téléphone renvoie ses POST jusqu'à obtenir un `204`, mais un paquet peut encore se perdre entre le relais et l'ordinateur (réponse de long-poll coupée en route) ou être retenu par un relais malveillant. D'où :
+
+- L'ordinateur n'accepte que des paquets contigus (`seq == dernier + 1`). Un paquet qui suit un trou est ignoré : un enregistrement n'est donc jamais transcrit amputé (un « pas » manquant inverse le sens d'une phrase).
+- Il envoie ACK(dernier `seq` reçu dans l'ordre) tous les 16 paquets, à chaque END, et au premier paquet ignoré pour un trou.
+- Le téléphone garde chaque paquet envoyé jusqu'à son acquittement. Si le plus ancien n'est pas acquitté au bout de 4 s (et que sa propre file d'envoi est vide), il renvoie tous ceux qui restent, dans l'ordre. Au-delà de 8 Mio en attente (environ 4 minutes d'audio), il les abandonne.
+- Seul un START peut sauter un trou : il abandonne l'enregistrement inachevé. Le téléphone peut ainsi toujours repartir, y compris après un rechargement qui fait sauter sa numérotation (ci-dessous).
 
 Le téléphone conserve sa session dans IndexedDB ; il y enregistre une borne `seq` en avance de 2^20 sur le dernier numéro envoyé, pour qu'après un rechargement il ne réutilise jamais un numéro déjà émis.
 
@@ -98,6 +107,7 @@ Le téléphone conserve sa session dans IndexedDB ; il y enregistre une borne `s
 | `0x11` RECEIVED | ordinateur -> téléphone | vide | Enregistrement reçu, en cours de transcription |
 | `0x12` DENIED | ordinateur -> téléphone | vide | Appairage refusé (ou laissé expirer) |
 | `0x13` REPLACED | ordinateur -> téléphone | vide | Un autre téléphone a été appairé à la place |
+| `0x14` ACK | ordinateur -> téléphone | `seq(u64 BE)` | Dernier paquet du téléphone reçu sans trou avant lui (voir ci-dessus) |
 
 ## 6. Messages texte (non chiffrés)
 
@@ -125,7 +135,7 @@ Seuls deux messages circulent en clair, avant qu'une clé existe :
 3. L'ordinateur reçoit le `hello` et vérifie la preuve : le téléphone devient **candidat** (60 s pour confirmer). La clé du QR code étant consommée, une nouvelle paire est générée et le QR code change ; un `hello` adressé à l'ancienne clé reçoit `stale`.
 4. L'utilisateur confirme sur l'ordinateur (un clic : chaque nouveau téléphone doit être accepté). L'ordinateur ouvre un salon privé et envoie, dans la boîte du téléphone du salon d'accueil, un BOUND chiffré qui le désigne (renvoyé toutes les 2 s, 5 fois, au cas où un vieil onglet lisant la même boîte avalerait le premier). En cas de refus ou d'expiration : DENIED.
 5. Le téléphone se déplace dans le salon privé, où il écrit dans `/desktop` et lit `/phone/{tag}` avec le secret reçu. L'ordinateur remplace alors le salon d'accueil : la photo d'un ancien QR code n'ouvre plus rien, et quiconque l'a photographié ne peut au plus qu'encombrer le salon d'accueil (8 boîtes de téléphone), jamais le téléphone appairé.
-6. Chaque enregistrement : START, AUDIO..., END (ou CANCEL). L'ordinateur répond RECEIVED puis transcrit et colle le texte.
+6. Chaque enregistrement : START, AUDIO..., END (ou CANCEL). L'ordinateur acquitte (ACK), répond RECEIVED puis transcrit et colle le texte.
 7. Le QR code reste affiché : un nouveau téléphone qui le scanne et que l'utilisateur confirme remplace l'actuel, qui reçoit REPLACED.
 
 ## 8. Durées de vie

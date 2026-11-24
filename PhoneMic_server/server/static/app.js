@@ -6,7 +6,8 @@
 // then every frame is AES-GCM encrypted:
 // IV || AES-GCM(seq || op || payload). The relay never sees the key.
 
-import { OP, sealInner, openInner, u32be, parseRoom } from './wire.js';
+import { OP, sealInner, openInner, u32be, parseRoom, parseAck } from './wire.js';
+import { Outbox } from './outbox.js';
 import * as crypto from './crypto.js';
 import { Relay } from './relay.js';
 import { Capture, decodeFile, FileTooLarge, toPcm16, TARGET_RATE } from './audio.js';
@@ -42,7 +43,11 @@ const session = {
     seqLimit: 0,
     seqIn: 0,
     chain: Promise.resolve(),
+    // Sent packets the desktop has not acknowledged yet
+    outbox: new Outbox(),
 };
+
+const RESEND_CHECK_MS = 1000;
 
 const rec = {
     mode: localStorage.getItem(MODE_KEY) === 'handsfree' ? 'handsfree' : 'manual',
@@ -117,6 +122,7 @@ function sendOp(op, payload) {
             await persist();
         }
         const packet = await crypto.seal(session.keys.send, sealInner(session.seqOut, op, payload));
+        session.outbox.add(session.seqOut, packet, Date.now());
         session.relay.send([{ binary: packet }]);
     });
     return session.chain;
@@ -142,6 +148,11 @@ async function onFrames(frames) {
             case OP.BOUND:
                 if (!session.bound) bind(parseRoom(inner.payload));
                 break;
+            case OP.ACK: {
+                const seq = parseAck(inner.payload);
+                if (seq !== null) session.outbox.ack(seq);
+                break;
+            }
             case OP.RECEIVED:
                 setState('state_received');
                 break;
@@ -270,6 +281,13 @@ function openRelay(room, secret) {
     });
     session.relay.start();
 }
+
+/** What the desktop did not acknowledge in time leaves again, once our own queue is empty. */
+setInterval(() => {
+    if (!session.bound || session.relay === null || session.relay.queue.length > 0) return;
+    // One envelope each: together they could exceed the relay's body cap
+    for (const binary of session.outbox.due(Date.now())) session.relay.send([{ binary }]);
+}, RESEND_CHECK_MS);
 
 function showConnected() {
     show('connected');

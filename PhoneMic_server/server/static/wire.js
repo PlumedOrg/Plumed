@@ -5,7 +5,7 @@
 
 // Mirror of PROTOCOL_VERSION (protocol/src/lib.rs), pinned by test-vectors.json.
 // Bump it with any wire, crypto or pairing change.
-export const PROTOCOL_VERSION = '4.0.0';
+export const PROTOCOL_VERSION = '5.0.0';
 
 export const OP = Object.freeze({
     START: 1,
@@ -16,6 +16,7 @@ export const OP = Object.freeze({
     RECEIVED: 0x11,
     DENIED: 0x12,
     REPLACED: 0x13,
+    ACK: 0x14,
 });
 
 export const MAX_FRAME = 256 * 1024;
@@ -88,6 +89,12 @@ export function u32be(n) {
     const out = new Uint8Array(4);
     new DataView(out.buffer).setUint32(0, n);
     return out;
+}
+
+/** Payload of OP.ACK: seq(u64 BE) -> number, or null when malformed. */
+export function parseAck(payload) {
+    if (payload.length !== SEQ_LEN) return null;
+    return Number(new DataView(payload.buffer, payload.byteOffset, SEQ_LEN).getBigUint64(0));
 }
 
 const TOKEN = /^[A-Za-z0-9_-]+$/;

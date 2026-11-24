@@ -22,8 +22,14 @@
 //! new one is generated and the QR code changes: the old code answers `stale`.
 //! Scanning the new code while a phone is active replaces it after confirmation.
 //!
-//! Sequence numbers must be contiguous inside a recording: a gap (the relay
-//! withheld a chunk or the END of the previous one) drops the recording.
+//! Sequence numbers must be contiguous: a packet after a gap (lost when a poll
+//! answer died on the way, or withheld by the relay) is ignored, and `ACK`
+//! (every `ACK_EVERY` packets, at END, and at the first packet after a gap)
+//! tells the phone the last one received in order so it resends the rest.
+//! A recording is thus never transcribed with a hole in it (a dropped "pas"
+//! flips the meaning of a sentence). Only a START may jump over a gap: it
+//! drops any unfinished recording, so the phone can always start afresh
+//! (after a reload its sequence numbers jump ahead, see the phone's store).
 
 use super::audio::accumulate_pcm;
 use super::crypto::{
@@ -38,6 +44,8 @@ use serde::Deserialize;
 use std::time::{Duration, Instant};
 
 const MAX_TEXT_FRAME: usize = 4096;
+/// In-order packets between two `ACK`s.
+const ACK_EVERY: u64 = 16;
 /// A phone not confirmed within this delay is refused: an unattended desktop
 /// must not keep a stranger's pairing request one click away.
 pub const CANDIDATE_TTL: Duration = Duration::from_secs(60);
@@ -121,6 +129,8 @@ struct Peer {
     via: Via,
     seq_in: u64,
     seq_out: u64,
+    /// The last packet was ignored for a gap and `ACK` already said so.
+    gap_acked: bool,
     recording: Option<(Vec<i16>, u32)>,
     /// When bound, and the `BOUND` payload (its private room), resent as is.
     bound: Option<(Instant, Vec<u8>)>,
@@ -134,6 +144,7 @@ impl Peer {
             via: Via::Lobby,
             seq_in: 0,
             seq_out: 0,
+            gap_acked: false,
             recording: None,
             bound: None,
         }
@@ -151,6 +162,11 @@ impl Peer {
 
     fn seal(&mut self, op: u8, payload: &[u8]) -> Result<Outgoing, CryptoError> {
         self.seal_via(self.via, op, payload)
+    }
+
+    fn seal_ack(&mut self) -> Result<Outgoing, CryptoError> {
+        let seq_in = self.seq_in.to_be_bytes();
+        self.seal(op::ACK, &seq_in)
     }
 
     /// `BOUND` goes through the lobby: the phone only learns its private room
@@ -359,12 +375,23 @@ impl Pairing {
         if seq <= active.seq_in {
             return Ok(Step::default());
         }
-        // A gap means the relay withheld frames: never transcribe a recording
-        // with a hole in it (a dropped "pas" flips the meaning of a sentence)
-        if seq != active.seq_in + 1 {
-            active.recording = None;
+        if seq != active.seq_in + 1 && code != op::START {
+            // A gap: wait for the phone to resend, tell it once
+            if std::mem::replace(&mut active.gap_acked, true) {
+                return Ok(Step::default());
+            }
+            let ack = active.seal_ack()?;
+            return Ok(Step {
+                send: vec![ack],
+                event: None,
+            });
         }
+        active.gap_acked = false;
         active.seq_in = seq;
+        let mut send = Vec::new();
+        if seq % ACK_EVERY == 0 && code != op::END {
+            send.push(active.seal_ack()?);
+        }
         match code {
             op::START => {
                 // A START without END (phone reconnected) drops the unfinished one
@@ -381,19 +408,17 @@ impl Pairing {
                 }
             }
             op::END => {
+                send.push(active.seal_ack()?);
                 if let Some((pcm, sample_rate)) = active.recording.take() {
-                    let received = active.seal(op::RECEIVED, &[])?;
+                    send.push(active.seal(op::RECEIVED, &[])?);
                     let event = (!pcm.is_empty()).then_some(Event::Recording { pcm, sample_rate });
-                    return Ok(Step {
-                        send: vec![received],
-                        event,
-                    });
+                    return Ok(Step { send, event });
                 }
             }
             op::CANCEL => active.recording = None,
             _ => {}
         }
-        Ok(Step::default())
+        Ok(Step { send, event: None })
     }
 }
 
@@ -594,7 +619,8 @@ mod tests {
                 sample_rate: 16000
             })
         );
-        assert_eq!(phone.open(&step.send[0]), Some((2, op::RECEIVED)));
+        let answers: Vec<_> = step.send.iter().map(|o| phone.open(o).unwrap()).collect();
+        assert_eq!(answers, [(2, op::ACK), (3, op::RECEIVED)]);
     }
 
     #[test]
@@ -614,43 +640,73 @@ mod tests {
                 sample_rate: 16000
             })
         );
-        // Cancelled utterance: no recording, no acknowledgement
+        // Cancelled utterance: no recording, no RECEIVED (only the ACK)
         p.on_frame(phone.op(op::START, &16000u32.to_be_bytes()))
             .unwrap();
         p.on_frame(phone.op(op::AUDIO, &[1, 0])).unwrap();
         p.on_frame(phone.op(op::CANCEL, &[])).unwrap();
-        assert_eq!(p.on_frame(phone.op(op::END, &[])).unwrap(), Step::default());
+        let step = p.on_frame(phone.op(op::END, &[])).unwrap();
+        assert!(step.event.is_none());
+        assert_eq!(phone.open(&step.send[0]).unwrap().1, op::ACK);
+        assert_eq!(step.send.len(), 1);
         // Unsupported rate: the audio after it is ignored
         p.on_frame(phone.op(op::START, &200_000u32.to_be_bytes()))
             .unwrap();
         p.on_frame(phone.op(op::AUDIO, &[1, 0])).unwrap();
-        assert_eq!(p.on_frame(phone.op(op::END, &[])).unwrap(), Step::default());
+        let step = p.on_frame(phone.op(op::END, &[])).unwrap();
+        assert!(step.event.is_none());
+        assert_eq!(phone.open(&step.send[0]).unwrap().1, op::ACK);
+        assert_eq!(step.send.len(), 1);
     }
 
     #[test]
-    fn a_withheld_frame_drops_the_recording() {
+    fn a_lost_frame_is_acked_then_resent_in_order() {
         let (mut p, mut phone) = bound();
         p.on_frame(phone.op(op::START, &16000u32.to_be_bytes()))
             .unwrap();
         p.on_frame(phone.op(op::AUDIO, &[1, 0])).unwrap();
-        // The relay swallows this chunk
-        let _withheld = phone.op(op::AUDIO, &[2, 0]);
-        p.on_frame(phone.op(op::AUDIO, &[3, 0])).unwrap();
-        assert_eq!(p.on_frame(phone.op(op::END, &[])).unwrap(), Step::default());
-        // A withheld END: the next recording starts clean, gaps between
-        // recordings are harmless
+        // Lost on the way: everything after it waits for the resend
+        let lost = phone.op(op::AUDIO, &[2, 0]);
+        let after = phone.op(op::AUDIO, &[3, 0]);
+        let end = phone.op(op::END, &[]);
+        let step = p.on_frame(after.clone()).unwrap();
+        let (_, code, payload) = phone.open_full(&step.send[0]).unwrap();
+        assert_eq!((code, payload), (op::ACK, 2u64.to_be_bytes().to_vec()));
+        // Told once only
+        assert_eq!(p.on_frame(end.clone()).unwrap(), Step::default());
+        // The phone resends from the ACK on
+        assert!(p.on_frame(lost).unwrap().event.is_none());
+        p.on_frame(after).unwrap();
+        let step = p.on_frame(end).unwrap();
+        assert_eq!(
+            step.event,
+            Some(Event::Recording {
+                pcm: vec![1, 2, 3],
+                sample_rate: 16000
+            })
+        );
+        let codes: Vec<u8> = step.send.iter().map(|o| phone.open(o).unwrap().1).collect();
+        assert_eq!(codes, [op::ACK, op::RECEIVED]);
+    }
+
+    #[test]
+    fn only_a_start_jumps_over_a_gap() {
+        let (mut p, mut phone) = bound();
         p.on_frame(phone.op(op::START, &16000u32.to_be_bytes()))
             .unwrap();
-        p.on_frame(phone.op(op::AUDIO, &[4, 0])).unwrap();
-        let _withheld_end = phone.op(op::END, &[]);
-        p.on_frame(phone.op(op::START, &16000u32.to_be_bytes()))
-            .unwrap();
+        // Withheld for good (relay): this recording never completes
+        let _withheld = phone.op(op::AUDIO, &[4, 0]);
         p.on_frame(phone.op(op::AUDIO, &[5, 0])).unwrap();
+        assert!(p.on_frame(phone.op(op::END, &[])).unwrap().event.is_none());
+        // A START jumps over the gap and drops the unfinished recording
+        p.on_frame(phone.op(op::START, &16000u32.to_be_bytes()))
+            .unwrap();
+        p.on_frame(phone.op(op::AUDIO, &[6, 0])).unwrap();
         let step = p.on_frame(phone.op(op::END, &[])).unwrap();
         assert_eq!(
             step.event,
             Some(Event::Recording {
-                pcm: vec![5],
+                pcm: vec![6],
                 sample_rate: 16000
             })
         );
