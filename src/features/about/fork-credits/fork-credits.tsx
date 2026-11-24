@@ -46,7 +46,7 @@ const TEXT: Record<'fr' | 'en', CreditsText> = {
             'the bundled package',
             'the source archive',
         ],
-        upstream: 'Murmure is made by Al1x-ai. Please support the original project above.',
+        upstream: 'Murmure is made by Al1x-ai. Please support the original project below.',
     },
     fr: {
         intro: [
@@ -67,7 +67,7 @@ const TEXT: Record<'fr' | 'en', CreditsText> = {
             'le paquet inclus',
             "l'archive des sources",
         ],
-        upstream: 'Murmure est développé par Al1x-ai. Soutenez le projet original ci-dessus.',
+        upstream: 'Murmure est développé par Al1x-ai. Soutenez le projet original ci-dessous.',
     },
 };
 
