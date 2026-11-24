@@ -12,6 +12,7 @@ Plumed est une application de bureau de reconnaissance vocale libre, qui place l
 - Au premier lancement, Plumed télécharge le modèle de reconnaissance vocale que vous choisissez, depuis Hugging Face ou, si Hugging Face est inaccessible, depuis le relais de modèles de Plumed (`models.plumed.fr`). Il s'agit d'un simple téléchargement de fichiers, sans identifiant ; il a lieu une seule fois et le modèle est conservé lors des mises à jour.
 - Au démarrage, Plumed vérifie les mises à jour en téléchargeant un petit fichier depuis GitHub, ou depuis le relais de Plumed (`models.plumed.fr`) si GitHub est inaccessible ; aucun identifiant n'est envoyé. Vous pouvez choisir les versions stables ou bêta, ou désactiver la vérification automatique, dans Paramètres > En ligne. Le téléchargement des mises à jour est soumis à votre accord.
 - Au premier lancement, Plumed demande s'il peut vérifier, à chaque démarrage, les mises à jour des règles médicales. Uniquement si vous acceptez (vous pouvez le modifier dans Paramètres > En ligne), il demande à GitHub, au démarrage, s'il existe de nouvelles règles médicales : un simple téléchargement d'un petit fichier signé, sans identifiant. Rien n'est contacté avant que vous ayez répondu. Les nouvelles règles ne sont téléchargées que lorsque vous cliquez sur « Télécharger ». Vous pouvez aussi les télécharger vous-même avec votre navigateur et les installer avec « Installer une mise à jour téléchargée », ce qui n'effectue aucune requête réseau.
+- Le site [plumed.fr](https://plumed.fr) mesure sa fréquentation avec Umami, sans cookie et sans enregistrer votre adresse IP (voir « Le site plumed.fr »).
 
 ## Ce que Plumed ne fait pas
 
@@ -108,6 +109,17 @@ L'API de transcription locale (désactivée par défaut, Paramètres > Avancé) 
 
 Politiques de confidentialité des tiers : [Déclaration de confidentialité de GitHub](https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement), [Politique de confidentialité de Hugging Face](https://huggingface.co/privacy)
 
+## Le site plumed.fr
+
+Le site [plumed.fr](https://plumed.fr) (présentation et documentation) mesure sa fréquentation pour savoir quelles pages sont lues et les améliorer. Il utilise pour cela une instance [Umami](https://umami.is) auto-hébergée par le mainteneur de Plumed, joignable à l'adresse `u.plumed.fr`.
+
+- **Pas de cookie** : Umami ne dépose aucun cookie et n'écrit rien dans votre navigateur. Aucun bandeau de consentement n'est donc nécessaire.
+- **Ce qui est mesuré** : la page visitée, la page d'où vous venez (référent), le type de navigateur, de système et d'appareil, la taille de l'écran, la langue, et le pays ou la ville déduits de la connexion.
+- **Pas d'adresse IP conservée** : l'adresse IP sert seulement, au moment de la visite, à déduire le pays ou la ville et à calculer un identifiant de visite anonyme (une empreinte de l'adresse IP et du navigateur, mélangée à un secret renouvelé chaque mois, qui ne permet pas de retrouver l'adresse). Ni Umami ni le serveur web de `plumed.fr` et `u.plumed.fr` n'enregistrent l'adresse IP.
+- **Pas de suivi d'un site à l'autre** : les données ne servent qu'aux statistiques de plumed.fr, ne sont croisées avec aucune autre donnée et ne sont transmises à personne.
+- **Durée** : conservées au plus 25 mois.
+- **Vous y opposer** : tout bloqueur de contenu (uBlock Origin, etc.) qui bloque `u.plumed.fr` suffit ; le site fonctionne de la même façon.
+
 ## Registre des traitements
 
 Le registre des activités de traitement (RGPD, art. 30) décrit chaque traitement de données personnelles réalisé par le mainteneur de Plumed sur ses serveurs. Il suit le [modèle simplifié de la CNIL](https://www.cnil.fr/fr/RGDP-le-registre-des-activites-de-traitement) et est publié ici par transparence. Tout ce qui se passe sur votre ordinateur (dictée, corrections, réglages) n'est pas un traitement par le mainteneur et n'y figure donc pas.
@@ -145,6 +157,17 @@ Responsable du traitement : Olivier Cornelis, mainteneur de Plumed, contact : ht
 - **Destinataires** : aucun.
 - **Hébergement** : serveur en France.
 - **Durées** : ni adresse IP ni fichier téléchargé ne sont journalisés.
+
+### Mesure d'audience du site (plumed.fr, u.plumed.fr)
+
+- **Finalité** : connaître la fréquentation des pages du site plumed.fr pour l'améliorer.
+- **Base légale** : intérêt légitime ; mesure d'audience sans cookie, limitée aux statistiques du site et exemptée de consentement selon les conditions de la CNIL.
+- **Personnes concernées** : les visiteurs du site plumed.fr.
+- **Données** : page visitée, référent, type de navigateur, de système et d'appareil, taille d'écran, langue, pays ou ville déduits de la connexion, identifiant de visite anonyme (empreinte salée renouvelée chaque mois). Aucune adresse IP conservée, aucun cookie.
+- **Destinataires** : mainteneur uniquement. Aucun transfert hors de l'Union européenne.
+- **Hébergement** : Umami auto-hébergé sur un serveur en France.
+- **Durées** : statistiques supprimées après 25 mois ; le serveur web ne tient pas de journal d'accès pour ces adresses.
+- **Sécurité** : HTTPS, seuls le script de mesure et l'adresse d'envoi des statistiques sont exposés sur `u.plumed.fr`.
 
 ## Vos droits
 
