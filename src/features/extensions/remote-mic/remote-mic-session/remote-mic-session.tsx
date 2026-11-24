@@ -13,7 +13,8 @@ interface RemoteMicSessionProps {
     confirm: (fingerprint: string, accepted: boolean) => void;
 }
 
-const Fingerprint = ({
+/** The click only binds the phone it was shown for: `fingerprint` identifies it. */
+const Candidate = ({
     fingerprint,
     confirm,
 }: {
@@ -24,19 +25,16 @@ const Fingerprint = ({
     return (
         <div className="flex flex-col items-center gap-4">
             <Typography.Paragraph className="text-center">
-                {t('Check that the phone shows exactly the same code:')}
+                {t('A phone scanned the QR code. Connect it?')}
             </Typography.Paragraph>
-            <code className="text-2xl font-mono tracking-widest px-4 py-2 rounded-md border border-border">
-                {fingerprint}
-            </code>
             <div className="flex gap-3">
                 <Page.PrimaryButton size="sm" onClick={() => confirm(fingerprint, true)}>
                     <Check className="w-4 h-4" />
-                    {t('Same code')}
+                    {t('Connect')}
                 </Page.PrimaryButton>
                 <Page.SecondaryButton size="sm" onClick={() => confirm(fingerprint, false)}>
                     <X className="w-4 h-4" />
-                    {t('Different code')}
+                    {t('Refuse')}
                 </Page.SecondaryButton>
             </div>
         </div>
@@ -109,7 +107,7 @@ const Body = ({ snapshot, start, stop, confirm }: RemoteMicSessionProps) => {
             return (
                 <>
                     {snapshot.fingerprint != null && (
-                        <Fingerprint fingerprint={snapshot.fingerprint} confirm={confirm} />
+                        <Candidate fingerprint={snapshot.fingerprint} confirm={confirm} />
                     )}
                     {stopButton}
                 </>

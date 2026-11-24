@@ -1,17 +1,19 @@
 // End-to-end crypto of the phone, mirror of src-tauri/src/remote_mic/crypto.rs
-// (ECDH P-256, HKDF-SHA256, AES-256-GCM, pairing fingerprint). Both are pinned
+// (ECDH P-256, HKDF-SHA256, AES-256-GCM, hello proof). Both are pinned
 // by protocol/test-vectors.json (see crypto.test.mjs): change them together.
 // Keep PhoneMic_server/protocol_details.md in sync with any change here.
 // One key per direction, bound to both public keys: a packet cannot be
-// reflected back to its sender, nor replayed into another pairing.
+// reflected back to its sender, nor replayed into another pairing. The HKDF
+// input is the ECDH x coordinate followed by the QR code's pairing secret, so
+// the relay (which never sees the URL fragment) can derive nothing.
 
 import { PROTOCOL_VERSION } from './wire.js';
 
 const HKDF_SALT = new TextEncoder().encode(`Plumed-RemoteMic-${PROTOCOL_VERSION}`);
 const PHONE_TO_DESKTOP = new TextEncoder().encode('phone-to-desktop');
 const DESKTOP_TO_PHONE = new TextEncoder().encode('desktop-to-phone');
+const HELLO_PROOF = new TextEncoder().encode('hello-proof');
 const IV_LEN = 12;
-const FINGERPRINT_BYTES = 8;
 const subtle = globalThis.crypto.subtle;
 
 export function toB64(bytes) {
@@ -48,24 +50,36 @@ export async function sharedSecret(privateKey, peerRaw) {
     return new Uint8Array(await subtle.deriveBits({ name: 'ECDH', public: peer }, privateKey, 256));
 }
 
-/** HKDF-SHA256(shared x, info = label || desktop || phone) -> 32-byte AES key. */
-export async function hkdf(shared, label, desktopRaw, phoneRaw) {
-    const info = new Uint8Array(label.length + desktopRaw.length + phoneRaw.length);
-    info.set(label);
-    info.set(desktopRaw, label.length);
-    info.set(phoneRaw, label.length + desktopRaw.length);
-    const ikm = await subtle.importKey('raw', shared, 'HKDF', false, ['deriveBits']);
+export function concat(...parts) {
+    const out = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
+    let at = 0;
+    for (const p of parts) {
+        out.set(p, at);
+        at += p.length;
+    }
+    return out;
+}
+
+/** HKDF-SHA256(ikm = shared x || pairing secret, info = label || desktop || phone) -> 32 bytes. */
+export async function hkdf(ikmBytes, label, desktopRaw, phoneRaw) {
+    const info = concat(label, desktopRaw, phoneRaw);
+    const ikm = await subtle.importKey('raw', ikmBytes, 'HKDF', false, ['deriveBits']);
     const bits = await subtle.deriveBits({ name: 'HKDF', hash: 'SHA-256', salt: HKDF_SALT, info }, ikm, 256);
     return new Uint8Array(bits);
 }
 
 /** The phone's keys: `send` seals phone -> desktop, `recv` opens desktop -> phone. */
-export async function phoneKeys(shared, desktopRaw, phoneRaw) {
+export async function phoneKeys(ikm, desktopRaw, phoneRaw) {
     const [send, recv] = await Promise.all([
-        hkdf(shared, PHONE_TO_DESKTOP, desktopRaw, phoneRaw).then(aesKey),
-        hkdf(shared, DESKTOP_TO_PHONE, desktopRaw, phoneRaw).then(aesKey),
+        hkdf(ikm, PHONE_TO_DESKTOP, desktopRaw, phoneRaw).then(aesKey),
+        hkdf(ikm, DESKTOP_TO_PHONE, desktopRaw, phoneRaw).then(aesKey),
     ]);
     return { send, recv };
+}
+
+/** What the hello carries to prove the phone read the QR code's pairing secret. */
+export function helloProof(ikm, desktopRaw, phoneRaw) {
+    return hkdf(ikm, HELLO_PROOF, desktopRaw, phoneRaw);
 }
 
 export function aesKey(raw) {
@@ -86,16 +100,4 @@ export async function seal(key, plain) {
 export async function open(key, packet) {
     const iv = packet.slice(0, IV_LEN);
     return new Uint8Array(await subtle.decrypt({ name: 'AES-GCM', iv }, key, packet.slice(IV_LEN)));
-}
-
-/** SHA-256(desktop || phone), first 16 uppercase hex digits grouped by 4: 524C-F8E8-D5A4-2D82 */
-export async function fingerprint(desktopRaw, phoneRaw) {
-    const both = new Uint8Array(desktopRaw.length + phoneRaw.length);
-    both.set(desktopRaw);
-    both.set(phoneRaw, desktopRaw.length);
-    const digest = new Uint8Array(await subtle.digest('SHA-256', both));
-    const hex = Array.from(digest.slice(0, FINGERPRINT_BYTES), (b) => b.toString(16).padStart(2, '0'))
-        .join('')
-        .toUpperCase();
-    return hex.match(/.{4}/g).join('-');
 }

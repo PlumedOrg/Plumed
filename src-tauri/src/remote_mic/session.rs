@@ -54,7 +54,7 @@ pub enum Status {
     Starting,
     /// QR code shown, no phone yet.
     Waiting,
-    /// Phone joined: both users must compare the fingerprint.
+    /// Phone joined (with a valid hello proof): the user must accept it.
     Verify,
     Connected,
 }
@@ -72,7 +72,7 @@ pub struct Snapshot {
 }
 
 pub enum Command {
-    /// The user compared `fingerprint`: `accepted` binds, otherwise refuses.
+    /// The user answered for the candidate `fingerprint` identifies: `accepted` binds, otherwise refuses.
     Confirm {
         fingerprint: String,
         accepted: bool,
@@ -625,7 +625,7 @@ mod tests {
             .iter()
             .map(|t| {
                 let hello = serde_json::json!({
-                    "type": "hello", "key": key, "to": "x", "inbox": t.repeat(22),
+                    "type": "hello", "key": key, "to": "x", "inbox": t.repeat(22), "proof": "x",
                 });
                 Frame::Text(hello.to_string())
             })

@@ -21,19 +21,25 @@ async function phonePrivateKey() {
     return crypto.subtle.importKey('jwk', jwk, { name: 'ECDH', namedCurve: 'P-256' }, false, ['deriveBits']);
 }
 
-test('ECDH and HKDF match the vectors', async () => {
+/** ECDH x || pairing secret of the vectors. */
+async function ikm() {
     const shared = await c.sharedSecret(await phonePrivateKey(), c.fromB64(v.desktop_public));
     assert.equal(toHex(shared), v.shared_x);
+    return c.concat(shared, hex(v.pairing_secret));
+}
+
+test('ECDH, HKDF and hello proof match the vectors', async () => {
+    const input = await ikm();
     const desktop = c.fromB64(v.desktop_public);
     const phone = c.fromB64(v.phone_public);
     const label = (s) => new TextEncoder().encode(s);
-    assert.equal(toHex(await c.hkdf(shared, label('phone-to-desktop'), desktop, phone)), v.key_phone_to_desktop);
-    assert.equal(toHex(await c.hkdf(shared, label('desktop-to-phone'), desktop, phone)), v.key_desktop_to_phone);
+    assert.equal(toHex(await c.hkdf(input, label('phone-to-desktop'), desktop, phone)), v.key_phone_to_desktop);
+    assert.equal(toHex(await c.hkdf(input, label('desktop-to-phone'), desktop, phone)), v.key_desktop_to_phone);
+    assert.equal(toHex(await c.helloProof(input, desktop, phone)), v.hello_proof);
 });
 
 test('phone keys: we seal with send, a reflected packet does not open', async () => {
-    const shared = await c.sharedSecret(await phonePrivateKey(), c.fromB64(v.desktop_public));
-    const keys = await c.phoneKeys(shared, c.fromB64(v.desktop_public), c.fromB64(v.phone_public));
+    const keys = await c.phoneKeys(await ikm(), c.fromB64(v.desktop_public), c.fromB64(v.phone_public));
     assert.equal(toHex(await c.open(keys.send, hex(v.packet))), v.packet_inner);
     await assert.rejects(c.open(keys.recv, hex(v.packet)));
 });
@@ -46,10 +52,6 @@ test('opens the reference packet and round-trips', async () => {
     const forged = hex(v.packet);
     forged[20] ^= 1;
     await assert.rejects(c.open(key, forged));
-});
-
-test('fingerprint matches the vectors', async () => {
-    assert.equal(await c.fingerprint(c.fromB64(v.desktop_public), c.fromB64(v.phone_public)), v.fingerprint);
 });
 
 test('base64url of the QR link', () => {

@@ -3,10 +3,14 @@
 //! (`PhoneMic_server/server/static/crypto.js`).
 //! Keep `PhoneMic_server/protocol_details.md` in sync with any change here.
 //!
-//! Each direction has its own key, bound to both public keys:
-//! `HKDF(salt, shared x, info = label || desktop pub || phone pub)` with the
-//! labels `phone-to-desktop` and `desktop-to-phone`. A packet can then never be
-//! reflected back to its sender, and the key only exists for that exact pair.
+//! Each direction has its own key, bound to both public keys and to the QR
+//! code's pairing secret:
+//! `HKDF(salt, shared x || pairing secret, info = label || desktop pub || phone pub)`
+//! with the labels `phone-to-desktop` and `desktop-to-phone`. A packet can then
+//! never be reflected back to its sender, and the key only exists for that
+//! exact pair. The label `hello-proof` gives the value the phone's `hello`
+//! carries: only a phone that read the QR code can compute it, so the relay
+//! (which never sees the URL fragment) cannot pose as a phone.
 //!
 //! The JS side duplicates this on purpose (a browser cannot run Rust). Both are
 //! pinned by `PhoneMic_server/protocol/test-vectors.json`, generated with
@@ -22,6 +26,9 @@ use ring::{digest, hkdf};
 
 const PHONE_TO_DESKTOP: &[u8] = b"phone-to-desktop";
 const DESKTOP_TO_PHONE: &[u8] = b"desktop-to-phone";
+const HELLO_PROOF: &[u8] = b"hello-proof";
+/// Random bytes of the pairing secret carried by the QR code.
+pub const PAIRING_SECRET_LEN: usize = 32;
 const PUBLIC_KEY_LEN: usize = 65;
 const IV_LEN: usize = 12;
 const TAG_LEN: usize = 16;
@@ -72,28 +79,67 @@ impl KeyPair {
         B64URL.encode(&self.public)
     }
 
-    /// ECDH with the peer's raw public key, then HKDF into the two keys of
-    /// the session, seen from `us`.
-    pub fn derive(self, peer_raw: &[u8], us: Role) -> Result<SessionKeys, CryptoError> {
+    /// ECDH with the peer's raw public key, then HKDF (with the QR code's
+    /// `pairing_secret`) into the two keys of the session, seen from `us`, and
+    /// the hello proof.
+    pub fn derive(
+        self,
+        peer_raw: &[u8],
+        pairing_secret: &[u8],
+        us: Role,
+    ) -> Result<(SessionKeys, HelloProof), CryptoError> {
         let (desktop, phone) = match us {
             Role::Desktop => (self.public.as_slice(), peer_raw),
             Role::Phone => (peer_raw, self.public.as_slice()),
         };
         let peer = UnparsedPublicKey::new(&ECDH_P256, peer_raw);
-        let [to_desktop, to_phone] = agree_ephemeral(self.private, &peer, |shared| {
-            [PHONE_TO_DESKTOP, DESKTOP_TO_PHONE]
-                .map(|label| derive_key_bytes(shared, label, desktop, phone))
+        let [to_desktop, to_phone, proof] = agree_ephemeral(self.private, &peer, |shared| {
+            [PHONE_TO_DESKTOP, DESKTOP_TO_PHONE, HELLO_PROOF]
+                .map(|label| derive_key_bytes(shared, pairing_secret, label, desktop, phone))
         })
         .map_err(|_| CryptoError::Agreement)?;
         let (send, recv) = match us {
             Role::Desktop => (to_phone, to_desktop),
             Role::Phone => (to_desktop, to_phone),
         };
-        Ok(SessionKeys {
+        let keys = SessionKeys {
             send: SessionKey::from_bytes(&send)?,
             recv: SessionKey::from_bytes(&recv)?,
-        })
+        };
+        Ok((keys, HelloProof(proof)))
     }
+}
+
+/// What a `hello` must carry (base64url in its `proof` field).
+pub struct HelloProof([u8; 32]);
+
+impl HelloProof {
+    pub fn b64url(&self) -> String {
+        B64URL.encode(self.0)
+    }
+
+    /// Constant-time comparison with the `proof` of a hello.
+    pub fn matches(&self, claimed_b64url: &str) -> bool {
+        match B64URL.decode(claimed_b64url) {
+            Ok(claimed) if claimed.len() == self.0.len() => {
+                claimed
+                    .iter()
+                    .zip(self.0)
+                    .fold(0u8, |acc, (a, b)| acc | (a ^ b))
+                    == 0
+            }
+            _ => false,
+        }
+    }
+}
+
+/// A fresh random pairing secret for a QR code.
+pub fn pairing_secret() -> Result<[u8; PAIRING_SECRET_LEN], CryptoError> {
+    let mut secret = [0u8; PAIRING_SECRET_LEN];
+    SystemRandom::new()
+        .fill(&mut secret)
+        .map_err(|_| CryptoError::Agreement)?;
+    Ok(secret)
 }
 
 /// Mirrors `importPublicKey`: length cap, base64 charset, 65 bytes, 0x04 prefix.
@@ -116,11 +162,17 @@ pub fn decode_public_key(b64: &str) -> Result<Vec<u8>, CryptoError> {
     }
 }
 
-/// HKDF-SHA256(shared secret, info = label || desktop || phone) -> 32-byte AES key.
-fn derive_key_bytes(shared: &[u8], label: &[u8], desktop: &[u8], phone: &[u8]) -> [u8; 32] {
+/// HKDF-SHA256(shared x || pairing secret, info = label || desktop || phone) -> 32 bytes.
+fn derive_key_bytes(
+    shared: &[u8],
+    pairing_secret: &[u8],
+    label: &[u8],
+    desktop: &[u8],
+    phone: &[u8],
+) -> [u8; 32] {
     let mut out = [0u8; 32];
     hkdf::Salt::new(hkdf::HKDF_SHA256, HKDF_SALT.as_bytes())
-        .extract(shared)
+        .extract(&[shared, pairing_secret].concat())
         .expand(&[label, desktop, phone], &AES_256_GCM)
         .and_then(|okm| okm.fill(&mut out))
         .expect("32 bytes is a valid HKDF-SHA256 output length");
@@ -229,14 +281,18 @@ mod tests {
         let d = decode_public_key(&vector("desktop_public")).unwrap();
         let p = decode_public_key(&vector("phone_public")).unwrap();
         let shared = unhex(&vector("shared_x"));
-        assert_eq!(
-            derive_key_bytes(&shared, PHONE_TO_DESKTOP, &d, &p).to_vec(),
-            unhex(&vector("key_phone_to_desktop"))
-        );
-        assert_eq!(
-            derive_key_bytes(&shared, DESKTOP_TO_PHONE, &d, &p).to_vec(),
-            unhex(&vector("key_desktop_to_phone"))
-        );
+        let secret = unhex(&vector("pairing_secret"));
+        for (label, name) in [
+            (PHONE_TO_DESKTOP, "key_phone_to_desktop"),
+            (DESKTOP_TO_PHONE, "key_desktop_to_phone"),
+            (HELLO_PROOF, "hello_proof"),
+        ] {
+            assert_eq!(
+                derive_key_bytes(&shared, &secret, label, &d, &p).to_vec(),
+                unhex(&vector(name)),
+                "{name}"
+            );
+        }
     }
 
     #[test]
@@ -272,8 +328,12 @@ mod tests {
         assert_eq!(a.public_b64().len(), 88);
         assert_eq!(B64URL.decode(a.public_b64url()).unwrap(), a.public_raw());
         let (a_pub, b_pub) = (a.public_raw().to_vec(), b.public_raw().to_vec());
-        let desktop = a.derive(&b_pub, Role::Desktop).unwrap();
-        let phone = b.derive(&a_pub, Role::Phone).unwrap();
+        let secret = pairing_secret().unwrap();
+        let (desktop, desktop_proof) = a.derive(&b_pub, &secret, Role::Desktop).unwrap();
+        let (phone, phone_proof) = b.derive(&a_pub, &secret, Role::Phone).unwrap();
+        assert!(desktop_proof.matches(&phone_proof.b64url()));
+        assert!(!desktop_proof.matches("short"));
+        assert!(!desktop_proof.matches(&B64URL.encode([0u8; 32])));
         let (p1, p2) = (phone.seal(b"hello").unwrap(), phone.seal(b"hello").unwrap());
         assert_ne!(p1[..IV_LEN], p2[..IV_LEN]);
         assert_eq!(desktop.decrypt(&p1).unwrap(), b"hello");
@@ -282,6 +342,17 @@ mod tests {
         // Reflected to its sender, a packet does not open
         assert_eq!(phone.decrypt(&p1), Err(CryptoError::Decrypt));
         assert_eq!(desktop.decrypt(&back), Err(CryptoError::Decrypt));
+    }
+
+    #[test]
+    fn another_pairing_secret_gives_other_keys() {
+        let (a, b) = (KeyPair::generate().unwrap(), KeyPair::generate().unwrap());
+        let (a_pub, b_pub) = (a.public_raw().to_vec(), b.public_raw().to_vec());
+        let (desktop, desktop_proof) = a.derive(&b_pub, &[1; 32], Role::Desktop).unwrap();
+        let (phone, phone_proof) = b.derive(&a_pub, &[2; 32], Role::Phone).unwrap();
+        assert!(!desktop_proof.matches(&phone_proof.b64url()));
+        let packet = phone.seal(b"hello").unwrap();
+        assert_eq!(desktop.decrypt(&packet), Err(CryptoError::Decrypt));
     }
 
     #[test]
@@ -295,6 +366,6 @@ mod tests {
         // Right shape, not on the curve: refused at agreement time
         let off_curve = [[0x04u8].as_slice(), &[0x01u8; 64]].concat();
         let kp = KeyPair::generate().unwrap();
-        assert!(kp.derive(&off_curve, Role::Desktop).is_err());
+        assert!(kp.derive(&off_curve, &[0; 32], Role::Desktop).is_err());
     }
 }

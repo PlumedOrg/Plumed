@@ -1,8 +1,9 @@
 // Phone page of the Plumed remote microphone.
 //
-// The QR code opens {origin}/#{room}.{phone secret}.{desktop public key}. The
-// phone sends its own public key and its inbox tag in a "hello", the desktop user checks the pairing
-// code on both screens and confirms, then every frame is AES-GCM encrypted:
+// The QR code opens {origin}/#{room}.{phone secret}.{desktop public key}.{pairing secret}.
+// The phone sends its own public key, its inbox tag and a proof that it read
+// the pairing secret in a "hello", the desktop user confirms with a click,
+// then every frame is AES-GCM encrypted:
 // IV || AES-GCM(seq || op || payload). The relay never sees the key.
 
 import { OP, sealInner, openInner, u32be, parseRoom } from './wire.js';
@@ -177,21 +178,33 @@ function onText(text) {
 
 function parseLink() {
     const parts = location.hash.replace(/^#/, '').split('.');
-    if (parts.length !== 3 || parts.some((p) => p.length === 0)) return null;
+    if (parts.length !== 4 || parts.some((p) => p.length === 0)) return null;
     try {
-        return { room: parts[0], secret: parts[1], desktopRaw: crypto.fromB64url(parts[2]) };
+        return {
+            room: parts[0],
+            secret: parts[1],
+            desktopRaw: crypto.fromB64url(parts[2]),
+            pairingSecret: crypto.fromB64url(parts[3]),
+        };
     } catch {
         return null;
     }
 }
 
-async function pair(desktopRaw) {
+async function pair(desktopRaw, pairingSecret) {
     const mine = await crypto.generateKeyPair();
     const shared = await crypto.sharedSecret(mine.privateKey, desktopRaw);
-    session.keys = await crypto.phoneKeys(shared, desktopRaw, mine.publicRaw);
-    $('fingerprint').textContent = await crypto.fingerprint(desktopRaw, mine.publicRaw);
+    const ikm = crypto.concat(shared, pairingSecret);
+    session.keys = await crypto.phoneKeys(ikm, desktopRaw, mine.publicRaw);
+    const proof = await crypto.helloProof(ikm, desktopRaw, mine.publicRaw);
     session.publicB64 = crypto.toB64(mine.publicRaw);
-    const hello = { type: 'hello', key: session.publicB64, to: crypto.toB64(desktopRaw), inbox: session.inbox };
+    const hello = {
+        type: 'hello',
+        key: session.publicB64,
+        to: crypto.toB64(desktopRaw),
+        inbox: session.inbox,
+        proof: crypto.toB64url(proof),
+    };
     session.relay.send([{ text: JSON.stringify(hello) }]);
     show('pairing');
 }
@@ -274,7 +287,7 @@ async function start() {
     await store.clear();
     session.inbox = crypto.toB64url(globalThis.crypto.getRandomValues(new Uint8Array(16)));
     openRelay(link.room, link.secret);
-    await pair(link.desktopRaw);
+    await pair(link.desktopRaw, link.pairingSecret);
 }
 
 // --------------------------------------------------------------- recording

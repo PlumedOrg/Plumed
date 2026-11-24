@@ -116,12 +116,11 @@ pub fn origin_of(server_url: &str) -> Result<String, String> {
     }
 }
 
-/// The link the phone scans: `<origin>/#<room>.<phone secret>.<desktop public key>`.
-pub fn phone_link(origin: &str, room: &Room, desktop_key_b64url: &str) -> String {
-    format!(
-        "{}/#{}.{}.{}",
-        origin, room.id, room.phone_secret, desktop_key_b64url
-    )
+/// The link the phone scans:
+/// `<origin>/#<room>.<phone secret>.<desktop public key>.<pairing secret>`,
+/// `pairing` being `Pairing::link_key`.
+pub fn phone_link(origin: &str, room: &Room, pairing: &str) -> String {
+    format!("{}/#{}.{}.{}", origin, room.id, room.phone_secret, pairing)
 }
 
 fn status_error(resp: &Response) -> ClientError {
@@ -375,8 +374,8 @@ mod tests {
             phone_secret: "s3cr_et".into(),
         };
         assert_eq!(
-            phone_link("https://turn.plumed.fr", &room, "BKEY"),
-            "https://turn.plumed.fr/#AbC-_9.s3cr_et.BKEY"
+            phone_link("https://turn.plumed.fr", &room, "BKEY.PSEC"),
+            "https://turn.plumed.fr/#AbC-_9.s3cr_et.BKEY.PSEC"
         );
     }
 }

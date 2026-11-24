@@ -1,10 +1,13 @@
 //! Desktop side of the Plumed remote-mic protocol, without I/O.
 //! Keep `PhoneMic_server/protocol_details.md` in sync with any change here.
 //!
-//! The QR code carries the public key of `pending`. A phone that scanned it posts
-//! `{"type":"hello","key":<phone pub>,"to":<that key>,"inbox":<tag>}`: it becomes the
-//! `candidate`, both screens show the same fingerprint, and only the desktop user
-//! confirms. The confirmed phone becomes `active` and gets an encrypted `BOUND`
+//! The QR code carries the public key of `pending` and a random pairing secret.
+//! A phone that scanned it posts
+//! `{"type":"hello","key":<phone pub>,"to":<that key>,"inbox":<tag>,"proof":<p>}`,
+//! where the proof is derived from the ECDH secret and the pairing secret (see
+//! `crypto`): only a phone that read the QR code can compute it, so no code
+//! has to be compared. A hello with a valid proof becomes the `candidate`, and
+//! the desktop user still confirms with a click. The confirmed phone becomes `active` and gets an encrypted `BOUND`
 //! (a refused one gets an encrypted `DENIED`, a replaced one `REPLACED`).
 //! From then on every frame is `IV || AES-GCM(seq || op || payload)`.
 //! Every answer goes to the inbox the phone named in its hello.
@@ -23,7 +26,11 @@
 //! withheld a chunk or the END of the previous one) drops the recording.
 
 use super::audio::accumulate_pcm;
-use super::crypto::{decode_public_key, pair_fingerprint, CryptoError, KeyPair, SessionKeys};
+use super::crypto::{
+    decode_public_key, pair_fingerprint, pairing_secret, CryptoError, KeyPair, SessionKeys,
+    PAIRING_SECRET_LEN,
+};
+use base64::{engine::general_purpose::URL_SAFE_NO_PAD as B64URL, Engine};
 use plumed_relay_protocol::{
     op, open_inner, seal_inner, valid_inbox_tag, Frame, Role, MAX_FRAME, SAMPLE_RATES,
 };
@@ -46,6 +53,7 @@ enum PhoneMessage {
         key: String,
         to: String,
         inbox: String,
+        proof: String,
     },
     #[serde(other)]
     Other,
@@ -53,7 +61,8 @@ enum PhoneMessage {
 
 #[derive(Debug, PartialEq)]
 pub enum Event {
-    /// A phone said hello: ask the user whether it shows the same code.
+    /// A phone said hello with a valid proof: ask the user to accept it (the
+    /// fingerprint only identifies it, so a click binds the phone it was shown for).
     Fingerprint(String),
     /// A complete recording, mono pcm-s16 at `sample_rate`.
     Recording { pcm: Vec<i16>, sample_rate: u32 },
@@ -156,6 +165,8 @@ impl Peer {
 
 pub struct Pairing {
     pending: KeyPair,
+    /// Secret of the QR code, rotated together with `pending`.
+    secret: [u8; PAIRING_SECRET_LEN],
     candidate: Option<Candidate>,
     active: Option<Peer>,
 }
@@ -171,14 +182,20 @@ impl Pairing {
     pub fn new() -> Result<Self, CryptoError> {
         Ok(Self {
             pending: KeyPair::generate()?,
+            secret: pairing_secret()?,
             candidate: None,
             active: None,
         })
     }
 
-    /// Public key for the QR link fragment.
+    /// End of the QR link fragment: `<desktop public key>.<pairing secret>`,
+    /// both base64url.
     pub fn link_key(&self) -> String {
-        self.pending.public_b64url()
+        format!(
+            "{}.{}",
+            self.pending.public_b64url(),
+            B64URL.encode(self.secret)
+        )
     }
 
     pub fn is_bound(&self) -> bool {
@@ -202,9 +219,12 @@ impl Pairing {
             return Ok(Step::default());
         }
         match serde_json::from_str(text) {
-            Ok(PhoneMessage::Hello { key, to, inbox }) if valid_inbox_tag(&inbox) => {
-                self.on_hello(key, &to, inbox)
-            }
+            Ok(PhoneMessage::Hello {
+                key,
+                to,
+                inbox,
+                proof,
+            }) if valid_inbox_tag(&inbox) => self.on_hello(key, &to, inbox, &proof),
             Ok(PhoneMessage::Hello { .. }) => Ok(Step::default()),
             Ok(PhoneMessage::Other) | Err(_) => Ok(Step::default()),
         }
@@ -215,6 +235,7 @@ impl Pairing {
         phone_b64: String,
         to: &str,
         inbox: String,
+        proof: &str,
     ) -> Result<Step, CryptoError> {
         let Ok(phone_raw) = decode_public_key(&phone_b64) else {
             return Ok(Step::default());
@@ -223,11 +244,16 @@ impl Pairing {
             return Ok(stale(&inbox, &phone_b64));
         }
         let ours = std::mem::replace(&mut self.pending, KeyPair::generate()?);
+        let secret = std::mem::replace(&mut self.secret, pairing_secret()?);
         let fingerprint = pair_fingerprint(ours.public_raw(), &phone_raw);
-        // Not on the curve: a forged hello, the QR code simply changes
-        let Ok(key) = ours.derive(&phone_raw, Role::Desktop) else {
+        // Not on the curve, or without the QR code's secret (the relay or
+        // anyone who only saw the public key): forged, the QR code simply changes
+        let Ok((key, expected)) = ours.derive(&phone_raw, &secret, Role::Desktop) else {
             return Ok(Step::default());
         };
+        if !expected.matches(proof) {
+            return Ok(Step::default());
+        }
         self.candidate = Some(Candidate {
             peer: Peer::new(key, inbox),
             fingerprint: fingerprint.clone(),
@@ -239,7 +265,7 @@ impl Pairing {
         })
     }
 
-    /// The local user compared `fingerprint`: `Some(private_room)` binds the
+    /// The local user answered for the candidate `fingerprint` names: `Some(private_room)` binds the
     /// candidate (replacing any active phone) and sends it `private_room`
     /// (`<room>.<phone secret>`), `None` refuses it. Ignored when another
     /// phone said hello since the code was shown: the click was not about it.
@@ -303,7 +329,7 @@ impl Pairing {
         self.active = None;
     }
 
-    /// The fingerprint being compared, if any.
+    /// The fingerprint of the candidate awaiting a click, if any.
     pub fn fingerprint(&self) -> Option<&str> {
         self.candidate.as_ref().map(|c| c.fingerprint.as_str())
     }
@@ -374,30 +400,35 @@ impl Pairing {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use base64::engine::general_purpose::URL_SAFE_NO_PAD as B64URL;
-    use base64::Engine;
 
     /// A fake phone that scanned the QR code.
     struct Phone {
         public_b64: String,
         desktop_b64: String,
         inbox: String,
+        proof: String,
         key: SessionKeys,
         seq: u64,
     }
 
     impl Phone {
         fn scan(p: &Pairing) -> Self {
-            let desktop_raw = B64URL.decode(p.link_key()).unwrap();
+            let link = p.link_key();
+            let (desktop, secret) = link.split_once('.').unwrap();
+            let (desktop_raw, secret) = (
+                B64URL.decode(desktop).unwrap(),
+                B64URL.decode(secret).unwrap(),
+            );
             let kp = KeyPair::generate().unwrap();
             let public_b64 = kp.public_b64();
             let inbox = B64URL.encode(&kp.public_raw()[1..17]);
             let desktop_b64 = base64::engine::general_purpose::STANDARD.encode(&desktop_raw);
-            let key = kp.derive(&desktop_raw, Role::Phone).unwrap();
+            let (key, proof) = kp.derive(&desktop_raw, &secret, Role::Phone).unwrap();
             Phone {
                 public_b64,
                 desktop_b64,
                 inbox,
+                proof: proof.b64url(),
                 key,
                 seq: 0,
             }
@@ -406,6 +437,7 @@ mod tests {
         fn hello(&self) -> Frame {
             let hello = serde_json::json!({
                 "type": "hello", "key": self.public_b64, "to": self.desktop_b64, "inbox": self.inbox,
+                "proof": self.proof,
             });
             Frame::Text(hello.to_string())
         }
@@ -457,12 +489,27 @@ mod tests {
     }
 
     #[test]
+    fn a_hello_without_the_qr_secret_is_ignored() {
+        let mut p = Pairing::new().unwrap();
+        let qr_key = p.link_key();
+        // Knows the public key (as the relay could) but not the QR secret
+        let forger = Phone {
+            proof: B64URL.encode([0u8; 32]),
+            ..Phone::scan(&p)
+        };
+        assert_eq!(p.on_frame(forger.hello()).unwrap(), Step::default());
+        assert!(!p.awaits_confirmation());
+        // The key is consumed anyway: the QR code changed
+        assert_ne!(p.link_key(), qr_key);
+    }
+
+    #[test]
     fn hello_shows_the_fingerprint_both_sides_compute() {
         let mut p = Pairing::new().unwrap();
         let qr_key = p.link_key();
         let phone = Phone::scan(&p);
         let step = p.on_frame(phone.hello()).unwrap();
-        let desktop_raw = B64URL.decode(&qr_key).unwrap();
+        let desktop_raw = B64URL.decode(qr_key.split_once('.').unwrap().0).unwrap();
         let phone_raw = decode_public_key(&phone.public_b64).unwrap();
         let expected = pair_fingerprint(&desktop_raw, &phone_raw);
         assert_eq!(step.event, Some(Event::Fingerprint(expected.clone())));

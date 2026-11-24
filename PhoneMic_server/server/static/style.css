@@ -136,13 +136,6 @@ footer {
     display: none;
 }
 
-.fingerprint {
-    font-family: ui-monospace, monospace;
-    font-size: 1.6rem;
-    letter-spacing: 0.05em;
-    margin: 1.5rem 0;
-}
-
 .error {
     color: var(--rec);
 }

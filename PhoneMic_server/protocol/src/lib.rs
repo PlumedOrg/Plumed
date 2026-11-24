@@ -41,7 +41,7 @@ pub mod releases;
 
 macro_rules! protocol_version {
     () => {
-        "3.0.0"
+        "4.0.0"
     };
 }
 /// Version of the whole PhoneMic protocol (wire format, crypto, pairing).

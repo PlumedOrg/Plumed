@@ -46,17 +46,18 @@ mod e2e {
 
         // The phone reads the QR link and says hello
         let link = phone_link(client.origin(), &room, &pairing.link_key());
-        let desktop_raw = URL_SAFE_NO_PAD
-            .decode(link.rsplit('.').next().unwrap())
-            .unwrap();
+        let mut tail = link.rsplit('.').map(|p| URL_SAFE_NO_PAD.decode(p).unwrap());
+        let (secret, desktop_raw) = (tail.next().unwrap(), tail.next().unwrap());
         let phone_kp = KeyPair::generate().unwrap();
+        let phone_pub = phone_kp.public_b64();
+        let (phone_key, proof) = phone_kp.derive(&desktop_raw, &secret, Role::Phone).unwrap();
         let hello = serde_json::json!({
             "type": "hello",
-            "key": phone_kp.public_b64(),
+            "key": phone_pub,
             "to": STANDARD.encode(&desktop_raw),
             "inbox": TAG,
+            "proof": proof.b64url(),
         });
-        let phone_key = phone_kp.derive(&desktop_raw, Role::Phone).unwrap();
         let send_phone = |room: &Room, frame: Frame| {
             let (c, room) = (client.clone(), room.clone());
             let path = desktop_inbox_path(&room.id);
