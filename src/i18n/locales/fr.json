@@ -438,6 +438,7 @@
     "Your IP address is never recorded in the statistics: it stays at most 24 hours in a technical log, then is erased.": "Votre adresse IP n'est jamais enregistrée dans les statistiques : elle reste au plus 24 h dans un journal technique, puis est effacée.",
     "The sending time is drawn at random.": "L'heure d'envoi est tirée au hasard.",
     "See what would be sent": "Voir ce qui serait envoyé",
+    "Record of processing activities (GDPR)": "Registre des traitements (RGPD)",
     "Failed to save the usage statistics setting": "Impossible d'enregistrer le réglage des statistiques d'utilisation",
     "Send anonymous statistics to the developer?": "Envoyer des statistiques anonymes au développeur ?",
     "Medical rules {{version}} is now in use.": "Les règles médicales {{version}} sont maintenant utilisées.",

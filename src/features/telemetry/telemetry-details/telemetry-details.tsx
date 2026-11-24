@@ -4,6 +4,7 @@ import { Eye } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useTranslation } from '@/i18n';
 import { Button } from '@/components/button';
+import { TelemetryRegistryEntry } from './telemetry-registry-entry';
 
 interface DetailsSectionProps {
     title: string;
@@ -81,6 +82,7 @@ export const TelemetryDetails = () => {
                 </li>
                 <li>{t('The sending time is drawn at random.')}</li>
             </DetailsSection>
+            <TelemetryRegistryEntry />
             <Button
                 variant="subtle"
                 size="sm"
