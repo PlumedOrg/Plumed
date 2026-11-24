@@ -130,7 +130,7 @@ Seul le relais HTTPS est utilisé (pas de WebRTC, souvent bloqué sur les résea
 
 ### Règles de dictée (installées par défaut)
 
-Une nouvelle installation de Plumed contient 45 règles de dictée médicale (unités, constantes, ponctuation et mise en page dictées) : la liste `dictation_rules.csv` d'[UltiMed-ASR-FR-v2-regex-fixes](https://github.com/UltiMed-Org/UltiMed-ASR-FR-v2-regex-fixes). Par exemple « tension 120 80 » devient « TA : 120/80 » et « 3 fois par jour » devient « 3/j ».
+Une nouvelle installation de Plumed contient 45 règles de dictée médicale (unités, constantes, ponctuation et mise en page dictées) : la liste `dictation_rules.csv` d'[UltiMed-ASR-FR-v2-regex-fixes](https://github.com/UltiMed-Org/UltiMed-ASR-FR-v2-regex-fixes). Par exemple « 15 mg par kilo par jour » devient « 15 mg/kg/j » et « 3 fois par jour » devient « 3/j ».
 
 Elles se trouvent dans **Paramètres > Corrections > Formatage**, comme règles personnalisées ordinaires : vous pouvez les modifier, les désactiver ou les supprimer, et ajouter les vôtres. Elles s'appliquent après la correction des médicaments. **Revenir à la liste d'origine** remet exactement ces règles.
 

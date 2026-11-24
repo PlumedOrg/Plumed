@@ -31,7 +31,7 @@ Une nouvelle installation contient 45 règles de dictée médicale (unités, con
 
 | Vous dites | Plumed écrit |
 | --- | --- |
-| tension 120 80 | TA : 120/80 |
+| 15 mg par kilo par jour | 15 mg/kg/j |
 | 3 fois par jour | 3/j |
 
 Elles se trouvent dans **Paramètres > Corrections > Formatage**, comme règles personnalisées ordinaires : vous pouvez les modifier, les désactiver ou les supprimer, et ajouter les vôtres. **Revenir à la liste d'origine** remet exactement ces règles.
