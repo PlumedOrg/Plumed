@@ -20,7 +20,7 @@ use tauri::{AppHandle, Emitter};
 /// release (the app updater reads `releases/latest/download/latest.json`).
 const RELEASE_URL: &str = "https://github.com/PlumedOrg/Plumed/releases/download/medical-data/";
 const CHECK_TIMEOUT: Duration = Duration::from_secs(30);
-/// Per file: the dictionary rules are about 10 MB, hospital networks slow.
+/// Per file: the dictionary rules are about 10 MB, institutional networks slow.
 const DOWNLOAD_TIMEOUT: Duration = Duration::from_secs(600);
 /// GitHub sends release assets through a redirect to its storage host.
 const MAX_REDIRECTS: usize = 5;

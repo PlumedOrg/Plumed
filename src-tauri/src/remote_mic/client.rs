@@ -1,5 +1,5 @@
 //! HTTPS client for the Plumed relay (`PhoneMic_server/`), long-poll only.
-//! Requests go through `reqwest`, which honors the system proxy: hospital
+//! Requests go through `reqwest`, which honors the system proxy: institutional
 //! networks often force an HTTP proxy that would break a WebSocket.
 
 use plumed_relay_protocol::page::{page_path, PAGE, PAGE_VERSION};

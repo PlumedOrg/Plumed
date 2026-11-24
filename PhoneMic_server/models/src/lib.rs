@@ -1,6 +1,6 @@
 //! The Plumed model relay: serves the speech model files Plumed downloads by
 //! streaming them from huggingface.co, for computers that reach plumed.fr but
-//! not the hub (hospital networks). A Rust port of ParakeetWeb's
+//! not the hub (institutional networks). A Rust port of ParakeetWeb's
 //! `signaling/hf-relay.js`, written with Claude Code.
 //!
 //! - `GET`/`HEAD /models/<owner>/<name>/<path>?revision=<commit>`: the file

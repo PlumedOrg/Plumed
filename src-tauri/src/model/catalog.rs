@@ -241,7 +241,7 @@ pub fn find(id: &str) -> Option<&'static Variant> {
 /// Peak RSS of the 400 clip benchmark under ONNX Runtime 1.31: Ultra int8
 /// 2.07 GB, w4a8 1.69 GB (380 MB less). An 8 GB machine reports a bit less
 /// than 8 GiB (firmware and integrated GPU reservations, e.g. 7.7 GiB), and
-/// with the OS, a browser and the hospital software open it often has about
+/// with the OS, a browser and the work software open it often has about
 /// 2 GB free: int8's peak would push it into swap, w4a8 fits. From 12 GB on,
 /// the difference does not matter and the more accurate default is kept.
 const LOW_MEMORY: u64 = 8 << 30;
