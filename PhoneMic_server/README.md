@@ -20,7 +20,7 @@ Le transport se fait en simple long-polling HTTPS (ni WebSocket, ni WebRTC, ni s
 | `server/static/` | La page du téléphone (modules ES simples, sans étape de build) : français par défaut, bascule vers l'anglais |
 | `server/static-tests/` | Tests Node du JS du téléphone (format filaire, crypto contre les vecteurs partagés, VAD) |
 | `server/src/serve.rs` | Utilitaires de service partagés par les deux binaires (environnement, IP du client derrière le proxy, arrêt, `--healthcheck`) |
-| `protocol_details.md` | Spécification détaillée du protocole de microphone distant de ParakeetWeb (transport par relais uniquement, échange de clés, encapsulation) dont le protocole de Plumed est dérivé |
+| `protocol_details.md` | Spécification du protocole PhoneMic de Plumed (salons, enveloppes, cryptographie, opcodes, appairage, durées de vie) |
 | `models/` | Le relais de modèles `plumed-models` (voir [Relais de modèles](#relais-de-modèles)) |
 | `Dockerfile`, `docker-compose.yml`, `env.example` | Déploiement des deux services (cibles du Dockerfile : `relay` et `models`) |
 
