@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
-import { Channel, invoke } from '@tauri-apps/api/core';
-import { relaunch } from '@tauri-apps/plugin-process';
+import { useEffect, useState } from 'react';
+import { invoke } from '@tauri-apps/api/core';
 import { RefreshCcw, Download } from 'lucide-react';
 import { useTranslation } from '@/i18n';
 import { PLUMED_LATEST_RELEASE_URL } from '@/utils/plumed-links';
 import { useAppUpdateChannel } from './hooks/use-app-update-channel';
+import { useAppUpdate } from './hooks/use-app-update';
 
 type UpdateCheckerProps = {
     className?: string;
@@ -17,15 +17,18 @@ type UpdateCheckerProps = {
 // automatic check (then it checks the stable channel on demand).
 export const UpdateChecker = ({ className = '' }: UpdateCheckerProps) => {
     const [channel] = useAppUpdateChannel();
-    const [isChecking, setIsChecking] = useState(false);
-    const [updateAvailable, setUpdateAvailable] = useState(false);
-    const [isInstalling, setIsInstalling] = useState(false);
-    const [downloadProgress, setDownloadProgress] = useState(0);
-    const [showUpToDate, setShowUpToDate] = useState(false);
     const [isPacmanManaged, setIsPacmanManaged] = useState(false);
     const { t } = useTranslation();
-
-    const upToDateTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+    const {
+        isChecking,
+        updateAvailable,
+        setUpdateAvailable,
+        isInstalling,
+        downloadProgress,
+        showUpToDate,
+        checkForUpdates,
+        installUpdate,
+    } = useAppUpdate();
 
     useEffect(() => {
         invoke<boolean>('is_pacman_managed')
@@ -33,9 +36,6 @@ export const UpdateChecker = ({ className = '' }: UpdateCheckerProps) => {
             .catch((e) => {
                 console.error('Failed to check pacman install:', e);
             });
-        return () => {
-            if (upToDateTimeoutRef.current) clearTimeout(upToDateTimeoutRef.current);
-        };
     }, []);
 
     // Checks again whenever the channel changes: a beta found earlier is not
@@ -44,44 +44,6 @@ export const UpdateChecker = ({ className = '' }: UpdateCheckerProps) => {
         setUpdateAvailable(false);
         if (channel !== null && channel !== 'disabled') void checkForUpdates(false);
     }, [channel]);
-
-    const checkForUpdates = async (manual: boolean) => {
-        try {
-            setIsChecking(true);
-            const version = await invoke<string | null>('check_app_update', { manual });
-            const found = version !== null;
-            setUpdateAvailable(found);
-            setShowUpToDate(manual && !found);
-            if (manual && !found) {
-                if (upToDateTimeoutRef.current) clearTimeout(upToDateTimeoutRef.current);
-                upToDateTimeoutRef.current = setTimeout(() => setShowUpToDate(false), 3000);
-            }
-        } catch (e) {
-            console.error('Failed to check for updates:', e);
-        } finally {
-            setIsChecking(false);
-        }
-    };
-
-    const installUpdate = async () => {
-        try {
-            setIsInstalling(true);
-            setDownloadProgress(0);
-            const onProgress = new Channel<number>();
-            onProgress.onmessage = setDownloadProgress;
-            await invoke('install_app_update', { onProgress });
-            try {
-                await relaunch();
-            } catch (e) {
-                console.error('Failed to relaunch after install:', e);
-            }
-        } catch (e) {
-            console.error('Failed to install update:', e);
-        } finally {
-            setIsInstalling(false);
-            setDownloadProgress(0);
-        }
-    };
 
     const getUpdateStatusText = () => {
         if (isInstalling) {
