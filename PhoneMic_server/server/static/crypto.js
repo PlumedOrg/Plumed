@@ -1,6 +1,7 @@
 // End-to-end crypto of the phone, mirror of src-tauri/src/remote_mic/crypto.rs
 // (ECDH P-256, HKDF-SHA256, AES-256-GCM, pairing fingerprint). Both are pinned
 // by protocol/test-vectors.json (see crypto.test.mjs): change them together.
+// Keep PhoneMic_server/protocol_details.md in sync with any change here.
 // One key per direction, bound to both public keys: a packet cannot be
 // reflected back to its sender, nor replayed into another pairing.
 

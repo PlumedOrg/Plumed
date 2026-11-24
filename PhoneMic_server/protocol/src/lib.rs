@@ -3,6 +3,9 @@
 //! The phone page (`server/static/wire.js`) mirrors it in JavaScript; both sides
 //! are pinned by `test-vectors.json`.
 //!
+//! Keep `PhoneMic_server/protocol_details.md` (the human-readable spec) in sync
+//! with any change here.
+//!
 //! # Transport (what the relay sees)
 //! A room has one secret per [`Role`] (header [`SECRET_HEADER`]) and one inbox
 //! for the desktop plus one per phone. The QR code only carries the phone

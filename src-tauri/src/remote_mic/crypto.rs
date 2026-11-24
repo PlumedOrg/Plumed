@@ -1,6 +1,7 @@
 //! End-to-end crypto of the Plumed remote microphone (ECDH P-256, HKDF-SHA256,
 //! AES-256-GCM), byte-compatible with the phone page
 //! (`PhoneMic_server/server/static/crypto.js`).
+//! Keep `PhoneMic_server/protocol_details.md` in sync with any change here.
 //!
 //! Each direction has its own key, bound to both public keys:
 //! `HKDF(salt, shared x, info = label || desktop pub || phone pub)` with the

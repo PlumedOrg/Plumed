@@ -1,4 +1,5 @@
 //! Desktop side of the Plumed remote-mic protocol, without I/O.
+//! Keep `PhoneMic_server/protocol_details.md` in sync with any change here.
 //!
 //! The QR code carries the public key of `pending`. A phone that scanned it posts
 //! `{"type":"hello","key":<phone pub>,"to":<that key>,"inbox":<tag>}`: it becomes the

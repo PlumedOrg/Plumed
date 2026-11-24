@@ -1,5 +1,6 @@
 //! One remote-mic session: rooms, QR code, pairing, then transcription of each
 //! recording sent by the phone. Everything stays in RAM and dies with the session.
+//! Keep `PhoneMic_server/protocol_details.md` in sync with any change here.
 //!
 //! Lifecycle (`run`): open the lobby room, show its QR code, then serve it
 //! (`serve`) until the user stops. A confirmed phone gets a private room of its
