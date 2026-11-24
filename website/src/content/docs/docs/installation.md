@@ -3,6 +3,8 @@ title: Installation
 description: Télécharger et installer Plumed sous Windows, Linux et macOS.
 ---
 
+Sur cette page : [Windows](#windows) · [Linux](#linux) · [macOS](#macos) · [Premier lancement](#premier-lancement)
+
 Téléchargement direct de la dernière version stable :
 
 | Système | Fichier |
