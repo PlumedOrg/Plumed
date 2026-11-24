@@ -73,7 +73,7 @@ Plumed demande une fois, au démarrage, si vous souhaitez partager des statistiq
 
 - **Finalité** : améliorer Plumed (savoir quelles versions, quels systèmes et quelles fonctionnalités sont utilisés, et à quelle fréquence des erreurs surviennent). Rien d'autre : ni publicité, ni profilage, ni revente.
 - **Base légale** : votre consentement (RGPD, art. 6, paragraphe 1, point a).
-- **Ce qui est envoyé**, au plus une fois par jour et uniquement les jours où vous utilisez Plumed : la version de l'application, le canal de mise à jour (stable, bêta ou désactivé), le système d'exploitation et l'architecture du processeur, le type d'installateur, la langue de l'interface, le nombre de jours depuis l'activation des statistiques, le nom du modèle (la variante du catalogue utilisée, par exemple `ultra-v1-int8`), le nombre de dictées de la période avec la moyenne et la dispersion de leur durée et de leur longueur en caractères, des tranches de durée (moins de 10 s, de 10 à 30 s, de 30 à 120 s, plus de 120 s), la vitesse de traitement, le nombre d'erreurs (chargement du modèle, microphone, collage), et les fonctionnalités activées (sous forme de oui/non ou de fourchettes grossières comme « 1-10 règles »), y compris le nombre de modèles de texte activés (une fourchette, `text_templates` : 0, 1-10, 11-50 ou plus), et si vous êtes allé au bout du tutoriel intégré (`tutorial_completed`, oui/non).
+- **Ce qui est envoyé**, au plus une fois par jour et uniquement les jours où vous utilisez Plumed : la version de l'application, le canal de mise à jour (stable, bêta ou désactivé), le système d'exploitation et l'architecture du processeur, le type d'installateur, la langue de l'interface, le nombre de jours depuis l'activation des statistiques, le nom du modèle (la variante du catalogue utilisée, par exemple `ultra-v1-int8`), le nombre de dictées de la période avec la moyenne et la dispersion de leur durée et de leur longueur en caractères, des tranches de durée (moins de 10 s, de 10 à 30 s, de 30 à 120 s, plus de 120 s), la vitesse de traitement, le nombre d'erreurs (chargement du modèle, microphone, collage), et les fonctionnalités activées (sous forme de oui/non ou de fourchettes grossières comme « 1-10 règles »), y compris le nombre de modèles de texte activés (une fourchette, `text_templates` : 0, 1-10, 11-50 ou plus), si vous êtes allé au bout du tutoriel intégré (`tutorial_completed`, oui/non), et si l'API de transcription locale est activée (`local_api`, oui/non). Les transcriptions faites par cette API sont comptées à part, avec les mêmes agrégats (nombre, durées, longueurs, vitesse) préfixés par `api_`.
 - **Ce qui n'est jamais envoyé** : ce que vous dictez, l'audio, vos règles ou les mots de votre dictionnaire, les chemins de fichiers, les noms d'ordinateur ou d'utilisateur, l'heure de chaque dictée, le détail du matériel.
 - **Identifiant** : un identifiant aléatoire, sans lien avec vous ni avec votre ordinateur, permet de distinguer les jours d'une même installation. Il est renouvelé tous les 13 mois et jamais prolongé.
 - **Où et combien de temps** : envoyées à une instance [Umami](https://umami.is) auto-hébergée, exploitée par le mainteneur de Plumed dans l'Union européenne, et conservées au plus 25 mois. Umami ne stocke pas les adresses IP ; toute localisation qu'il déduit de la connexion n'est pas plus fine que le pays ou la ville. Le serveur web placé devant conserve un journal d'accès technique (date, adresse demandée, adresse IP, identification du navigateur) à des fins de dépannage et de sécurité, supprimé automatiquement après 24 heures (base légale : intérêt légitime à maintenir le service sûr et en état de fonctionner).
@@ -85,7 +85,7 @@ Les versions compilées sans serveur de statistiques configuré (par exemple vos
 
 ## Import et export des réglages
 
-Plumed permet d'exporter et d'importer les réglages sous forme de fichiers `.murmure`. Ces fichiers peuvent contenir : les réglages système, les raccourcis, les règles de mise en forme, les mots du dictionnaire, ainsi que vos modifications des listes de l'onglet Corrections (vocabulaire médical, mots qui se ressemblent, règles médicales, règles de grammaire, modèles de texte).
+Plumed permet d'exporter et d'importer les réglages sous forme de fichiers `.murmure`. Ces fichiers peuvent contenir : les réglages système, les raccourcis, les règles de mise en forme, les mots du dictionnaire, ainsi que vos modifications des listes de l'onglet Corrections (vocabulaire médical, mots qui se ressemblent, règles médicales, règles de grammaire, modèles de texte). Les réglages de l'API de transcription locale (activation, port, clé) ne sont jamais exportés.
 
 ## Utilisation du réseau
 
@@ -104,6 +104,8 @@ Plumed peut accéder au réseau uniquement pour :
 
 Les vérifications de mises à jour n'incluent ni votre audio ni vos transcriptions.
 
+L'API de transcription locale (désactivée par défaut, Paramètres > Système > Avancé) n'accède pas à internet : elle écoute uniquement sur `127.0.0.1`, donc seuls les programmes de votre propre ordinateur qui connaissent la clé peuvent lui envoyer de l'audio, et le texte leur est renvoyé sans rien écrire dans l'historique.
+
 Politiques de confidentialité des tiers : [Déclaration de confidentialité de GitHub](https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement), [Politique de confidentialité de Hugging Face](https://huggingface.co/privacy)
 
 ## Registre des traitements
@@ -117,7 +119,7 @@ Responsable du traitement : Olivier Cornelis, mainteneur de Plumed, contact : ht
 - **Finalité** : mesurer l'usage de l'application pour l'améliorer, et rien d'autre.
 - **Base légale** : consentement (désactivé par défaut, demandé au premier lancement, retirable à tout moment dans Paramètres > En ligne).
 - **Personnes concernées** : les utilisateurs qui ont accepté.
-- **Données** : un identifiant aléatoire renouvelé tous les 13 mois, la version et le canal de mise à jour, le système, l'architecture, le type d'installateur, la langue, des compteurs agrégés (nombre de dictées, durées, longueurs, erreurs) et les fonctionnalités activées (oui/non ou fourchettes). Jamais d'audio, de texte, de règles ni de mots du dictionnaire.
+- **Données** : un identifiant aléatoire renouvelé tous les 13 mois, la version et le canal de mise à jour, le système, l'architecture, le type d'installateur, la langue, des compteurs agrégés (nombre de dictées et de transcriptions par l'API locale, durées, longueurs, erreurs) et les fonctionnalités activées (oui/non ou fourchettes). Jamais d'audio, de texte, de règles ni de mots du dictionnaire.
 - **Destinataires** : le mainteneur uniquement. Aucun transfert hors de l'Union européenne.
 - **Hébergement** : Umami auto-hébergé sur un serveur en France.
 - **Durées** : statistiques supprimées après 25 mois ; l'adresse IP n'est jamais enregistrée dans les statistiques, seulement dans le journal technique du serveur, effacé après 24 heures.

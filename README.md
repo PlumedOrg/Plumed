@@ -44,6 +44,7 @@ Les versions bêta sont sur la [page des releases](https://github.com/PlumedOrg/
 - **Corrections en 8 étapes** adaptées au vocabulaire médical, détaillées ci-dessous.
 - **Textes types** : une phrase dite est remplacée par un texte plus long, utile pour les modèles répétitifs.
 - **PhoneMic** (expérimental) : le téléphone sert de micro, l'audio étant chiffré de bout en bout jusqu'à l'ordinateur.
+- **API de transcription locale** (désactivée par défaut) : vos programmes peuvent faire transcrire des fichiers WAV par Plumed, avec vos corrections, via une API compatible OpenAI.
 - **Tutoriel** intégré dans la barre latérale.
 
 ### Corrections
@@ -89,6 +90,25 @@ Une dictée très courte, par exemple un seul mot que l'on redicte pour le corri
 
 Cet audio reste uniquement en mémoire vive, n'est jamais écrit sur le disque, et est oublié 5 minutes après la dernière dictée, à la fermeture de Plumed, ou dès que l'option est désactivée.
 
+### API de transcription locale
+
+Désactivée par défaut : **Paramètres > Avancé > API de transcription locale**.
+
+Une fois activée, Plumed sert sur `http://127.0.0.1:4800/v1` (port modifiable) une API compatible avec celle d'OpenAI : un programme ou un script qui sait parler à `POST /v1/audio/transcriptions` d'OpenAI fonctionne en changeant seulement son adresse de base. Le texte est transcrit exactement comme une dictée (vocabulaire médical, dictionnaire personnel, règles de correction et de formatage, grammaire, textes types), mais il n'est ajouté ni à l'historique ni aux statistiques de la page d'accueil.
+
+```sh
+curl http://127.0.0.1:4800/v1/audio/transcriptions \
+  -H "Authorization: Bearer <CLÉ>" \
+  -F file=@dictee.wav
+# {"text":"..."}
+```
+
+- **Format** : fichiers WAV PCM 16 bits uniquement (mono ou stéréo, toute fréquence d'échantillonnage), 100 Mo au plus. `response_format` vaut `json` (par défaut, `{"text": "..."}`) ou `text` ; `model`, `language` et `prompt` sont acceptés et ignorés. `GET /v1/models` liste un seul modèle, `plumed`.
+- **Sécurité** : l'API n'écoute que sur cet ordinateur (127.0.0.1), jamais sur le réseau. Chaque requête doit porter la clé affichée dans le réglage (`Authorization: Bearer <CLÉ>`), générée au hasard et régénérable. Les requêtes venant d'une page web (en-tête `Origin`) ou adressées à un autre nom que `localhost` ou `127.0.0.1` sont refusées, pour qu'un site ouvert dans le navigateur ne puisse pas s'en servir. Une seule transcription à la fois.
+- **Sans fenêtre** : `plumed serve [--port 4800]` sert la même API sans ouvrir l'application, jusqu'à Ctrl-C. Il refuse de démarrer tant que le réglage est désactivé, et lit la clé au démarrage (le relancer après avoir régénéré la clé). L'application et `plumed serve` ne peuvent pas utiliser le même port en même temps.
+
+Ces réglages, la clé comprise, ne font jamais partie de l'export des paramètres.
+
 ### PhoneMic (dicter depuis son téléphone, expérimental)
 
 > **Expérimental :** cette fonctionnalité est une préversion, attendez-vous à des bugs, et évitez d'y faire passer des contenus sensibles.
@@ -118,7 +138,7 @@ Elles se trouvent dans **Paramètres > Corrections > Formatage**, comme règles 
 
 La reconnaissance se fait sur votre ordinateur : l'audio et les transcriptions ne sont jamais envoyés sur internet. Une fois le modèle de reconnaissance vocale téléchargé, Plumed fonctionne entièrement hors ligne : aucune des connexions ci-dessous n'est nécessaire pour dicter.
 
-**Paramètres > En ligne** liste tout ce qui passe par le réseau : la vérification des mises à jour de l'application (à chaque démarrage, sur le canal stable ou bêta, désactivable ; rien n'est installé sans votre clic), le téléchargement du modèle de reconnaissance vocale (une seule fois, quand vous le choisissez, depuis Hugging Face ou à défaut depuis le relais Plumed `models.plumed.fr` ; il est conservé lors des mises à jour et se gère dans **Paramètres > Modèle**), la vérification des mises à jour des règles médicales (rien n'est téléchargé sans votre clic ; « Voir les changements » dans la fenêtre de mise à jour montre les lignes ajoutées et retirées avant d'installer) et les statistiques d'utilisation anonymes (des totaux agrégés, jamais de texte ni d'audio ; désactivées sauf si vous avez accepté, réglables dans cet onglet), et PhoneMic (seulement si vous l'activez). Ces réglages ne font jamais partie de l'export des paramètres. Voir la [politique de confidentialité](PRIVACY_POLICY.md).
+**Paramètres > En ligne** liste tout ce qui passe par le réseau : la vérification des mises à jour de l'application (à chaque démarrage, sur le canal stable ou bêta, désactivable ; rien n'est installé sans votre clic), le téléchargement du modèle de reconnaissance vocale (une seule fois, quand vous le choisissez, depuis Hugging Face ou à défaut depuis le relais Plumed `models.plumed.fr` ; il est conservé lors des mises à jour et se gère dans **Paramètres > Modèle**), la vérification des mises à jour des règles médicales (rien n'est téléchargé sans votre clic ; « Voir les changements » dans la fenêtre de mise à jour montre les lignes ajoutées et retirées avant d'installer) et les statistiques d'utilisation anonymes (des totaux agrégés, jamais de texte ni d'audio ; désactivées sauf si vous avez accepté, réglables dans cet onglet), et PhoneMic (seulement si vous l'activez). Ces réglages ne font jamais partie de l'export des paramètres. L'[API de transcription locale](#api-de-transcription-locale), désactivée par défaut, n'écoute que sur l'ordinateur lui-même et ne passe pas par internet. Voir la [politique de confidentialité](PRIVACY_POLICY.md).
 
 ## Remerciements et licences
 
