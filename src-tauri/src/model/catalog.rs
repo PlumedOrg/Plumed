@@ -3,7 +3,7 @@
 //! compiled in. The repositories and revisions come from the crate shared
 //! with the model relay (`plumed_relay_protocol::models`), so the relay's
 //! default allowlist always matches. To add a model: add its files here (and
-//! its repository to `MODEL_REPOS` if new), see AGENTS.FORK.md.
+//! its repository to `MODEL_REPOS` if new), see docs/ARCHITECTURE.md.
 //!
 //! The engine loads `encoder-model.int8.onnx`, `decoder_joint-model.int8.onnx`,
 //! `nemo128.onnx`, `vocab.txt` and `config.json` from one folder, so every

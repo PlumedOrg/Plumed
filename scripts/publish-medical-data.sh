@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Plumed fork (written with Claude Code): publish the medical data currently in
 # src-tauri/medical-data/ as a signed online update (see the "Online updates"
-# section of src-tauri/medical-data/SOURCE.md and AGENTS.FORK.md).
+# section of src-tauri/medical-data/SOURCE.md and docs/ARCHITECTURE.md).
 #
 # Builds manifest.json (sha256 and size of each file, the model id of
 # MODEL_ID in src-tauri/src/medical/data_set/mod.rs, min_app_version = the

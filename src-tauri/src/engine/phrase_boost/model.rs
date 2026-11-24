@@ -3,7 +3,7 @@
 //! `phrase_trie` field and the decode hook.
 //!
 //! Hybrid boosting, chosen from a benchmark on 200 UltiMed validation clips
-//! (see AGENTS.FORK.md): upstream's dictionary boost is strong and rank gated,
+//! (see docs/ARCHITECTURE.md): upstream's dictionary boost is strong and rank gated,
 //! right for a few user words but raising the WER with a ~77k phrase list,
 //! where this gentler, min-p gated trie lowers it.
 

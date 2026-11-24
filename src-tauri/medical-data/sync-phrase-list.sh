@@ -14,7 +14,7 @@ here="$(cd "$(dirname "$0")" && pwd)"
 repo="${1:-$here/../../../parakeet_web}"
 src="$repo/phrase_boosting/french_medical.txt"
 dst="$here/phrase-boosting/french_medical.txt"
-# Benchmarked on UltiMed validation clips (see AGENTS.FORK.md): full bonus from
+# Benchmarked on UltiMed validation clips (see docs/ARCHITECTURE.md): full bonus from
 # the first token (commitment 0) and a looser min-p gate (0.01) than PW's 0.1.
 header='#!commitment 0
 *:1.5:0.01:fhpn'
