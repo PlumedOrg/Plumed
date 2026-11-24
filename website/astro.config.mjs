@@ -1,8 +1,26 @@
 // plumed.fr: the documentation site, in French, built to static files
-// (deployed by author_scripts/deploy.sh --only-website). No analytics, no
-// external fonts or scripts: everything is served from plumed.fr.
+// (deployed by author_scripts/deploy.sh --only-website). No external fonts
+// or scripts: everything is served from plumed.fr, except the Umami script
+// when the build gets ANALYTICS_* in its environment (see env.example).
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
+
+/** The Umami tag, or nothing when ANALYTICS_URL or ANALYTICS_WEBSITE_ID is unset. */
+function analyticsHead() {
+    const { ANALYTICS_URL, ANALYTICS_WEBSITE_ID, ANALYTICS_DNT, ANALYTICS_SRI } = process.env;
+    if (!ANALYTICS_URL || !ANALYTICS_WEBSITE_ID) {
+        return [];
+    }
+    const attrs = { defer: true, src: ANALYTICS_URL, 'data-website-id': ANALYTICS_WEBSITE_ID };
+    if (['1', 'true', 'yes'].includes((ANALYTICS_DNT ?? '').toLowerCase())) {
+        attrs['data-do-not-track'] = 'true';
+    }
+    if (ANALYTICS_SRI) {
+        attrs.integrity = ANALYTICS_SRI;
+        attrs.crossorigin = 'anonymous';
+    }
+    return [{ tag: 'script', attrs }];
+}
 
 export default defineConfig({
     site: 'https://plumed.fr',
@@ -21,6 +39,7 @@ export default defineConfig({
                     href: 'https://github.com/PlumedOrg/Plumed',
                 },
             ],
+            head: analyticsHead(),
             customCss: ['./src/styles/plumed.css'],
             components: {
                 // The "Documentation" link next to the GitHub icon

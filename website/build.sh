@@ -12,20 +12,33 @@
 #                         ~/docker/caddy/caddy_folder/plumed_website)
 #   PLUMED_WEBSITE_CACHE  pnpm and corepack cache (default: pnpm-cache next to
 #                         the clone)
+#   PLUMED_WEBSITE_ENV    env file given to the build (default: .env next to
+#                         the clone, which deploy.sh sends; see env.example).
+#                         Without it the site is built without analytics
 set -eu
 
 WEBSITE_DIR=$(cd "$(dirname "$0")" && pwd)
 REPO_DIR=$(dirname "$WEBSITE_DIR")
 OUT_DIR=${PLUMED_WEBSITE_OUT:-$HOME/docker/caddy/caddy_folder/plumed_website}
 CACHE_DIR=${PLUMED_WEBSITE_CACHE:-$(dirname "$REPO_DIR")/pnpm-cache}
+ENV_FILE=${PLUMED_WEBSITE_ENV:-$(dirname "$REPO_DIR")/.env}
 NODE_IMAGE=node:22-slim
 PNPM=pnpm@10.13.1
 
 # Created by this user, not by docker as root
 mkdir -p "$CACHE_DIR" "$OUT_DIR"
 
+ENV_ARGS=""
+if [ -f "$ENV_FILE" ]; then
+    ENV_ARGS="--env-file $ENV_FILE"
+    echo "Using $ENV_FILE"
+else
+    echo "No $ENV_FILE: building without analytics"
+fi
+
 echo "Building the website in $NODE_IMAGE"
-sudo docker run --rm \
+# shellcheck disable=SC2086 # ENV_ARGS is empty or two words
+sudo docker run --rm $ENV_ARGS \
     --user "$(id -u):$(id -g)" \
     -e HOME=/tmp \
     -e COREPACK_HOME=/cache/corepack \
