@@ -132,7 +132,7 @@ Si le relais supprime un salon (redémarrage, limite de 24 h), l'ordinateur ouvr
 
 - Au plus 4 enregistrements en attente de transcription ; au-delà, ils sont abandonnés.
 - Un enregistrement encore en file après 60 s est abandonné.
-- Une transcription prête plus de 20 s après la réception de END n'est pas collée (l'utilisateur est probablement passé à une autre fenêtre) : l'interface la propose à la place.
+- Une transcription prête plus de 20 s après la réception de END n'est pas collée (l'utilisateur est probablement passé à une autre fenêtre) : l'interface signale seulement qu'une transcription a été écartée.
 - Un enregistrement est limité à 20 minutes d'audio.
 
 ## 10. Modèle de menace
