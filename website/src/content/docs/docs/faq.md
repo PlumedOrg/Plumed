@@ -11,9 +11,11 @@ description: Les questions qu'on se pose avant et après avoir installé Plumed.
 
 Oui, entièrement, sans publicité et sans compte. C'est un logiciel libre (licence AGPL v3) et non commercial : le code est sur [GitHub](https://github.com/PlumedOrg/Plumed).
 
-## Mes dictées sont-elles envoyées sur internet ?
+## Mes dictées sont-elles envoyées ailleurs ?
 
-Non. La reconnaissance vocale tourne sur votre ordinateur, et l'audio comme le texte y restent. Les seules connexions réseau (mises à jour, téléchargement du modèle, statistiques anonymes si vous les acceptez, PhoneMic si vous l'activez) sont listées dans [Connexions réseau](/docs/fonctionnalites/en-ligne/) et détaillées dans la [politique de confidentialité](/confidentialite/).
+Non, elles ne quittent jamais votre ordinateur. La reconnaissance vocale tourne sur votre machine, et l'audio comme le texte y restent. Les seules connexions réseau (mises à jour, téléchargement du modèle, statistiques anonymes si vous les acceptez, PhoneMic si vous l'activez) sont listées dans [Connexions réseau](/docs/fonctionnalites/en-ligne/) et détaillées dans la [politique de confidentialité](/confidentialite/).
+
+Rappelons que Plumed n'est pas un projet commercial : il est produit dans un objectif de contribution aux biens communs.
 
 ## Plumed est-il un dispositif médical ?
 
