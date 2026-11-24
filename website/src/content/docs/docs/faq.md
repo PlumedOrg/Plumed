@@ -7,6 +7,10 @@ description: Les questions qu'on se pose avant et après avoir installé Plumed.
 
 « Plu-mède » : c'est un jeu de mots entre la plume trempée dans l'encre et le médecin.
 
+## Qui a créé Plumed ?
+
+[Olivier Cornelis](https://olicorne.org/fr/), interne en psychiatrie à Paris et développeur.
+
 ## Plumed est-il gratuit ?
 
 Oui, entièrement, sans publicité et sans compte. C'est un logiciel libre (licence AGPL v3) et non commercial : le code est sur [GitHub](https://github.com/PlumedOrg/Plumed).
