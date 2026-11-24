@@ -1,6 +1,6 @@
-# Plumed PhoneMic relay (alpha)
+# Plumed PhoneMic relay
 
-> **Alpha:** PhoneMic (the remote microphone) is a pre-release feature, expect bugs and breaking protocol changes between Plumed versions.
+> **Experimental:** PhoneMic (the remote microphone) is a pre-release feature, expect bugs and breaking protocol changes between Plumed versions.
 
 This directory holds everything that runs on the server side of Plumed: the remote microphone relay, a small Rust (axum) HTTPS relay that also serves the phone page, and, as a second independent service, the [model relay](#model-relay) that streams the speech models from Hugging Face. It was written with Claude Code.
 
