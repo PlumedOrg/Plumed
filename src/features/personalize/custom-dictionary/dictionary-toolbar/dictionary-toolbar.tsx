@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { Input } from '@/components/input';
 import { Page } from '@/components/page';
+import { ExternalLink } from '@/components/external-link';
 import { InternalLink } from '@/components/internal-link';
 import { CORRECTIONS_PATH } from '@/features/corrections/corrections.helpers';
 import { useTranslation } from '@/i18n';
+import { PLUMED_DOCS_URL } from '@/utils/plumed-links';
 
 interface DictionaryToolbarProps {
     onAdd: (word: string) => void;
@@ -64,7 +66,10 @@ export const DictionaryToolbar = ({ onAdd }: DictionaryToolbarProps) => {
                         <InternalLink to={CORRECTIONS_PATH} hash="formatting">
                             {t('Formatting Rules')}
                         </InternalLink>{' '}
-                        {t('to handle words with digits.')}
+                        {t('to handle words with digits.')}{' '}
+                        <ExternalLink href={`${PLUMED_DOCS_URL}/fonctionnalites/corrections/#règles-de-dictée`}>
+                            {t('Learn more')}
+                        </ExternalLink>
                     </span>
                 </div>
             )}

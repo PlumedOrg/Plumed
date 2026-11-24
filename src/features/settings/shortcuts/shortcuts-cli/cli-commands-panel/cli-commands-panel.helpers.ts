@@ -1,3 +1,5 @@
+import { PLUMED_DOCS_URL } from '@/utils/plumed-links';
+
 export interface CliCommandDescriptor {
     id: string;
     label: string;
@@ -10,3 +12,6 @@ export const CLI_COMMANDS: CliCommandDescriptor[] = [
     { id: 'paste-last', label: 'Paste last transcript', command: 'plumed --paste-last' },
     { id: 'cancel', label: 'Cancel recording', command: 'plumed --cancel' },
 ];
+
+/** The Wayland section of the dictation doc: how to bind the commands in the desktop settings. */
+export const CLI_DOC_URL = `${PLUMED_DOCS_URL}/fonctionnalites/dictee/#sous-wayland`;

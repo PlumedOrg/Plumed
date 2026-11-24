@@ -732,5 +732,7 @@
     "Boost margin (min-p)": "Marge du renforcement (min-p)",
     "A phrase is only favoured once the model already finds it this likely compared to its best guess, from above 0 to 1. Lower boosts more often. Leave empty for the original value.": "Un terme n'est favorisé que si le modèle le juge déjà au moins aussi probable, rapporté à sa meilleure hypothèse, de plus de 0 à 1. Plus bas, le renforcement intervient plus souvent. Laissez vide pour la valeur d'origine.",
     "Original values: weight {{weight}}, margin {{minp}}.": "Valeurs d'origine : poids {{weight}}, marge {{minp}}.",
-    "Restore the original values": "Rétablir les valeurs d'origine"
+    "Restore the original values": "Rétablir les valeurs d'origine",
+    "Learn more": "En savoir plus",
+    "Setup guide": "Guide de configuration"
 }

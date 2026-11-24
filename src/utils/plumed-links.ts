@@ -5,6 +5,8 @@ export const PLUMED_LATEST_RELEASE_URL = `${PLUMED_RELEASES_URL}/latest`;
 /** The signed medical rules sets (rules, sound-alike groups, vocabulary), see `src-tauri/medical-data/SOURCE.md`. */
 export const PLUMED_MEDICAL_DATA_RELEASE_URL = `${PLUMED_RELEASES_URL}/tag/medical-data`;
 export const PLUMED_NEW_ISSUE_URL = `${PLUMED_REPO_URL}/issues/new`;
+/** The documentation on plumed.fr (sources in website/), no trailing slash. */
+export const PLUMED_DOCS_URL = 'https://plumed.fr/docs';
 /** Plumed's phone microphone relay, built in (same default as `AppSettings::remote_mic_url` in Rust). */
 export const PLUMED_RELAY_URL = 'https://turn.plumed.fr';
 /**
