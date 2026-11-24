@@ -11,11 +11,11 @@
 //! must scan again.
 
 use super::audio::transcribe_pcm;
-use super::client::{phone_link, ClientError, RelayClient, Room};
+use super::client::{phone_link, ClientError, RelayClient, Room, PROTOCOL_MISMATCH};
 use super::protocol::{Event, Outgoing, Pairing, Step, Via, CANDIDATE_TTL};
 use log::{info, warn};
 use parking_lot::Mutex;
-use plumed_relay_protocol::Frame;
+use plumed_relay_protocol::{Frame, PROTOCOL_VERSION};
 use serde::Serialize;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
@@ -67,6 +67,8 @@ pub struct Snapshot {
     pub link: Option<String>,
     pub fingerprint: Option<String>,
     pub error: Option<String>,
+    /// Values interpolated into `error` (a translation key) by the interface.
+    pub error_params: Option<std::collections::BTreeMap<&'static str, String>>,
 }
 
 pub enum Command {
@@ -154,6 +156,20 @@ impl Ui<'_> {
             }
         });
     }
+
+    fn protocol_mismatch(&self, relay: Option<String>) {
+        let params = [
+            ("relay", relay.unwrap_or_else(|| "?".to_string())),
+            ("ours", PROTOCOL_VERSION.to_string()),
+        ];
+        self.update(|s| {
+            *s = Snapshot {
+                error: Some(PROTOCOL_MISMATCH.to_string()),
+                error_params: Some(params.into_iter().collect()),
+                ..Snapshot::default()
+            }
+        });
+    }
 }
 
 async fn run(app: AppHandle, client: RelayClient, mut commands: mpsc::UnboundedReceiver<Command>) {
@@ -164,6 +180,18 @@ async fn run(app: AppHandle, client: RelayClient, mut commands: mpsc::UnboundedR
             ..Snapshot::default()
         }
     });
+    // Before anything else: never talk to a relay on another protocol version
+    match client.check_version().await {
+        Ok(()) => {}
+        Err(e) => {
+            commands.close();
+            match e {
+                ClientError::ProtocolMismatch(relay) => ui.protocol_mismatch(relay),
+                other => ui.stopped(Some(other.to_string())),
+            }
+            return;
+        }
+    }
     let recordings = spawn_transcriber(app.clone());
     let error = serve(&client, &mut commands, &ui, &recordings).await.err();
     // Nothing queued is pasted after a stop

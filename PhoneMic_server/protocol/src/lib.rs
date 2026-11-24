@@ -6,6 +6,12 @@
 //! Keep `PhoneMic_server/protocol_details.md` (the human-readable spec) in sync
 //! with any change here.
 //!
+//! # Version
+//! [`PROTOCOL_VERSION`] is served at [`VERSION_PATH`] and mixed into the HKDF
+//! salt ([`HKDF_SALT`]). The desktop refuses a relay with any other version:
+//! no backward compatibility, on purpose, to keep the attack surface small.
+//! Bump it (and regenerate the crypto test vectors) on any wire change.
+//!
 //! # Transport (what the relay sees)
 //! A room has one secret per [`Role`] (header [`SECRET_HEADER`]) and one inbox
 //! for the desktop plus one per phone. The QR code only carries the phone
@@ -32,6 +38,19 @@ use std::fmt;
 /// The speech model repositories and the model relay's URL scheme.
 pub mod models;
 pub mod releases;
+
+macro_rules! protocol_version {
+    () => {
+        "3.0.0"
+    };
+}
+/// Version of the whole PhoneMic protocol (wire format, crypto, pairing).
+/// Any mismatch between the desktop and the relay is refused.
+pub const PROTOCOL_VERSION: &str = protocol_version!();
+/// HKDF salt of the end-to-end keys: a peer on another version can never decrypt.
+pub const HKDF_SALT: &str = concat!("Plumed-RemoteMic-", protocol_version!());
+/// `GET` answers `{"protocol": PROTOCOL_VERSION}`.
+pub const VERSION_PATH: &str = "/api/version";
 
 /// Header carrying the role's secret on every room request.
 pub const SECRET_HEADER: &str = "x-room-secret";
@@ -327,6 +346,13 @@ mod tests {
             validate(&[0, 0, 0, 0, 1, 0xff]),
             Err(EnvelopeError::NotUtf8)
         );
+    }
+
+    #[test]
+    fn version_matches_the_shared_vector() {
+        let v = vectors();
+        assert_eq!(v["protocol_version"].as_str().unwrap(), PROTOCOL_VERSION);
+        assert_eq!(HKDF_SALT, format!("Plumed-RemoteMic-{PROTOCOL_VERSION}"));
     }
 
     #[test]

@@ -5,7 +5,9 @@
 // One key per direction, bound to both public keys: a packet cannot be
 // reflected back to its sender, nor replayed into another pairing.
 
-const HKDF_SALT = new TextEncoder().encode('Plumed-RemoteMic-v2');
+import { PROTOCOL_VERSION } from './wire.js';
+
+const HKDF_SALT = new TextEncoder().encode(`Plumed-RemoteMic-${PROTOCOL_VERSION}`);
 const PHONE_TO_DESKTOP = new TextEncoder().encode('phone-to-desktop');
 const DESKTOP_TO_PHONE = new TextEncoder().encode('desktop-to-phone');
 const IV_LEN = 12;

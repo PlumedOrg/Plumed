@@ -7,7 +7,8 @@ use axum::Router;
 use http_body_util::BodyExt;
 use plumed_relay::{app, Config};
 use plumed_relay_protocol::{
-    desktop_inbox_path, encode, phone_inbox_path, Frame, ROOMS_PATH, SECRET_HEADER,
+    desktop_inbox_path, encode, phone_inbox_path, Frame, PROTOCOL_VERSION, ROOMS_PATH,
+    SECRET_HEADER, VERSION_PATH,
 };
 use tower::ServiceExt;
 
@@ -89,6 +90,15 @@ async fn health_and_security_headers() {
         .contains("default-src 'none'"));
     assert_eq!(h[header::CACHE_CONTROL], "no-store");
     assert!(h.get(header::ACCESS_CONTROL_ALLOW_ORIGIN).is_none());
+}
+
+#[tokio::test]
+async fn version_is_served() {
+    let router = router(10, 100);
+    let resp = call(&router, Method::GET, VERSION_PATH, "", vec![]).await;
+    assert_eq!(resp.status(), StatusCode::OK);
+    let json: serde_json::Value = serde_json::from_slice(&body(resp).await).unwrap();
+    assert_eq!(json["protocol"], PROTOCOL_VERSION);
 }
 
 #[tokio::test]

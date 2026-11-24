@@ -3,6 +3,10 @@
 // protocol/test-vectors.json (see wire.test.mjs): change them together.
 // Keep PhoneMic_server/protocol_details.md in sync with any change here.
 
+// Mirror of PROTOCOL_VERSION (protocol/src/lib.rs), pinned by test-vectors.json.
+// Bump it with any wire, crypto or pairing change.
+export const PROTOCOL_VERSION = '3.0.0';
+
 export const OP = Object.freeze({
     START: 1,
     AUDIO: 2,

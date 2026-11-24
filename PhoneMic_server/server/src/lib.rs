@@ -19,7 +19,8 @@ use axum::routing::{delete, get, post};
 use axum::{middleware, Router};
 use limiter::{InFlight, Limiter};
 use plumed_relay_protocol::{
-    valid_inbox_tag, validate, Role, MAX_BODY, POLL_WAIT_SECS, ROOMS_PATH, SECRET_HEADER,
+    valid_inbox_tag, validate, Role, MAX_BODY, POLL_WAIT_SECS, PROTOCOL_VERSION, ROOMS_PATH,
+    SECRET_HEADER, VERSION_PATH,
 };
 use rooms::{Inbox, PushError, Refused, Room, Rooms, Taken, QUEUE_BUDGET};
 use serve::{client_key, retry_after};
@@ -78,6 +79,7 @@ pub fn app(config: &Config) -> (Router, AppState) {
     }));
     let router = Router::new()
         .route("/healthz", get(|| async { "ok" }))
+        .route(VERSION_PATH, get(version))
         .route(ROOMS_PATH, post(create_room))
         .route(&format!("{ROOMS_PATH}/{{id}}"), delete(close_room))
         .route(
@@ -151,6 +153,14 @@ async fn limit_in_flight(State(state): State<AppState>, req: Request, next: Next
 
 /// Only for the desktop app, which sends no `Origin`: a browser always does
 /// on a POST, so a web page cannot make its visitors open rooms here.
+async fn version() -> Response {
+    (
+        [(header::CONTENT_TYPE, "application/json")],
+        format!(r#"{{"protocol":"{PROTOCOL_VERSION}"}}"#),
+    )
+        .into_response()
+}
+
 async fn create_room(State(state): State<AppState>, req: Request) -> Response {
     if req.headers().contains_key(header::ORIGIN) {
         return StatusCode::FORBIDDEN.into_response();

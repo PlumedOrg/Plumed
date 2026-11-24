@@ -7,4 +7,6 @@ export interface RemoteMicSnapshot {
     link: string | null;
     fingerprint: string | null;
     error: string | null;
+    /** Values interpolated into `error` (a translation key). */
+    error_params: Record<string, string> | null;
 }

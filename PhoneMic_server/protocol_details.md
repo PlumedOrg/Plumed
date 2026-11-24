@@ -16,6 +16,16 @@ Les deux implémentations sont verrouillées par `protocol/test-vectors.json` (t
 
 Les routes HTTP, les codes de réponse et les limites du relais sont décrits dans le [README](README.md#api-http) et ne sont pas répétés ici.
 
+## 0. Version
+
+Le protocole entier (format filaire, cryptographie, appairage) porte une version, `PROTOCOL_VERSION` dans `protocol/src/lib.rs` (actuellement `3.0.0`), reprise dans `wire.js` et dans `test-vectors.json`.
+
+- Le relais la sert sur `GET /api/version` : `{"protocol": "3.0.0"}`.
+- Avant d'ouvrir le moindre salon, Plumed la compare à la sienne et refuse toute différence (ou un `404`, relais antérieur au versionnage) avec le message : « Le relais utilise le protocole de chiffrement vX.Y.Z et notre version est vA.B.C : impossible de l'utiliser. La rétrocompatibilité du protocole n'est volontairement pas prise en charge, pour réduire la surface d'attaque. »
+- Elle fait partie du sel HKDF (section 4) : même un pair d'une autre version qui passerait la vérification ne pourrait rien déchiffrer.
+
+Toute modification du protocole doit incrémenter la version et régénérer les vecteurs de test : `node protocol/gen-test-vectors.mjs protocol/test-vectors.json <version>`.
+
 ## 1. Salons et boîtes de réception
 
 Un salon possède un secret par rôle (`desktop`, `phone`), transmis dans l'en-tête `x-room-secret`, et des boîtes de réception :
@@ -56,7 +66,7 @@ La clé publique est un point P-256 non compressé (65 octets, préfixe `0x04`) 
 - Échange de clés : ECDH P-256. Chaque côté génère une paire éphémère ; côté ordinateur, une clé ne sert qu'à une seule poignée de main.
 - Dérivation : HKDF-SHA256 avec
   - IKM = coordonnée x du secret partagé (32 octets),
-  - sel = UTF-8 `Plumed-RemoteMic-v2`,
+  - sel = UTF-8 `Plumed-RemoteMic-{version}`, par exemple `Plumed-RemoteMic-3.0.0`,
   - info = `label || clé publique de l'ordinateur (65) || clé publique du téléphone (65)`,
   - label = `phone-to-desktop` ou `desktop-to-phone`,
   - L = 32 octets.

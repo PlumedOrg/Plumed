@@ -3,8 +3,8 @@
 //! networks often force an HTTP proxy that would break a WebSocket.
 
 use plumed_relay_protocol::{
-    decode, desktop_inbox_path, encode, phone_inbox_path, Frame, MAX_BODY, ROOMS_PATH,
-    SECRET_HEADER,
+    decode, desktop_inbox_path, encode, phone_inbox_path, Frame, MAX_BODY, PROTOCOL_VERSION,
+    ROOMS_PATH, SECRET_HEADER, VERSION_PATH,
 };
 use reqwest::{header, Client, Response, StatusCode};
 use serde::Deserialize;
@@ -26,6 +26,43 @@ pub enum ClientError {
     Invalid(String),
     #[error("network error: {0}")]
     Network(String),
+    /// The relay speaks another protocol version (`None`: too old to say).
+    #[error("{}", protocol_mismatch_message(.0.as_deref().unwrap_or("?")))]
+    ProtocolMismatch(Option<String>),
+}
+
+/// Translation key of [`ClientError::ProtocolMismatch`], `{{relay}}` and
+/// `{{ours}}` filled by the interface (`Snapshot::error_params`).
+pub const PROTOCOL_MISMATCH: &str = "The relay is serving encryption protocol v{{relay}} and our version is v{{ours}}, so we can't use it. Backward compatibility of the protocol is not supported on purpose, to reduce the attack surface.";
+
+fn protocol_mismatch_message(relay: &str) -> String {
+    PROTOCOL_MISMATCH
+        .replace("{{relay}}", relay)
+        .replace("{{ours}}", PROTOCOL_VERSION)
+}
+
+/// `Ok` only when the relay's version answer is exactly ours.
+pub fn check_version_answer(status: StatusCode, body: &[u8]) -> Result<(), ClientError> {
+    if status == StatusCode::NOT_FOUND {
+        // Relays before versioning have no such route
+        return Err(ClientError::ProtocolMismatch(None));
+    }
+    if !status.is_success() {
+        return Err(ClientError::Status(status));
+    }
+    #[derive(Deserialize)]
+    struct Answer {
+        protocol: String,
+    }
+    let answer: Answer =
+        serde_json::from_slice(body).map_err(|e| ClientError::Invalid(e.to_string()))?;
+    match answer.protocol == PROTOCOL_VERSION {
+        true => Ok(()),
+        // Truncated: the relay is not trusted, its text ends up on screen
+        false => Err(ClientError::ProtocolMismatch(Some(
+            answer.protocol.chars().take(32).collect(),
+        ))),
+    }
 }
 
 impl From<reqwest::Error> for ClientError {
@@ -129,6 +166,18 @@ impl RelayClient {
         &self.origin
     }
 
+    /// Refuses a relay on another protocol version (see [`PROTOCOL_VERSION`]).
+    pub async fn check_version(&self) -> Result<(), ClientError> {
+        let url = format!("{}{}", self.origin, VERSION_PATH);
+        let resp = self.http.get(url).send().await?;
+        let status = resp.status();
+        let body = match status.is_success() {
+            true => bounded_body(resp).await?,
+            false => Vec::new(),
+        };
+        check_version_answer(status, &body)
+    }
+
     pub async fn create_room(&self) -> Result<Room, ClientError> {
         let url = format!("{}{}", self.origin, ROOMS_PATH);
         let resp = check(self.http.post(url).send().await?).await?;
@@ -194,6 +243,31 @@ impl RelayClient {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn only_the_exact_protocol_version_is_accepted() {
+        let ok = format!(r#"{{"protocol":"{PROTOCOL_VERSION}"}}"#);
+        assert!(check_version_answer(StatusCode::OK, ok.as_bytes()).is_ok());
+        let other = check_version_answer(StatusCode::OK, br#"{"protocol":"99.0.0"}"#);
+        assert!(matches!(other, Err(ClientError::ProtocolMismatch(Some(v))) if v == "99.0.0"));
+        let message = check_version_answer(StatusCode::OK, br#"{"protocol":"99.0.0"}"#)
+            .unwrap_err()
+            .to_string();
+        assert!(message.contains("v99.0.0") && message.contains(&format!("v{PROTOCOL_VERSION}")));
+        assert!(matches!(
+            check_version_answer(StatusCode::NOT_FOUND, b""),
+            Err(ClientError::ProtocolMismatch(None))
+        ));
+        assert!(matches!(
+            check_version_answer(StatusCode::OK, b"not json"),
+            Err(ClientError::Invalid(_))
+        ));
+        let long = format!(r#"{{"protocol":"{}"}}"#, "9".repeat(500));
+        assert!(matches!(
+            check_version_answer(StatusCode::OK, long.as_bytes()),
+            Err(ClientError::ProtocolMismatch(Some(v))) if v.len() == 32
+        ));
+    }
 
     #[test]
     fn origin_is_normalized_and_https_only_except_locally() {

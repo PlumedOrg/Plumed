@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { encode, decode, sealInner, openInner, parseRoom } from '../static/wire.js';
+import { PROTOCOL_VERSION, encode, decode, sealInner, openInner, parseRoom } from '../static/wire.js';
 
 const vectors = JSON.parse(readFileSync(new URL('../../protocol/test-vectors.json', import.meta.url)));
 const hex = (s) => Uint8Array.from(Buffer.from(s, 'hex'));
@@ -37,4 +37,8 @@ test('a BOUND payload names the private room', () => {
         assert.equal(parseRoom(bytes(bad)), null, bad);
     }
     assert.equal(parseRoom(Uint8Array.of(0xff, 0x2e, 0x61)), null);
+});
+
+test('protocol version matches the shared vector', () => {
+    assert.equal(PROTOCOL_VERSION, vectors.protocol_version);
 });

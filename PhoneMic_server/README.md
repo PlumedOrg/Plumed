@@ -38,6 +38,7 @@ Les fichiers `wire.js` et `crypto.js` du téléphone reflètent le code Rust (`p
 
 | Requête | Réponse |
 | --- | --- |
+| `GET /api/version` | `200` avec `{"protocol": "<version>"}` : Plumed refuse tout relais d'une autre version (voir [la spécification](protocol_details.md#0-version)) |
 | `POST /api/rooms` | `201 {"room","desktop","phone"}` (un secret par côté), `403` (envoyée par un navigateur : seule l'application de bureau crée des salons), `429` (limites par IP) ou `503` (serveur plein ou occupé) |
 | `POST /api/rooms/{room}/desktop` + secret du téléphone | Ajoute une enveloppe à la boîte de réception de l'ordinateur : `204`, `400` (mal formée), `429` (boîte pleine : 1 Mio, ou 64 Mio pour tout le relais) |
 | `GET /api/rooms/{room}/desktop` + secret de l'ordinateur | Long-poll (25 s) : `200` avec les enveloppes en attente, `204` si rien n'est arrivé, `404` une fois le salon fermé |

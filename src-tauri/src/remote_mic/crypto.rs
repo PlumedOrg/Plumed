@@ -14,13 +14,12 @@
 
 use base64::engine::general_purpose::{STANDARD as B64, URL_SAFE_NO_PAD as B64URL};
 use base64::Engine;
-use plumed_relay_protocol::Role;
+use plumed_relay_protocol::{Role, HKDF_SALT};
 use ring::aead::{Aad, LessSafeKey, Nonce, UnboundKey, AES_256_GCM};
 use ring::agreement::{agree_ephemeral, EphemeralPrivateKey, UnparsedPublicKey, ECDH_P256};
 use ring::rand::{SecureRandom, SystemRandom};
 use ring::{digest, hkdf};
 
-const HKDF_SALT: &[u8] = b"Plumed-RemoteMic-v2";
 const PHONE_TO_DESKTOP: &[u8] = b"phone-to-desktop";
 const DESKTOP_TO_PHONE: &[u8] = b"desktop-to-phone";
 const PUBLIC_KEY_LEN: usize = 65;
@@ -120,7 +119,7 @@ pub fn decode_public_key(b64: &str) -> Result<Vec<u8>, CryptoError> {
 /// HKDF-SHA256(shared secret, info = label || desktop || phone) -> 32-byte AES key.
 fn derive_key_bytes(shared: &[u8], label: &[u8], desktop: &[u8], phone: &[u8]) -> [u8; 32] {
     let mut out = [0u8; 32];
-    hkdf::Salt::new(hkdf::HKDF_SHA256, HKDF_SALT)
+    hkdf::Salt::new(hkdf::HKDF_SHA256, HKDF_SALT.as_bytes())
         .extract(shared)
         .expand(&[label, desktop, phone], &AES_256_GCM)
         .and_then(|okm| okm.fill(&mut out))

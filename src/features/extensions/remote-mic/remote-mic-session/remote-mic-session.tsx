@@ -82,7 +82,7 @@ const Body = ({ snapshot, start, stop, confirm }: RemoteMicSessionProps) => {
                 <>
                     {snapshot.error != null && (
                         <Typography.Paragraph className="text-center text-yellow-300/90">
-                            {t(snapshot.error)}
+                            {t(snapshot.error, snapshot.error_params ?? {})}
                         </Typography.Paragraph>
                     )}
                     <Page.PrimaryButton onClick={start}>

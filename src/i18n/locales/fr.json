@@ -703,5 +703,6 @@
     "Experimental model": "Modèle expérimental",
     "{{name}} is an experimental version: it often produces much worse results than UltiMed v1. Stick to UltiMed v1 until v2 is fixed or v3 is released.": "{{name}} est une version expérimentale : ses résultats sont souvent bien moins bons que ceux d'UltiMed v1. Restez sur UltiMed v1 en attendant que la v2 soit corrigée ou que la v3 sorte.",
     "Choose it anyway": "Le choisir quand même",
-    "Stick to UltiMed v1": "Rester sur UltiMed v1"
+    "Stick to UltiMed v1": "Rester sur UltiMed v1",
+    "The relay is serving encryption protocol v{{relay}} and our version is v{{ours}}, so we can't use it. Backward compatibility of the protocol is not supported on purpose, to reduce the attack surface.": "Le relais utilise le protocole de chiffrement v{{relay}} et notre version est v{{ours}} : impossible de l'utiliser. La rétrocompatibilité du protocole n'est volontairement pas prise en charge, pour réduire la surface d'attaque."
 }
