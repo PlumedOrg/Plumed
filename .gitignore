@@ -68,3 +68,6 @@ PlumedOrg-repo
 
 # Local secrets for build_locally.sh
 /.env
+
+# Astro generated types (website/)
+.astro
