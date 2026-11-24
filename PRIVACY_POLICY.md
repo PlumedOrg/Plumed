@@ -1,6 +1,6 @@
 # Politique de confidentialité (Plumed)
 
-**Dernière mise à jour :** 23 novembre 2026
+**Dernière mise à jour :** 24 novembre 2026
 
 Plumed est une application de bureau de reconnaissance vocale libre, qui place la confidentialité au premier plan. Elle est conçue pour fonctionner sans connexion internet et pour garder vos données vocales sur votre appareil.
 
@@ -105,6 +105,47 @@ Plumed peut accéder au réseau uniquement pour :
 Les vérifications de mises à jour n'incluent ni votre audio ni vos transcriptions.
 
 Politiques de confidentialité des tiers : [Déclaration de confidentialité de GitHub](https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement), [Politique de confidentialité de Hugging Face](https://huggingface.co/privacy)
+
+## Registre des traitements
+
+Le registre des activités de traitement (RGPD, art. 30) décrit chaque traitement de données personnelles réalisé par le mainteneur de Plumed sur ses serveurs. Il suit le [modèle simplifié de la CNIL](https://www.cnil.fr/fr/RGDP-le-registre-des-activites-de-traitement) et est publié ici par transparence. Tout ce qui se passe sur votre ordinateur (dictée, corrections, réglages) n'est pas un traitement par le mainteneur et n'y figure donc pas.
+
+Responsable du traitement : Olivier Cornelis, mainteneur de Plumed, contact : TODO. Pas de délégué à la protection des données désigné.
+
+### Statistiques d'utilisation anonymes (metrics.plumed.fr)
+
+- **Finalité** : mesurer l'usage de l'application pour l'améliorer, et rien d'autre.
+- **Base légale** : consentement (désactivé par défaut, demandé au premier lancement, retirable à tout moment dans Paramètres > En ligne).
+- **Personnes concernées** : les utilisateurs qui ont accepté.
+- **Données** : un identifiant aléatoire renouvelé tous les 13 mois, la version et le canal de mise à jour, le système, l'architecture, le type d'installateur, la langue, des compteurs agrégés (nombre de dictées, durées, longueurs, erreurs) et les fonctionnalités activées (oui/non ou fourchettes). Jamais d'audio, de texte, de règles ni de mots du dictionnaire.
+- **Destinataires** : le mainteneur uniquement. Aucun transfert hors de l'Union européenne.
+- **Hébergement** : Umami auto-hébergé sur un serveur en France.
+- **Durées** : statistiques supprimées après 25 mois ; l'adresse IP n'est jamais enregistrée dans les statistiques, seulement dans le journal technique du serveur, effacé après 24 heures.
+- **Sécurité** : HTTPS, seule l'adresse d'envoi des statistiques est exposée.
+
+### Relais PhoneMic (turn.plumed.fr)
+
+- **Finalité** : transmettre l'audio du téléphone vers Plumed sur l'ordinateur de l'utilisateur.
+- **Base légale** : exécution du service demandé par l'utilisateur (fonction désactivée par défaut, lancée par un clic sur « Connecter un téléphone »).
+- **Personnes concernées** : les utilisateurs de PhoneMic.
+- **Données** : audio chiffré de bout en bout (illisible par le serveur), adresse IP utilisée le temps de l'acheminement.
+- **Destinataires** : aucun, le relais ne fait que transmettre.
+- **Hébergement** : serveur en France. Ce serveur n'est pas un hébergeur de données de santé (HDS) ; un autre relais, par exemple celui de votre établissement, peut être choisi à la place.
+- **Durées** : chaque paquet est supprimé dès sa livraison, tout reste en mémoire ; ni adresse IP ni identifiant de salon ne sont journalisés.
+
+### Relais des modèles et des mises à jour (models.plumed.fr)
+
+- **Finalité** : télécharger le modèle de reconnaissance vocale et vérifier les mises à jour quand Hugging Face ou GitHub sont inaccessibles.
+- **Base légale** : intérêt légitime (fournir l'application).
+- **Personnes concernées** : les utilisateurs dont le réseau bloque Hugging Face ou GitHub.
+- **Données** : adresse IP utilisée le temps de la connexion, fichier demandé. Aucune donnée de l'utilisateur.
+- **Destinataires** : aucun.
+- **Hébergement** : serveur en France.
+- **Durées** : ni adresse IP ni fichier téléchargé ne sont journalisés.
+
+## Vos droits
+
+Vous disposez d'un droit d'accès, de rectification, d'effacement, d'opposition et de limitation sur les données vous concernant, et du droit de retirer votre consentement à tout moment. Les statistiques étant rattachées à un identifiant aléatoire et non à votre identité, le plus simple est de les désactiver dans Paramètres > En ligne, ce qui supprime aussitôt l'identifiant et les compteurs de votre ordinateur. Pour toute demande, écrivez au responsable du traitement (voir le registre ci-dessus). Vous pouvez aussi adresser une réclamation à la [CNIL](https://www.cnil.fr/fr/plaintes).
 
 ## Accès au presse-papiers
 
