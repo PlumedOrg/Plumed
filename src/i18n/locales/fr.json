@@ -707,5 +707,7 @@
     "The relay is serving encryption protocol v{{relay}} and our version is v{{ours}}, so we can't use it. Backward compatibility of the protocol is not supported on purpose, to reduce the attack surface.": "Le relais utilise le protocole de chiffrement v{{relay}} et notre version est v{{ours}} : impossible de l'utiliser. La rétrocompatibilité du protocole n'est volontairement pas prise en charge, pour réduire la surface d'attaque.",
     "The relay served a phone page that differs from the one of its protocol version: it may be compromised. PhoneMic was stopped.": "Le relais a servi une page téléphone différente de celle de sa version de protocole : il est peut-être compromis. PhoneMic a été arrêté.",
     "The relay uses a newer PhoneMic protocol (v{{relay}}, ours v{{ours}}): update Plumed to use it.": "Le relais utilise un protocole PhoneMic plus récent (v{{relay}}, le nôtre v{{ours}}) : mettez Plumed à jour pour l'utiliser.",
-    "Update Plumed": "Mettre à jour Plumed"
+    "Update Plumed": "Mettre à jour Plumed",
+    "The relay no longer serves the phone page of this Plumed version: update Plumed to use it.": "Le relais ne sert plus la page téléphone de cette version de Plumed : mettez Plumed à jour pour l'utiliser.",
+    "The relay does not serve the phone page of this Plumed version yet: it is not up to date. Try again later or ask its administrator.": "Le relais ne sert pas encore la page téléphone de cette version de Plumed : il n'est pas à jour. Réessayez plus tard ou contactez son administrateur."
 }

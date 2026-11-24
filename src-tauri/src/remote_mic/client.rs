@@ -2,7 +2,7 @@
 //! Requests go through `reqwest`, which honors the system proxy: hospital
 //! networks often force an HTTP proxy that would break a WebSocket.
 
-use plumed_relay_protocol::page::PAGE;
+use plumed_relay_protocol::page::{page_path, PAGE, PAGE_VERSION};
 use plumed_relay_protocol::{
     decode, desktop_inbox_path, encode, phone_inbox_path, Frame, MAX_BODY, PROTOCOL_VERSION,
     ROOMS_PATH, SECRET_HEADER, VERSION_PATH,
@@ -30,6 +30,10 @@ pub enum ClientError {
     /// The relay speaks another protocol version (`None`: too old to say).
     #[error("{}", protocol_mismatch_message(.0.as_deref().unwrap_or("?")))]
     ProtocolMismatch(Option<String>),
+    /// The relay does not serve our page version: `app_outdated` when it only
+    /// has newer ones (update Plumed), else the relay is not up to date.
+    #[error("{}", if *app_outdated { PAGE_TOO_OLD } else { PAGE_TOO_NEW })]
+    PageMissing { app_outdated: bool },
     /// The relay served a phone page that is not the one embedded in Plumed.
     #[error("{}", PAGE_TAMPERED)]
     PageTampered,
@@ -39,9 +43,12 @@ pub enum ClientError {
 /// [`relay_is_newer`]: not suspicious, Plumed just needs an update.
 pub const APP_OUTDATED: &str = "The relay uses a newer PhoneMic protocol (v{{relay}}, ours v{{ours}}): update Plumed to use it.";
 
+/// Translation keys of [`ClientError::PageMissing`].
+pub const PAGE_TOO_OLD: &str =
+    "The relay no longer serves the phone page of this Plumed version: update Plumed to use it.";
+pub const PAGE_TOO_NEW: &str = "The relay does not serve the phone page of this Plumed version yet: it is not up to date. Try again later or ask its administrator.";
+
 /// A relay on a newer protocol version than ours means Plumed is out of date.
-/// The page is pinned to the protocol version (see `page.rs`), so a newer
-/// page always comes with a newer version and never looks like tampering.
 pub fn relay_is_newer(relay: &str) -> bool {
     match (
         semver::Version::parse(relay),
@@ -91,11 +98,18 @@ pub fn check_version_answer(status: StatusCode, body: &[u8]) -> Result<(), Clien
     #[derive(Deserialize)]
     struct Answer {
         protocol: String,
+        /// Page versions the relay serves (see `page.rs`)
+        #[serde(default)]
+        pages: Vec<u32>,
     }
     let answer: Answer =
         serde_json::from_slice(body).map_err(|e| ClientError::Invalid(e.to_string()))?;
     match answer.protocol == PROTOCOL_VERSION {
-        true => Ok(()),
+        true if answer.pages.contains(&PAGE_VERSION) => Ok(()),
+        // Checked after the protocol: pages of another protocol never match
+        true => Err(ClientError::PageMissing {
+            app_outdated: answer.pages.iter().any(|v| *v > PAGE_VERSION),
+        }),
         // Truncated: the relay is not trusted, its text ends up on screen
         false => Err(ClientError::ProtocolMismatch(Some(
             answer.protocol.chars().take(32).collect(),
@@ -155,10 +169,11 @@ pub fn origin_of(server_url: &str) -> Result<String, String> {
 }
 
 /// The link the phone scans:
-/// `<origin>/#<room>.<phone secret>.<desktop public key>.<pairing secret>`,
+/// `<origin>/p/<page version>/#<room>.<phone secret>.<desktop public key>.<pairing secret>`,
 /// `pairing` being `Pairing::link_key`.
 pub fn phone_link(origin: &str, room: &Room, pairing: &str) -> String {
-    format!("{}/#{}.{}.{}", origin, room.id, room.phone_secret, pairing)
+    let page = page_path(PAGE_VERSION, "/");
+    format!("{origin}{page}#{}.{}.{pairing}", room.id, room.phone_secret)
 }
 
 fn status_error(resp: &Response) -> ClientError {
@@ -212,7 +227,11 @@ impl RelayClient {
             .build()?;
         for asset in PAGE {
             let resp = http
-                .get(format!("{}{}", self.origin, asset.path))
+                .get(format!(
+                    "{}{}",
+                    self.origin,
+                    page_path(PAGE_VERSION, asset.path)
+                ))
                 .header(header::ACCEPT_LANGUAGE, "fr-FR,fr;q=0.9")
                 .send()
                 .await?;
@@ -301,6 +320,32 @@ mod tests {
     use super::*;
 
     #[test]
+    fn a_missing_page_tells_which_side_is_out_of_date() {
+        let answer = |pages: &str| {
+            let body = format!(r#"{{"protocol":"{PROTOCOL_VERSION}","pages":{pages}}}"#);
+            check_version_answer(StatusCode::OK, body.as_bytes())
+        };
+        assert!(answer(&format!("[{PAGE_VERSION}]")).is_ok());
+        assert!(answer(&format!("[{}, {PAGE_VERSION}, 999]", PAGE_VERSION - 1)).is_ok());
+        assert!(matches!(
+            answer("[999]"),
+            Err(ClientError::PageMissing { app_outdated: true })
+        ));
+        assert!(matches!(
+            answer(&format!("[{}]", PAGE_VERSION - 1)),
+            Err(ClientError::PageMissing {
+                app_outdated: false
+            })
+        ));
+        assert!(matches!(
+            answer("[]"),
+            Err(ClientError::PageMissing {
+                app_outdated: false
+            })
+        ));
+    }
+
+    #[test]
     fn only_a_newer_relay_means_plumed_is_out_of_date() {
         assert!(relay_is_newer("999.0.0"));
         assert!(!relay_is_newer("0.0.1"));
@@ -328,7 +373,7 @@ mod tests {
 
     #[test]
     fn only_the_exact_protocol_version_is_accepted() {
-        let ok = format!(r#"{{"protocol":"{PROTOCOL_VERSION}"}}"#);
+        let ok = format!(r#"{{"protocol":"{PROTOCOL_VERSION}","pages":[{PAGE_VERSION}]}}"#);
         assert!(check_version_answer(StatusCode::OK, ok.as_bytes()).is_ok());
         let other = check_version_answer(StatusCode::OK, br#"{"protocol":"99.0.0"}"#);
         assert!(matches!(other, Err(ClientError::ProtocolMismatch(Some(v))) if v == "99.0.0"));
@@ -458,7 +503,7 @@ mod tests {
         };
         assert_eq!(
             phone_link("https://turn.plumed.fr", &room, "BKEY.PSEC"),
-            "https://turn.plumed.fr/#AbC-_9.s3cr_et.BKEY.PSEC"
+            format!("https://turn.plumed.fr/p/{PAGE_VERSION}/#AbC-_9.s3cr_et.BKEY.PSEC")
         );
     }
 }

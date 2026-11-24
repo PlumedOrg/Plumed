@@ -168,13 +168,25 @@ impl Ui<'_> {
             ("relay", relay.unwrap_or_else(|| "?".to_string())),
             ("ours", PROTOCOL_VERSION.to_string()),
         ];
+        let key = match update_app {
+            true => APP_OUTDATED,
+            false => PROTOCOL_MISMATCH,
+        };
+        self.out_of_date(key, Some(params.into_iter().collect()), update_app);
+    }
+
+    /// Stopped because the relay or Plumed is out of date; `update_app`
+    /// offers the update.
+    fn out_of_date(
+        &self,
+        key: &str,
+        params: Option<std::collections::BTreeMap<&'static str, String>>,
+        update_app: bool,
+    ) {
         self.update(|s| {
             *s = Snapshot {
-                error: Some(match update_app {
-                    true => APP_OUTDATED.to_string(),
-                    false => PROTOCOL_MISMATCH.to_string(),
-                }),
-                error_params: Some(params.into_iter().collect()),
+                error: Some(key.to_string()),
+                error_params: params,
                 update_app,
                 ..Snapshot::default()
             }
@@ -197,6 +209,11 @@ async fn run(app: AppHandle, client: RelayClient, mut commands: mpsc::UnboundedR
             commands.close();
             match e {
                 ClientError::ProtocolMismatch(relay) => ui.protocol_mismatch(relay),
+                ClientError::PageMissing { app_outdated } => ui.out_of_date(
+                    &ClientError::PageMissing { app_outdated }.to_string(),
+                    None,
+                    app_outdated,
+                ),
                 other => ui.stopped(Some(other.to_string())),
             }
             return;
