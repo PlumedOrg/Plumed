@@ -1,4 +1,4 @@
-//! `plumed-models`: see the crate docs in lib.rs and remote_microphone_server/README.md.
+//! `plumed-models`: see the crate docs in lib.rs and PhoneMic_server/README.md.
 
 use plumed_models::{
     app, github_redirect, hub_redirect, Allowlist, Config, DEFAULT_GITHUB, DEFAULT_GITHUB_API,

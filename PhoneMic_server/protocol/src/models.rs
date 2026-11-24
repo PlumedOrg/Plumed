@@ -1,5 +1,5 @@
 //! The speech model repositories Plumed downloads, and the URL scheme of the
-//! Plumed model relay (`plumed-models`, `remote_microphone_server/models`).
+//! Plumed model relay (`plumed-models`, `PhoneMic_server/models`).
 //! The one place that names the repositories and their pinned revisions: the
 //! app's catalog (`src-tauri/src/model/catalog.rs`) builds on these, and the
 //! relay's default allowlist is this list. Written with Claude Code.

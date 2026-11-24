@@ -1,5 +1,5 @@
 //! Plumed fork: phone microphone through the Plumed relay
-//! (`remote_microphone_server/`, HTTPS long-poll only, end-to-end encrypted).
+//! (`PhoneMic_server/`, HTTPS long-poll only, end-to-end encrypted).
 
 pub mod audio;
 pub mod client;
@@ -9,7 +9,7 @@ pub mod qr;
 pub mod session;
 
 /// End-to-end check against a running relay, with a simulated phone:
-/// `cargo run -p plumed-relay` in `remote_microphone_server/`, then
+/// `cargo run -p plumed-relay` in `PhoneMic_server/`, then
 /// `PLUMED_RELAY_E2E_URL=http://127.0.0.1:5174 cargo test --lib relay_e2e -- --ignored`
 #[cfg(test)]
 mod e2e {

@@ -53,7 +53,7 @@ base64 = "0.22"
 rubato = "3.0.0"
 # Plumed fork: remote microphone over the Plumed relay (HTTPS long-poll + E2E crypto).
 ring = "0.17"
-plumed-relay-protocol = { path = "../remote_microphone_server/protocol" }
+plumed-relay-protocol = { path = "../PhoneMic_server/protocol" }
 reqwest = { version = "0.13", default-features = false, features = ["json", "rustls-no-provider", "system-proxy"] }
 # Plumed fork: signed medical data updates (both already pulled by tauri and its updater).
 minisign-verify = "0.2"

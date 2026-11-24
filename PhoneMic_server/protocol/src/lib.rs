@@ -1,5 +1,5 @@
 //! Wire format of the Plumed remote microphone, shared by the relay server
-//! (`remote_microphone_server/server`) and the Plumed desktop app (`src-tauri`).
+//! (`PhoneMic_server/server`) and the Plumed desktop app (`src-tauri`).
 //! The phone page (`server/static/wire.js`) mirrors it in JavaScript; both sides
 //! are pinned by `test-vectors.json`.
 //!

@@ -59,8 +59,8 @@ AGENTS.local.md
 /plumed_build_ignore_backups/
 
 # Plumed remote microphone relay: local deploy script and secrets
-/remote_microphone_server/deploy.sh
-/remote_microphone_server/.env
+/PhoneMic_server/deploy.sh
+/PhoneMic_server/.env
 
 PlumedOrg-repo
 

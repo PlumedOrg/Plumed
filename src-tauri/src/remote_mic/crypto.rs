@@ -1,6 +1,6 @@
 //! End-to-end crypto of the Plumed remote microphone (ECDH P-256, HKDF-SHA256,
 //! AES-256-GCM), byte-compatible with the phone page
-//! (`remote_microphone_server/server/static/crypto.js`).
+//! (`PhoneMic_server/server/static/crypto.js`).
 //!
 //! Each direction has its own key, bound to both public keys:
 //! `HKDF(salt, shared x, info = label || desktop pub || phone pub)` with the
@@ -8,7 +8,7 @@
 //! reflected back to its sender, and the key only exists for that exact pair.
 //!
 //! The JS side duplicates this on purpose (a browser cannot run Rust). Both are
-//! pinned by `remote_microphone_server/protocol/test-vectors.json`, generated with
+//! pinned by `PhoneMic_server/protocol/test-vectors.json`, generated with
 //! Node `crypto`: if either side changes, these tests must fail.
 
 use base64::engine::general_purpose::{STANDARD as B64, URL_SAFE_NO_PAD as B64URL};
@@ -211,7 +211,7 @@ mod tests {
     /// Shared with the relay crate and the phone page tests.
     fn vector(name: &str) -> String {
         let all: serde_json::Value = serde_json::from_str(include_str!(
-            "../../../remote_microphone_server/protocol/test-vectors.json"
+            "../../../PhoneMic_server/protocol/test-vectors.json"
         ))
         .unwrap();
         all["crypto"][name].as_str().unwrap().to_owned()

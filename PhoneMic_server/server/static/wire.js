@@ -1,5 +1,5 @@
 // Wire format of the Plumed remote microphone, mirror of the Rust crate
-// remote_microphone_server/protocol (src/lib.rs). Both are pinned by
+// PhoneMic_server/protocol (src/lib.rs). Both are pinned by
 // protocol/test-vectors.json (see wire.test.mjs): change them together.
 
 export const OP = Object.freeze({

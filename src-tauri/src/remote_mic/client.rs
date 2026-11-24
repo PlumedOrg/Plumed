@@ -1,4 +1,4 @@
-//! HTTPS client for the Plumed relay (`remote_microphone_server/`), long-poll only.
+//! HTTPS client for the Plumed relay (`PhoneMic_server/`), long-poll only.
 //! Requests go through `reqwest`, which honors the system proxy: hospital
 //! networks often force an HTTP proxy that would break a WebSocket.
 

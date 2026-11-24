@@ -1,4 +1,4 @@
-//! `plumed-relay`: see the crate docs in lib.rs and remote_microphone_server/README.md.
+//! `plumed-relay`: see the crate docs in lib.rs and PhoneMic_server/README.md.
 
 use plumed_relay::serve::{env_or, exit_code, healthcheck, healthcheck_requested, run};
 use plumed_relay::{app, reap_forever, Config};

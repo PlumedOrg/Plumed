@@ -2,7 +2,9 @@
 
 # Plumed
 
-Plumed est une application entièrement gratuite et open source de dictée vocale respectueuse de la confidentialité : elle fonctionne localement sur votre ordinateur et permet de dicter dans **n'importe quelle application** (logiciel métier, traitement de texte, messagerie, etc.), avec une reconnaissance adaptée au **vocabulaire médical français** (médicaments, termes médicaux, comptes rendus, courriers). C'est initialement un fork de [Murmure](https://github.com/Kieirra/murmure) qui intègre les modèles [UltiMed](https://github.com/UltiMed-Org) et les fonctionnalités du mode médical de [ParakeetWeb](http://parakeetweb.olicorne.org/?mode=med), la version navigateur. UltiMed et ParakeetWeb sont du même auteur que Plumed.
+Plumed est une application de dictée vocale respectueuse de la confidentialité.
+
+Elle est ne participe à **aucune activité commerciale** (entièrement gratuite et sans de pub), ne nécessite **pas de compte**, elle fonctionne localement sur votre ordinateur et permet de dicter dans **n'importe quelle application** (logiciel métier, traitement de texte, messagerie, etc.), avec une reconnaissance adaptée au **vocabulaire médical français** (médicaments, termes médicaux, comptes rendus, courriers). C'est initialement un fork de [Murmure](https://github.com/Kieirra/murmure) qui intègre les modèles [UltiMed](https://github.com/UltiMed-Org) et les fonctionnalités du mode médical de [ParakeetWeb](http://parakeetweb.olicorne.org/?mode=med), la version navigateur. UltiMed et ParakeetWeb sont du même auteur que Plumed.
 
 Plumed est réalisé par [Olivier Cornelis](https://olicorne.org/fr), interne en psychiatrie et développeur.
 
@@ -42,7 +44,7 @@ Les versions bêta sont sur la [page des releases](https://github.com/PlumedOrg/
 - **Dictée par raccourci clavier** dans n'importe quelle application, avec aperçu en cours de dictée.
 - **Pipeline de correction de texte avancée** 8 étapes d'enchainent pour améliorer la transcription, voir [MEDICAL.fr.md](MEDICAL.fr.md).
 - **Textes types** : l'utilisateur peut specifier des phrase à automatiquement remplacer par un texte plus long. Utile pour de la saisie répétitive de modèles.
-- **PhoneMic** (expérimental) : si l'utilisateur n'a pas de micro, il peut utiliser son smartphone. Les données audio transitent alors via un relais HTTPS chiffré jusqu'à l'ordinateur où il est transcrit. Les données ne sont pas stockées sur le téléphone. Le chiffrement de bout en bout garantie que le relais ne peut pas y accéder. Le relais est [également open source](./remote_microphone_server/README.md) et le créateur de Plumed en héberge une instance mais chaque utilisateur peut utiliser le relais qu'il souhaite.
+- **PhoneMic** (expérimental) : si l'utilisateur n'a pas de micro, il peut utiliser son smartphone. Les données audio transitent alors via un relais HTTPS chiffré jusqu'à l'ordinateur où il est transcrit. Les données ne sont pas stockées sur le téléphone. Le chiffrement de bout en bout garantie que le relais ne peut pas y accéder. Le relais est [également open source](./PhoneMic_server/README.md) et le créateur de Plumed en héberge une instance mais chaque utilisateur peut utiliser le relais qu'il souhaite.
 - **Tutoriel** intégré dans la barre latérale.
 - **Contexte pour les dictées courtes** : une dictée très brève est mieux reconnue grâce à la fin de la précédente.
 
