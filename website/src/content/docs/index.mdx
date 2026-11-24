@@ -1,9 +1,9 @@
 ---
 title: Plumed
 description: Dictée vocale médicale en français, gratuite, hors ligne et respectueuse de la confidentialité.
-template: splash
+tableOfContents: false
 hero:
-  tagline: La dictée vocale médicale en français, sur votre ordinateur. Gratuite, sans compte, sans pub, et qui fonctionne hors ligne.
+  tagline: La dictée vocale médicale en français, sur votre ordinateur. Gratuite, sans compte, sans pub, et qui fonctionne hors ligne. Pour le bien commun, sans aucun objectif commercial.
   image:
     file: ../../assets/logo.svg
   actions:
@@ -20,11 +20,9 @@ import { Card, CardGrid } from '@astrojs/starlight/components';
 import { Image } from 'astro:assets';
 import accueil from '../../assets/accueil.png';
 
-Plumed est une application de dictée vocale réalisée par [Olivier Cornelis](https://olicorne.org/fr), interne en psychiatrie et développeur. Ce n'est pas un projet commercial.
-
 <CardGrid>
     <Card title="Dans n'importe quelle application" icon="pencil">
-        Un raccourci clavier, vous parlez, le texte s'écrit là où se trouve le curseur : logiciel métier, traitement de texte, messagerie.
+        Un raccourci clavier, vous parlez, le texte s'écrit là où se trouve le curseur : logiciel métier, traitement de texte, messagerie. Sur Windows, macOS et Linux.
     </Card>
     <Card title="Vocabulaire médical français" icon="open-book">
         Modèles UltiMed entraînés sur le vocabulaire médical, environ 45 000 corrections de noms de médicaments et de termes médicaux, règles de dictée (« tension 120 80 » devient « TA : 120/80 »).
@@ -33,12 +31,16 @@ Plumed est une application de dictée vocale réalisée par [Olivier Cornelis](h
         La reconnaissance tourne sur votre ordinateur : l'audio et les transcriptions ne partent jamais sur internet.
     </Card>
     <Card title="Gratuit et libre" icon="heart">
-        Sans compte, sans pub, sans pistage. Logiciel libre sous licence AGPL v3.
+        **Pour le bien commun, sans aucun objectif commercial.** Sans compte, sans pub, sans pistage. Logiciel libre sous licence AGPL v3. Fait avec amour par un interne en psychiatrie, [Olivier Cornelis](https://olicorne.org/fr).
     </Card>
+    <div class="plumed-wide">
+        <Card title="Pas un dispositif médical" icon="warning">
+            Plumed n'est pas un dispositif médical certifié : l'application est fournie telle quelle, sans garantie autre que sa [politique de confidentialité](/confidentialite/). Par principe, n'utilisez pas d'information identifiante (noms de patients, ...) dans Plumed.
+        </Card>
+    </div>
 </CardGrid>
 
-<Image src={accueil} alt="Écran d'accueil de Plumed : statistiques, visualisation du micro et dernière dictée" />
-
-:::caution[Pas un dispositif médical]
-Plumed n'est pas un dispositif médical certifié : l'application est fournie telle quelle, sans garantie autre que sa [politique de confidentialité](/confidentialite/). Par principe, n'utilisez pas d'information identifiante (noms de patients, ...) dans Plumed.
-:::
+<figure class="plumed-screenshot">
+    <Image src={accueil} alt="Capture d'écran de l'application Plumed : statistiques, visualisation du micro et dernière dictée" />
+    <figcaption>Capture d'écran de l'application : l'écran d'accueil de Plumed.</figcaption>
+</figure>
