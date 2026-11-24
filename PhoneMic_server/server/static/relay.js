@@ -13,6 +13,24 @@ const MAX_BACKOFF_S = 10;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/** Exponential retry delay in seconds: 1, 2, 4, 8, 10, 10... until reset. */
+export class Backoff {
+    constructor() {
+        this.reset();
+    }
+
+    reset() {
+        this.delay = 1;
+    }
+
+    /** The delay to wait now; the next one doubles. */
+    next() {
+        const delay = this.delay;
+        this.delay = Math.min(delay * 2, MAX_BACKOFF_S);
+        return delay;
+    }
+}
+
 export class Relay {
     /** handlers: {onFrames(frames) async, onClosed(), onOnline(boolean)} */
     constructor(room, secret, inbox, handlers) {
@@ -84,10 +102,10 @@ export class Relay {
     async flush() {
         if (this.sending) return;
         this.sending = true;
-        let backoff = 1;
+        const backoff = new Backoff();
         while (this.running && this.queue.length > 0) {
             const { n, body } = this.nextBatch();
-            let wait = backoff;
+            let wait = 0;
             try {
                 const r = await this.request('POST', this.postUrl, body);
                 switch (r.status) {
@@ -95,7 +113,7 @@ export class Relay {
                     case 400: // malformed: a bug, retrying would block the queue
                         this.queue.splice(0, n);
                         this.setOnline(true);
-                        backoff = 1;
+                        backoff.reset();
                         continue;
                     case 404:
                         this.closed();
@@ -104,11 +122,11 @@ export class Relay {
                         wait = Number(r.headers.get('retry-after')) || 1;
                         break;
                     default:
-                        backoff = Math.min(backoff * 2, MAX_BACKOFF_S);
+                        wait = backoff.next();
                 }
             } catch {
                 this.setOnline(false);
-                backoff = Math.min(backoff * 2, MAX_BACKOFF_S);
+                wait = backoff.next();
             }
             await sleep(wait * 1000);
         }
@@ -116,13 +134,13 @@ export class Relay {
     }
 
     async pollLoop() {
-        let backoff = 1;
+        const backoff = new Backoff();
         while (this.running) {
             try {
                 const r = await this.request('GET', this.pollUrl);
                 if (r.status === 200 || r.status === 204) {
                     this.setOnline(true);
-                    backoff = 1;
+                    backoff.reset();
                     if (r.status === 200) await this.deliver(new Uint8Array(await r.arrayBuffer()));
                     continue;
                 }
@@ -134,8 +152,7 @@ export class Relay {
                 if (!this.running) return;
                 this.setOnline(false);
             }
-            await sleep(backoff * 1000);
-            backoff = Math.min(backoff * 2, MAX_BACKOFF_S);
+            await sleep(backoff.next() * 1000);
         }
     }
 
