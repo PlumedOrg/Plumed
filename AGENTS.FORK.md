@@ -25,6 +25,7 @@ Why a fork: [Kieirra/murmure#498](https://github.com/Kieirra/murmure/issues/498)
 - Never reformat, reorder, rename or "clean up" upstream code we don't need to change.
 - Upstream's `GUIDELINES.md` and `CONTRIBUTING.md` are folded into section 7 and deleted, and `AGENTS.md` is only a pointer to this file: keep that on merges (take upstream's useful changes into section 7). Never edit other upstream docs except `README.md` (fully ours). Fork docs go in fork-specific files.
 - Upstream's mkdocs site (`docs/`, `mkdocs.yml`, `overrides/`, `docs.yml` workflow) is deleted (it documents Murmure); keep the deletion on merges. User docs will live on plumed.fr; medical features are documented in the README.
+- plumed.fr (`website/`) shows a site version in every page footer (`website/src/site-version.ts`): the count of commits touching `website/` or `PRIVACY_POLICY.md`, so it bumps by itself; nothing to edit by hand. `website/build.sh` computes it on the VPS (no git in its Node container).
 - Large data (regex lists, phrase lists) goes in its own files, never inlined in upstream sources.
 - Generic improvements must be upstreamable as is: no medical-specific code mixed in.
 - Exception to upstream's "no persistence" rule: only when the user opted in to anonymous usage statistics, aggregated counters (sums, buckets, error counts, never text or per-dictation records) and a random id are persisted in `telemetry.json` (app data folder). Opting out deletes it. Anything sent must stay on the allowlist tested in `src-tauri/src/telemetry/payload.rs`.

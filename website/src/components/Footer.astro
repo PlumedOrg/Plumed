@@ -1,0 +1,7 @@
+---
+// Starlight's footer, followed by the site version (src/site-version.ts).
+import Default from '@astrojs/starlight/components/Footer.astro';
+import { siteDate, siteVersion } from '../site-version';
+---
+<Default><slot /></Default>
+<p class="plumed-site-version">Version du site : {siteVersion}{siteDate && `, mise à jour le ${siteDate}`}</p>

@@ -46,6 +46,8 @@ export default defineConfig({
                 SocialIcons: './src/components/SocialIcons.astro',
                 // The "fresh paint" warning on the /docs pages
                 MarkdownContent: './src/components/MarkdownContent.astro',
+                // The site version under each page
+                Footer: './src/components/Footer.astro',
             },
             lastUpdated: false,
             sidebar: [

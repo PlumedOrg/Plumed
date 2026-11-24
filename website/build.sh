@@ -6,7 +6,7 @@
 # deploy.sh pulls that clone and runs this script, and after editing the
 # clone on the VPS directly, running `sh website/build.sh` there publishes it.
 #
-# Needs docker (through sudo) and rsync. The served folder is only replaced
+# Needs docker (through sudo), git and rsync. The served folder is only replaced
 # once the build succeeded. Settings, through the environment:
 #   PLUMED_WEBSITE_OUT    folder Caddy serves (default
 #                         ~/docker/caddy/caddy_folder/plumed_website)
@@ -36,6 +36,14 @@ else
     echo "No $ENV_FILE: building without analytics"
 fi
 
+# The site version (src/site-version.ts): the container has no git
+SITE_PATHS="website PRIVACY_POLICY.md"
+# shellcheck disable=SC2086 # two paths
+SITE_VERSION=$(git -C "$REPO_DIR" rev-list --count HEAD -- $SITE_PATHS)
+# shellcheck disable=SC2086
+SITE_DATE=$(git -C "$REPO_DIR" log -1 --format=%cs -- $SITE_PATHS)
+echo "Site version $SITE_VERSION ($SITE_DATE)"
+
 echo "Building the website in $NODE_IMAGE"
 # shellcheck disable=SC2086 # ENV_ARGS is empty or two words
 sudo docker run --rm $ENV_ARGS \
@@ -44,6 +52,8 @@ sudo docker run --rm $ENV_ARGS \
     -e COREPACK_HOME=/cache/corepack \
     -e COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
     -e ASTRO_TELEMETRY_DISABLED=1 \
+    -e PLUMED_WEBSITE_VERSION="$SITE_VERSION" \
+    -e PLUMED_WEBSITE_DATE="$SITE_DATE" \
     -v "$REPO_DIR:/repo" \
     -v "$CACHE_DIR:/cache" \
     -w /repo/website \
