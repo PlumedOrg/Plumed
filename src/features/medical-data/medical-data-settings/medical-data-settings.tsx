@@ -96,7 +96,7 @@ export const MedicalDataSettings = () => {
                 <Switch
                     checked={status.check_enabled}
                     onCheckedChange={(enabled) => void setCheckEnabled(enabled)}
-                    aria-label={t('Check for medical rules updates at startup')}
+                    aria-label={t('Check for medical rules updates at startup and daily')}
                     data-testid="medical-data-update-check"
                 />
             </SettingsUI.Item>

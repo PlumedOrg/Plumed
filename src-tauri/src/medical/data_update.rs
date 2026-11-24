@@ -1,7 +1,7 @@
 //! Checks for, and on the user's explicit request downloads, a newer signed
 //! medical data set published on the `medical-data` release (Plumed fork,
-//! see `medical-data/SOURCE.md`). The startup check only runs once the user
-//! agreed to it, and fetches only the small signed manifest, with no
+//! see `medical-data/SOURCE.md`). The automatic check (at startup, then
+//! daily) only runs once the user agreed to it, and fetches only the small signed manifest, with no
 //! identifier and no cookie; nothing else is downloaded without a click.
 //! The same set can also be installed from files downloaded by hand, with
 //! the same checks. Written with Claude Code.
@@ -59,7 +59,7 @@ struct Pending {
     manifest: Manifest,
     bytes: Vec<u8>,
     signature: String,
-    /// Found by the startup check and not answered yet.
+    /// Found by the automatic check and not answered yet.
     prompt: bool,
     /// Folder the files were already downloaded into for the review of
     /// the changes, reused by the install.
@@ -86,7 +86,7 @@ pub struct CheckReport {
 }
 
 /// The checks of this launch, and the failure notice the frontend shows at
-/// most once per launch when the startup check failed.
+/// most once per launch when an automatic check failed.
 #[derive(Default)]
 struct CheckHistory {
     last: Option<CheckReport>,
@@ -118,7 +118,7 @@ static HISTORY: Mutex<CheckHistory> = Mutex::new(CheckHistory {
     failure_notice: None,
     notice_given: false,
 });
-static CHECKED_AT_STARTUP: AtomicBool = AtomicBool::new(false);
+static CHECKING: AtomicBool = AtomicBool::new(false);
 static INSTALLING: AtomicBool = AtomicBool::new(false);
 
 fn pending() -> std::sync::MutexGuard<'static, Option<Pending>> {
@@ -229,7 +229,7 @@ async fn fetch_newer() -> Result<Option<Pending>, String> {
     }))
 }
 
-/// Whether the startup check may run: only once the user agreed to it, on
+/// Whether the automatic check may run: only once the user agreed to it, on
 /// the first launch question or with the toggle.
 fn startup_check_allowed(settings: &AppSettings) -> bool {
     settings.medical_data_update_asked && settings.medical_data_update_check
@@ -248,15 +248,17 @@ fn apply_check_choice(settings: &mut AppSettings, enabled: bool) {
     settings.medical_data_update_asked = true;
 }
 
-/// Once per launch, after the model loaded: looks for a newer data set and
-/// tells the frontend, which asks the user, or tells it the check failed.
+/// The automatic check (`daily_checks`: after the model loaded, then once a
+/// day): looks for a newer data set and tells the frontend, which asks the
+/// user, or tells it the check failed (the notice shows once per launch).
 /// Does nothing until the user agreed to the check, in builds without a
-/// public key, or for the skipped version.
-pub fn check_at_startup(app: &AppHandle) {
+/// public key, for the skipped version, or while a check or an install runs.
+pub fn check_automatically(app: &AppHandle) {
     let settings = crate::settings::load_settings(app);
     if !data_set::is_available()
         || !startup_check_allowed(&settings)
-        || CHECKED_AT_STARTUP.swap(true, Ordering::AcqRel)
+        || INSTALLING.load(Ordering::Acquire)
+        || CHECKING.swap(true, Ordering::AcqRel)
     {
         return;
     }
@@ -267,10 +269,7 @@ pub fn check_at_startup(app: &AppHandle) {
         match result {
             Ok(Some(found)) if found.manifest.version != settings.medical_data_skipped_version => {
                 let offer = offer_of(&found.manifest);
-                *pending() = Some(Pending {
-                    prompt: true,
-                    ..found
-                });
+                offer_again(found);
                 if let Err(e) = app.emit(OFFER_EVENT, offer) {
                     warn!("Could not announce the medical data update: {e}");
                 }
@@ -283,7 +282,23 @@ pub fn check_at_startup(app: &AppHandle) {
                 }
             }
         }
+        CHECKING.store(false, Ordering::Release);
     });
+}
+
+/// Asks about `found` again, keeping the files already downloaded for the
+/// review when it is the version already pending.
+fn offer_again(found: Pending) {
+    let mut pending = pending();
+    match pending.as_mut() {
+        Some(p) if p.manifest.version == found.manifest.version => p.prompt = true,
+        _ => {
+            *pending = Some(Pending {
+                prompt: true,
+                ..found
+            })
+        }
+    }
 }
 
 /// The update found at startup, while the user has not answered it.
@@ -294,13 +309,14 @@ pub fn startup_offer() -> Option<UpdateOffer> {
         .map(|p| offer_of(&p.manifest))
 }
 
-/// Why the startup check failed, returned once per launch so the notice is
+/// Why an automatic check failed, returned once per launch so the notice is
 /// never shown twice.
 pub fn take_check_failure() -> Option<String> {
     history().take_failure_notice()
 }
 
-/// "Not now": asked again at the next launch.
+/// "Not now": asked again at the next automatic check (next launch, or a
+/// day later if the app stays open).
 pub fn dismiss_offer() {
     if let Some(p) = pending().as_mut() {
         p.prompt = false;

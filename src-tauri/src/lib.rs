@@ -5,6 +5,7 @@ mod audio;
 pub mod cli;
 mod clipboard;
 mod commands;
+mod daily_checks;
 mod dictionary;
 mod engine;
 mod formatting_rules;
@@ -382,7 +383,7 @@ pub fn run() {
                 }
                 crate::grammar::warm_up(&startup_handle);
                 telemetry::send_if_due(&startup_handle);
-                crate::medical::data_update::check_at_startup(&startup_handle);
+                daily_checks::spawn(&startup_handle);
             });
 
             setup_tray(app.handle())?;
@@ -554,6 +555,7 @@ pub fn run() {
             mark_tutorial_opened,
             set_tutorial_completed,
             check_app_update,
+            get_app_update_offer,
             install_app_update,
             get_recordings_dir,
             open_accessibility_settings,

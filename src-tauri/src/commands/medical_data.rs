@@ -11,13 +11,13 @@ pub async fn get_medical_data_status(app: AppHandle) -> Result<DataStatus, Strin
     data_update::status(&app).await
 }
 
-/// The update found by the startup check, until the user answers it.
+/// The update found by the automatic check, until the user answers it.
 #[command]
 pub fn get_medical_data_offer() -> Option<UpdateOffer> {
     data_update::startup_offer()
 }
 
-/// "Not now": the startup check asks again at the next launch.
+/// "Not now": the automatic check asks again (next launch, or a day later).
 #[command]
 pub fn dismiss_medical_data_offer() {
     data_update::dismiss_offer()
@@ -71,7 +71,7 @@ pub fn medical_data_question_due(app: AppHandle) -> bool {
     data_update::question_due_now(&app)
 }
 
-/// Why the startup check failed, once per launch.
+/// Why the automatic check failed, once per launch.
 #[command]
 pub fn take_medical_data_check_failure() -> Option<String> {
     data_update::take_check_failure()

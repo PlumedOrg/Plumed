@@ -206,6 +206,11 @@ pub async fn check(app: &AppHandle, manual: bool) -> Result<Option<String>, Stri
     Ok(version)
 }
 
+/// The version the last check found, for a frontend that missed the event.
+pub fn pending_version() -> Option<String> {
+    PENDING.lock().ok()?.as_ref().map(|u| u.version.clone())
+}
+
 /// Downloads and installs the update found by the last check, reporting the
 /// download in percent (each value once).
 pub async fn install(on_progress: impl Fn(u8)) -> Result<(), String> {

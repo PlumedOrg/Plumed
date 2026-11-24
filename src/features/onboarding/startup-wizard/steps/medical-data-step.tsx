@@ -7,7 +7,7 @@ import { WizardStep } from '../wizard-step/wizard-step';
 import { StepProps } from './step.types';
 
 // Plumed fork (written with Claude Code): asks once whether Plumed may look
-// for medical rules updates at each start. No check, so no network call, is
+// for medical rules updates at each start, then daily. No check, so no network call, is
 // made before the answer; a "yes" checks from the next start on.
 export const MedicalDataStep = ({ onNext }: StepProps) => {
     const { t } = useTranslation();
@@ -28,7 +28,7 @@ export const MedicalDataStep = ({ onNext }: StepProps) => {
             icon={DatabaseZap}
             title={t('Check for medical rules updates?')}
             description={t(
-                'At each start, Plumed can check on GitHub whether newer medical correction lists are available: model correction rules, sound-alike word groups and medical vocabulary.'
+                'At each start, then once a day if Plumed stays open, it can check on GitHub whether newer medical correction lists are available: model correction rules, sound-alike word groups and medical vocabulary.'
             )}
             footer={
                 <>
@@ -36,7 +36,7 @@ export const MedicalDataStep = ({ onNext }: StepProps) => {
                         {t("Don't check")}
                     </Page.SecondaryButton>
                     <Page.PrimaryButton onClick={() => void answer(true)} data-testid="medical-data-question-yes">
-                        {t('Check at each start')}
+                        {t('Check at each start and daily')}
                     </Page.PrimaryButton>
                 </>
             }

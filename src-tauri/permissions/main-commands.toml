@@ -124,6 +124,7 @@ permissions = [
     "allow-mark-tutorial-opened",
     "allow-set-tutorial-completed",
     "allow-check-app-update",
+    "allow-get-app-update-offer",
     "allow-install-app-update",
     "allow-get-recordings-dir",
     "allow-open-accessibility-settings",

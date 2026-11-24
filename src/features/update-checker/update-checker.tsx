@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 import { RefreshCcw, Download } from 'lucide-react';
 import { useTranslation } from '@/i18n';
 import { PLUMED_LATEST_RELEASE_URL } from '@/utils/plumed-links';
@@ -12,7 +13,11 @@ type UpdateCheckerProps = {
 
 // Plumed fork (written with Claude Code): the check and the install run in
 // Rust (`src-tauri/src/app_update.rs`), which picks the channel's manifest and
-// falls back to the Plumed relay when GitHub is unreachable. The button shows
+// falls back to the Plumed relay when GitHub is unreachable. The automatic
+// checks run in Rust too (`daily_checks.rs`: at startup, then daily, never in
+// the headless `serve` and `transcribe` commands, whose hidden window still
+// loads this page), so this component only checks again when the user
+// changes the channel. The button shows
 // only when an update is available, or always when the user disabled the
 // automatic check (then it checks the stable channel on demand).
 export const UpdateChecker = ({ className = '' }: UpdateCheckerProps) => {
@@ -38,11 +43,27 @@ export const UpdateChecker = ({ className = '' }: UpdateCheckerProps) => {
             });
     }, []);
 
-    // Checks again whenever the channel changes: a beta found earlier is not
-    // an update on the stable channel.
     useEffect(() => {
+        invoke<string | null>('get_app_update_offer')
+            .then((version) => version !== null && setUpdateAvailable(true))
+            .catch((e) => console.error('Failed to get the app update found:', e));
+        const unlisten = listen<string>('app-update-available', () => setUpdateAvailable(true));
+        return () => {
+            void unlisten.then((stop) => stop());
+        };
+    }, []);
+
+    // Checks again when the user changes the channel (not when it loads): a
+    // beta found earlier is not an update on the stable channel.
+    const channelLoaded = useRef(false);
+    useEffect(() => {
+        if (channel === null) return;
+        if (!channelLoaded.current) {
+            channelLoaded.current = true;
+            return;
+        }
         setUpdateAvailable(false);
-        if (channel !== null && channel !== 'disabled') void checkForUpdates(false);
+        if (channel !== 'disabled') void checkForUpdates(false);
     }, [channel]);
 
     const getUpdateStatusText = () => {

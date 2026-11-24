@@ -35,7 +35,7 @@ export const OnlineSettings = () => {
                 <ul className="list-disc space-y-2 pl-5 text-sm text-muted-foreground">
                     <li>
                         {t(
-                            'App updates (below): at every start, Plumed downloads a small file from GitHub (latest.json), or else from the Plumed relay, to see whether a newer version exists. An update is only installed when you click it, and only if its signature is valid.'
+                            'App updates (below): at every start, then once a day if it stays open, Plumed downloads a small file from GitHub (latest.json), or else from the Plumed relay, to see whether a newer version exists. An update is only installed when you click it, and only if its signature is valid.'
                         )}
                     </li>
                     <li>
@@ -46,7 +46,7 @@ export const OnlineSettings = () => {
                     {medicalDataAvailable && (
                         <li>
                             {t(
-                                'Medical rules updates (below): at every start, Plumed asks GitHub whether newer signed medical lists exist. Off unless you agreed; nothing is downloaded without your click.'
+                                'Medical rules updates (below): at every start, then once a day if it stays open, Plumed asks GitHub whether newer signed medical lists exist. Off unless you agreed; nothing is downloaded without your click.'
                             )}
                         </li>
                     )}
