@@ -280,6 +280,12 @@ jobs:
                   bin="$app/Contents/MacOS/plumed"
                   file "$bin"
                   file "$app/Contents/Frameworks/libonnxruntime.1.31.0.dylib"
+                  # This run passes even without it, but on users' Macs the hardened
+                  # runtime then refuses the bundled dylib ("different Team IDs")
+                  if ! codesign -d --entitlements - "$app" 2>/dev/null | grep -q disable-library-validation; then
+                    echo "::error::The .app lacks com.apple.security.cs.disable-library-validation (see Entitlements.plist)"
+                    exit 1
+                  fi
 
                   if command -v timeout >/dev/null 2>&1; then
                     timeout 600 arch -x86_64 "$bin" transcribe "$RUNNER_TEMP/smoke.wav" --no-dictionary -v \

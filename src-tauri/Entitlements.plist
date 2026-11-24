@@ -8,5 +8,10 @@
 	<true/>
 	<key>com.apple.security.automation.apple-events</key>
 	<true/>
+	<!-- The Intel build bundles its own libonnxruntime dylib: without this, the
+	     hardened runtime refuses to load it when the app has no Apple Team ID
+	     (ad-hoc signing), and the app dies at launch with "different Team IDs" -->
+	<key>com.apple.security.cs.disable-library-validation</key>
+	<true/>
 </dict>
 </plist>
