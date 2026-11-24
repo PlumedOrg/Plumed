@@ -5,7 +5,7 @@ sidebar:
   order: 2
 ---
 
-**Paramètres > Corrections** regroupe tout ce qui modifie le texte transcrit. Le texte passe par plusieurs étapes, toujours dans cet ordre, une par onglet (le numéro de l'étape est affiché dans une pastille devant le nom de l'onglet). L'onglet **Explications** montre une carte par étape, avec un exemple avant et après.
+**Paramètres > Corrections** regroupe tout ce qui modifie le texte transcrit. Le texte passe par plusieurs étapes, toujours dans cet ordre.
 
 1. **Vocabulaire médical** : les quelque 77 000 expressions vers lesquelles le modèle est orienté pendant la reconnaissance (« microangiopathie » rend « thrombotique » plus probable). En bas de l'onglet, le **poids** et la **marge (min-p)** du renforcement sont réglables (vides, ils gardent les valeurs d'origine de la liste) et un bouton rétablit ces valeurs ; ils font partie de l'export des paramètres.
 2. **Mots qui se ressemblent** : les groupes de mots que Plumed départage en réécoutant le passage (« ituximab » devient « rituximab » après « instaure », « cetuximab » après « on passe »).
