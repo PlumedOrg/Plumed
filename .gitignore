@@ -58,17 +58,13 @@ AGENTS.local.md
 # Local build artifacts, releases and benchmarks (Plumed fork)
 /plumed_build_ignore_backups/
 
-# Plumed remote microphone relay: local deploy script and secrets
-/PhoneMic_server/deploy.sh
+# Plumed remote microphone relay: local secrets
 /PhoneMic_server/.env
 
 PlumedOrg-repo
 
-# Local medical data publish helper (sets the args, asks for the minisign password)
-/publish_medical_data.sh
-
-# Local deb build helper (builds, installs with dpkg, offers to delete the build dir)
-/build_locally.sh
+# Author-only scripts (deploy, publish, local builds): they ask for passwords
+/author_scripts/
 
 # Local secrets for build_locally.sh
 /.env
