@@ -110,7 +110,7 @@ Politiques de confidentialité des tiers : [Déclaration de confidentialité de 
 
 Le registre des activités de traitement (RGPD, art. 30) décrit chaque traitement de données personnelles réalisé par le mainteneur de Plumed sur ses serveurs. Il suit le [modèle simplifié de la CNIL](https://www.cnil.fr/fr/RGDP-le-registre-des-activites-de-traitement) et est publié ici par transparence. Tout ce qui se passe sur votre ordinateur (dictée, corrections, réglages) n'est pas un traitement par le mainteneur et n'y figure donc pas.
 
-Responsable du traitement : Olivier Cornelis, mainteneur de Plumed, contact : https://olicorne.org/fr/contact. Pas de délégué à la protection des données désigné.
+Responsable du traitement : Olivier Cornelis, mainteneur de Plumed, contact : https://olicorne.org/fr/contact. Olivier Cornelis est aussi le délégué à la protection des données (même contact).
 
 ### Statistiques d'utilisation anonymes (metrics.plumed.fr)
 
