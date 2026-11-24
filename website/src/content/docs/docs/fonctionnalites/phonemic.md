@@ -3,9 +3,6 @@ title: PhoneMic
 description: Dicter depuis son téléphone, chiffré de bout en bout, même hors du réseau de l'ordinateur.
 sidebar:
   order: 6
-  badge:
-    text: Expérimental
-    variant: caution
 ---
 
 :::caution[Expérimental]
