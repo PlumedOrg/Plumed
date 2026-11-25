@@ -15,6 +15,9 @@
 //!   installer download that fails on GitHub is retried through the relay.
 //!   The updater checks the installer's signature against the public key in
 //!   `tauri.conf.json`, so a relay cannot forge an update.
+//! - A release whose `latest.json` lacks this platform (its build is late,
+//!   see AGENTS.FORK.md "Releases") is "no update yet", not an error, and
+//!   is not retried through the relay (it serves the same file).
 
 use crate::model::download::relay_base;
 use plumed_relay_protocol::models::safe_segment;
@@ -163,20 +166,33 @@ async fn check_on(
 ) -> Result<Option<Update>, String> {
     let file = manifest(channel, route, relay).await?;
     let endpoint = Url::parse(&route.file_url(&file, relay)).map_err(|e| e.to_string())?;
-    let mut update = app
+    let update = app
         .updater_builder()
         .endpoints(vec![endpoint])
         .and_then(|b| b.timeout(TIMEOUT).build())
         .map_err(|e| e.to_string())?
         .check()
-        .await
-        .map_err(|e| e.to_string())?;
+        .await;
+    let mut update = no_build_yet_is_no_update(update)?;
     if let (Route::Relay, Some(found)) = (route, update.as_mut()) {
         if let Some(url) = through_relay(&found.download_url, relay) {
             found.download_url = url;
         }
     }
     Ok(update)
+}
+
+/// A newer version released without this platform's build (yet) is no update.
+fn no_build_yet_is_no_update<T>(
+    checked: Result<Option<T>, tauri_plugin_updater::Error>,
+) -> Result<Option<T>, String> {
+    match checked {
+        Err(tauri_plugin_updater::Error::TargetNotFound(target)) => {
+            log::info!("A newer version exists, but not for {target} yet");
+            Ok(None)
+        }
+        other => other.map_err(|e| e.to_string()),
+    }
 }
 
 /// Looks for an update on `channel`: GitHub, then the relay.
@@ -284,6 +300,17 @@ pub fn set_channel(app: &AppHandle, channel: UpdateChannel) -> Result<(), String
 mod tests {
     use super::*;
     use crate::settings::AppSettings;
+
+    #[test]
+    fn a_release_without_our_platform_is_no_update_yet() {
+        use tauri_plugin_updater::Error;
+        let missing = no_build_yet_is_no_update::<()>(Err(Error::TargetNotFound(
+            "darwin-aarch64".into(),
+        )));
+        assert_eq!(missing, Ok(None));
+        let other = no_build_yet_is_no_update::<()>(Err(Error::EmptyEndpoints));
+        assert!(other.is_err());
+    }
 
     #[test]
     fn channel_name_matches_its_serialized_form() {
