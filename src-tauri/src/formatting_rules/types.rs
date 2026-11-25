@@ -121,11 +121,12 @@ impl Default for BuiltInOptions {
     fn default() -> Self {
         Self {
             short_text_correction: 3,
-            space_before_punctuation: false,
+            // Plumed: French typography and digits from 2 up by default
+            space_before_punctuation: true,
             trailing_space: true,
-            convert_text_numbers: false,
-            text_numbers_language: "en".to_string(),
-            text_numbers_threshold: 0.0,
+            convert_text_numbers: true,
+            text_numbers_language: "fr".to_string(),
+            text_numbers_threshold: 2.0,
             medical_fixes: true,
             phrase_boosting: true,
             phrase_boost_weight: None,

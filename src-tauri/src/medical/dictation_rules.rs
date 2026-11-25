@@ -155,6 +155,8 @@ mod tests {
                 short_text_correction: 0,
                 trailing_space: false,
                 medical_fixes: false,
+                space_before_punctuation: false,
+                convert_text_numbers: false,
                 ..BuiltInOptions::default()
             },
             rules,

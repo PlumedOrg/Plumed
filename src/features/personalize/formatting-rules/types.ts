@@ -34,11 +34,12 @@ export interface FormattingSettings {
 export const defaultFormattingSettings: FormattingSettings = {
     built_in: {
         short_text_correction: 3,
-        space_before_punctuation: false,
+        // Plumed: French typography and digits from 2 up by default
+        space_before_punctuation: true,
         trailing_space: true,
-        convert_text_numbers: false,
-        text_numbers_language: 'en',
-        text_numbers_threshold: 0,
+        convert_text_numbers: true,
+        text_numbers_language: 'fr',
+        text_numbers_threshold: 2,
         medical_fixes: true,
         phrase_boosting: true,
         phrase_boost_weight: null,

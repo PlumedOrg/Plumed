@@ -225,6 +225,21 @@ mod tests {
     use super::super::types::BuiltInOptions;
     use super::*;
 
+    /// Plumed defaults: French digits from 2 up ("un" stays a word, being
+    /// also the article) and a space before ? and !.
+    #[test]
+    fn default_options_convert_french_numbers_from_two_and_space_punctuation() {
+        let settings = FormattingSettings {
+            built_in: BuiltInOptions::default(),
+            rules: vec![],
+        };
+        let out = apply_formatting(
+            "Il a un frère et deux soeurs, vingt-trois ans! Vraiment?".to_string(),
+            &settings,
+        );
+        assert_eq!(out, "Il a un frère et 2 soeurs, 23 ans ! Vraiment ? ");
+    }
+
     // Tests for apply_short_text_correction (pure transformation, no threshold guard)
     #[test]
     fn short_text_single_word_with_capital_and_period() {
@@ -306,6 +321,8 @@ mod tests {
         FormattingSettings {
             built_in: BuiltInOptions {
                 short_text_correction: threshold,
+                // isolate short text correction (the tests use number words)
+                convert_text_numbers: false,
                 ..Default::default()
             },
             rules: vec![],
