@@ -11,7 +11,7 @@ Plumed écrit le texte dicté là où se trouve le curseur, dans n'importe quell
 | --- | --- |
 | Dicter | `Ctrl+Espace` |
 | Coller la dernière transcription | `Ctrl+Maj+Espace` |
-| Annuler l'enregistrement en cours | `Ctrl+Retour arrière` |
+| Annuler l'enregistrement en cours | `Échap` |
 
 ## Mode d'enregistrement
 

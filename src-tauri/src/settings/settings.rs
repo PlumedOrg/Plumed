@@ -1,7 +1,10 @@
 use std::{fs, path::PathBuf};
 use tauri::{AppHandle, Manager};
 
-use super::helpers::{migrate_legacy_paste_method, normalize_result_panel_mode};
+use super::helpers::{
+    blank_cancel_inside_record, migrate_cancel_shortcut_default, migrate_legacy_paste_method,
+    normalize_result_panel_mode,
+};
 use super::types::AppSettings;
 
 fn settings_path(app: &AppHandle) -> Result<PathBuf, String> {
@@ -54,7 +57,10 @@ fn parse_settings(content: &str) -> AppSettings {
         Err(_) => return AppSettings::default(),
     };
     migrate_legacy_paste_method(&mut value);
-    serde_json::from_value(value).unwrap_or_default()
+    migrate_cancel_shortcut_default(&mut value);
+    let mut settings: AppSettings = serde_json::from_value(value).unwrap_or_default();
+    blank_cancel_inside_record(&mut settings);
+    settings
 }
 
 #[cfg(test)]

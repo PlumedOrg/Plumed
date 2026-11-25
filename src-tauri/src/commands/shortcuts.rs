@@ -2,7 +2,10 @@ use crate::settings;
 use crate::shortcuts::types::{recording_state, RecordingSource};
 use crate::shortcuts::ShortcutState;
 use crate::shortcuts::{keys_to_string, parse_binding_keys, ShortcutAction, ShortcutRegistryState};
-use tauri::{command, AppHandle, Manager};
+use tauri::{command, AppHandle, Emitter, Manager};
+
+/// Plumed fork: sent when a new record shortcut blanked the cancel one.
+const CANCEL_SHORTCUT_CLEARED_EVENT: &str = "cancel-shortcut-cleared";
 
 /// Normalise un binding et l'applique aux settings + registry runtime.
 /// Un binding vide ou blanc desactive l'action (stocke "" et retire le hotkey).
@@ -44,9 +47,21 @@ pub fn get_record_shortcut(app: AppHandle) -> Result<String, String> {
 
 #[command]
 pub fn set_record_shortcut(app: AppHandle, binding: String) -> Result<String, String> {
-    apply_shortcut(&app, &binding, ShortcutAction::StartRecording, |s| {
+    let normalized = apply_shortcut(&app, &binding, ShortcutAction::StartRecording, |s| {
         &mut s.record_shortcut
-    })
+    })?;
+    // Plumed fork: a record shortcut holding all the cancel keys would
+    // cancel each recording it starts, so the cancel shortcut goes blank.
+    let mut s = settings::load_settings(&app);
+    if settings::blank_cancel_inside_record(&mut s) {
+        settings::save_settings(&app, &s)?;
+        app.state::<ShortcutRegistryState>()
+            .update_binding(ShortcutAction::CancelRecording, Vec::new());
+        if let Err(e) = app.emit(CANCEL_SHORTCUT_CLEARED_EVENT, ()) {
+            log::warn!("Could not announce the cleared cancel shortcut: {e}");
+        }
+    }
+    Ok(normalized)
 }
 
 // ============================================================================
@@ -78,6 +93,10 @@ pub fn get_cancel_shortcut(app: AppHandle) -> Result<String, String> {
 
 #[command]
 pub fn set_cancel_shortcut(app: AppHandle, binding: String) -> Result<String, String> {
+    // Plumed fork: same rule as in `set_record_shortcut`, the other way round
+    if settings::cancel_inside_record(&settings::load_settings(&app).record_shortcut, &binding) {
+        return Err("cancel_inside_record".to_string());
+    }
     apply_shortcut(&app, &binding, ShortcutAction::CancelRecording, |s| {
         &mut s.cancel_shortcut
     })

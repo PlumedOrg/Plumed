@@ -32,6 +32,9 @@ pub struct AppSettings {
     pub lower_output_while_recording: bool,
     pub output_volume_while_recording: u8,
     pub cancel_shortcut: String,
+    // Plumed fork: the old default cancel shortcut was moved to escape once
+    // (see `migrate_cancel_shortcut_default`). Never exported.
+    pub cancel_shortcut_escape_migrated: bool,
     pub mic_id: Option<String>,
     pub mic_label: Option<String>, // Persisted so the disconnected-mic UI can still show a friendly name
     pub log_level: String,         // "info" | "debug" | "trace" | "warn" | "error"
@@ -175,7 +178,8 @@ impl Default for AppSettings {
             sound_volume: 50,
             lower_output_while_recording: false,
             output_volume_while_recording: 50,
-            cancel_shortcut: "ctrl+backspace".to_string(),
+            cancel_shortcut: "escape".to_string(),
+            cancel_shortcut_escape_migrated: true,
             mic_id: None,
             mic_label: None,
             log_level: "info".to_string(),

@@ -137,10 +137,12 @@ pub struct ShortcutSettings {
 
 impl Default for ShortcutSettings {
     fn default() -> Self {
+        // Plumed: the app's defaults, not a copy that drifts
+        let app = crate::settings::AppSettings::default();
         Self {
-            record_shortcut: "ctrl+space".to_string(),
-            last_transcript_shortcut: "ctrl+shift+space".to_string(),
-            cancel_shortcut: "ctrl+backspace".to_string(),
+            record_shortcut: app.record_shortcut,
+            last_transcript_shortcut: app.last_transcript_shortcut,
+            cancel_shortcut: app.cancel_shortcut,
         }
     }
 }

@@ -734,5 +734,7 @@
     "Original values: weight {{weight}}, margin {{minp}}.": "Valeurs d'origine : poids {{weight}}, marge {{minp}}.",
     "Restore the original values": "Rétablir les valeurs d'origine",
     "Learn more": "En savoir plus",
-    "Setup guide": "Guide de configuration"
+    "Setup guide": "Guide de configuration",
+    "The cancel shortcut was removed: the record shortcut contains its keys.": "Le raccourci d'annulation a été retiré : le raccourci d'enregistrement contient ses touches.",
+    "The cancel shortcut cannot be made only of keys of the record shortcut.": "Le raccourci d'annulation ne peut pas être composé uniquement de touches du raccourci d'enregistrement."
 }
