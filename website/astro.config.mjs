@@ -54,6 +54,12 @@ const SEO_HEAD = [
 
 export default defineConfig({
     site: 'https://plumed.fr',
+    // Pages merged into others, so old links keep working
+    redirects: {
+        '/docs/fonctionnalites/medicaments/': '/docs/fonctionnalites/corrections/#erreurs-résiduelles',
+        '/docs/fonctionnalites/textes-types/': '/docs/fonctionnalites/corrections/#textes-types',
+        '/docs/fonctionnalites/en-ligne/': '/confidentialite/',
+    },
     integrations: [
         starlight({
             title: 'Plumed',

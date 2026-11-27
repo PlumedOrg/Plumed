@@ -17,7 +17,7 @@ Oui, entièrement, sans publicité et sans compte. C'est un logiciel libre (lice
 
 ## Mes dictées sont-elles envoyées ailleurs ?
 
-Non, elles ne quittent jamais votre ordinateur. La reconnaissance vocale tourne sur votre machine, et l'audio comme le texte y restent. Les seules connexions réseau (mises à jour, téléchargement du modèle, statistiques anonymes si vous les acceptez, PhoneMic si vous l'activez) sont listées dans [Connexions réseau](/docs/fonctionnalites/en-ligne/) et détaillées dans la [politique de confidentialité](/confidentialite/).
+Non, elles ne quittent jamais votre ordinateur. La reconnaissance vocale tourne sur votre machine, et l'audio comme le texte y restent. Les seules connexions réseau (mises à jour, téléchargement du modèle, statistiques anonymes si vous les acceptez, PhoneMic si vous l'activez) se règlent dans **Paramètres > En ligne** et sont détaillées dans la [politique de confidentialité](/confidentialite/).
 
 Rappelons que Plumed n'est pas un projet commercial : il est produit dans un objectif de contribution aux biens communs.
 
@@ -47,7 +47,7 @@ Consultez la page [Dépannage](/docs/depannage/), qui couvre les problèmes les 
 
 ## Plumed reconnaît mal un mot que j'utilise souvent. Que faire ?
 
-Ajoutez-le au **dictionnaire personnel** (**Paramètres > Corrections > Dictionnaire personnel**) : il sera favorisé pendant la reconnaissance et écrit avec votre orthographe. Pour un nom de médicament mal reconnu, une [règle de correction](/docs/fonctionnalites/medicaments/#règles-de-correction) convient mieux. Pour redicter un seul mot, le [contexte pour les dictées courtes](/docs/fonctionnalites/dictees-courtes/) aide le modèle.
+Ajoutez-le au **dictionnaire personnel** (**Paramètres > Corrections > Dictionnaire personnel**) : il sera favorisé pendant la reconnaissance et écrit avec votre orthographe. Pour un nom de médicament mal reconnu, une [règle de correction](/docs/fonctionnalites/corrections/#règles-de-correction) convient mieux. Pour redicter un seul mot, le [contexte pour les dictées courtes](/docs/fonctionnalites/dictees-courtes/) aide le modèle.
 
 Si l'erreur revient malgré tout, signalez-la : ouvrez un ticket sur [GitHub](https://github.com/PlumedOrg/Plumed/issues/new/choose) si vous avez un compte, sinon écrivez-moi via [olicorne.org/fr/contact](https://olicorne.org/fr/contact). Chaque retour permet d'améliorer Plumed pour tout le monde.
 
