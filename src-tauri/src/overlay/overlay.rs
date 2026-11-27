@@ -357,6 +357,21 @@ pub fn begin_overlay_session(app_handle: &AppHandle) {
     show_recording_overlay(app_handle);
 }
 
+// Upstream #517, adapted (no mode flash in the fork): before the microphone
+// opens (up to a second), drop a leftover result panel and, in "recording"
+// mode, hide the overlay. `begin_overlay_session` shows it once the mic is open.
+pub fn release_overlay_for_recording(app_handle: &AppHandle) {
+    invalidate_result_panel();
+    if settings::load_settings(app_handle).overlay_mode.as_str() == "recording" {
+        if let Some(window) = app_handle.get_webview_window("recording_overlay") {
+            if window.is_visible().unwrap_or(false) {
+                hide_recording_overlay(app_handle);
+            }
+        }
+    }
+    emit_overlay_session_start(app_handle);
+}
+
 pub fn show_recording_overlay(app_handle: &AppHandle) {
     // Skip the destroy/recreate dance when gtk-layer-shell is active:
     // the compositor manages mapping cleanly and we'd lose init state.
