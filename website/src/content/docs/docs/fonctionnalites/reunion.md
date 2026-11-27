@@ -13,7 +13,7 @@ La page **Réunion** (barre latérale) transcrit une réunion de 4 heures au plu
 
 ## Démarrer
 
-1. À la première ouverture, cliquer sur **Télécharger** pour récupérer les modèles de distinction des intervenants et de reconnaissance des voix (environ 134 Mo, une seule fois).
+1. Les modèles de distinction des intervenants et de reconnaissance des voix (environ 134 Mo) sont téléchargés en arrière-plan dès le premier démarrage. S'ils manquent encore (par exemple sans connexion), cliquer sur **Télécharger**.
 2. Choisir la source : **Microphone**, **PhoneMic** (le téléphone doit d'abord être connecté sur la page PhoneMic ; chaque enregistrement fait sur le téléphone s'ajoute à la réunion) ou **Fichier audio** (WAV, MP3, M4A, FLAC, OGG ; une barre montre l'avancement).
 3. Cliquer sur **Démarrer la réunion**. Les lignes apparaissent environ 30 secondes après avoir été prononcées, le temps de reconnaître l'intervenant.
 
