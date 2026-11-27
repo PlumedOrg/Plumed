@@ -31,9 +31,12 @@ export const MeetingModelGate = ({ children }: { children: ReactNode }) => {
     return (
         <div className="rounded-md border border-border bg-background p-4 space-y-3" data-testid="meeting-model-gate">
             <Typography.Paragraph>
-                {t('To tell the speakers apart, the meeting mode needs a speaker recognition model ({{size}}). It runs on this computer.', {
-                    size: formatBytes(status.size, t, i18n.language),
-                })}
+                {t(
+                    'To tell the speakers apart, the meeting mode needs a speaker recognition model ({{size}}). It runs on this computer.',
+                    {
+                        size: formatBytes(status.size, t, i18n.language),
+                    }
+                )}
             </Typography.Paragraph>
             {download.running ? (
                 <>

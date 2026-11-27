@@ -21,7 +21,9 @@ export const MeetingPage = () => {
                 title={t('Meeting')}
                 colorScheme="standard"
                 titleTestId="meeting-title"
-                subtitle={t('Transcribe a meeting, up to 4 hours, and tell its speakers apart. Everything runs on this computer.')}
+                subtitle={t(
+                    'Transcribe a meeting, up to 4 hours, and tell its speakers apart. Everything runs on this computer.'
+                )}
                 badge={t('Experimental')}
             />
             <MeetingModelGate>

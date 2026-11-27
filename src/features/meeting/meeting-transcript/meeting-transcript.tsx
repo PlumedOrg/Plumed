@@ -37,7 +37,9 @@ export const MeetingTranscript = ({ lines }: { lines: MeetingLine[] }) => {
                             value={names[speaker] ?? ''}
                             aria-label={t('Name of speaker {{speaker}}', { speaker: DEFAULT_SPEAKER_NAMES[speaker] })}
                             onChange={(e) =>
-                                setNames((previous) => previous.map((name, i) => (i === speaker ? e.target.value : name)))
+                                setNames((previous) =>
+                                    previous.map((name, i) => (i === speaker ? e.target.value : name))
+                                )
                             }
                             data-testid={`meeting-speaker-${speaker}`}
                         />
@@ -61,7 +63,9 @@ export const MeetingTranscript = ({ lines }: { lines: MeetingLine[] }) => {
                                 className="h-8 w-24"
                                 placeholder="14:00"
                                 value={timestamps.startClock}
-                                onChange={(e) => setTimestamps((previous) => ({ ...previous, startClock: e.target.value }))}
+                                onChange={(e) =>
+                                    setTimestamps((previous) => ({ ...previous, startClock: e.target.value }))
+                                }
                             />
                         </label>
                         <label className="flex items-center gap-2">
@@ -71,7 +75,10 @@ export const MeetingTranscript = ({ lines }: { lines: MeetingLine[] }) => {
                                 type="number"
                                 value={timestamps.offsetSecs}
                                 onChange={(e) =>
-                                    setTimestamps((previous) => ({ ...previous, offsetSecs: Number(e.target.value) || 0 }))
+                                    setTimestamps((previous) => ({
+                                        ...previous,
+                                        offsetSecs: Number(e.target.value) || 0,
+                                    }))
                                 }
                             />
                         </label>

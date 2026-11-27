@@ -25,9 +25,7 @@ export const MeetingControls = ({ meeting }: { meeting: Meeting }) => {
     const hasMeeting = lines.length > 0 || processedSecs > 0;
 
     const fileShare =
-        file?.duration != null && file.duration > 0
-            ? Math.min(1, (processedSecs - file.base) / file.duration)
-            : null;
+        file?.duration != null && file.duration > 0 ? Math.min(1, (processedSecs - file.base) / file.duration) : null;
 
     const reset = () => {
         if (!confirmingReset) {
@@ -57,7 +55,9 @@ export const MeetingControls = ({ meeting }: { meeting: Meeting }) => {
             </div>
             {source === 'phone' && !busy && (
                 <Typography.Paragraph className="text-xs text-muted-foreground">
-                    {t('Connect your phone on the PhoneMic page first. Each recording made on the phone is then added to the meeting.')}
+                    {t(
+                        'Connect your phone on the PhoneMic page first. Each recording made on the phone is then added to the meeting.'
+                    )}
                 </Typography.Paragraph>
             )}
             <div className="flex flex-wrap items-center gap-3">
