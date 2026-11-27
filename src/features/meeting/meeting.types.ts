@@ -21,6 +21,16 @@ export interface MeetingSnapshot {
     running: boolean;
 }
 
+/** `meeting_backup_find`: a backup left by a previous run. */
+export interface MeetingBackup {
+    lines: number;
+    processed_secs: number;
+    has_audio: boolean;
+    has_text: boolean;
+    /** Unix seconds, when the progress was saved. */
+    updated_at: number | null;
+}
+
 export type MeetingSource = 'mic' | 'phone' | 'file';
 
 export interface TimestampOptions {

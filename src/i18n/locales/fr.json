@@ -762,5 +762,18 @@
     "To tell the speakers apart, the meeting mode needs a speaker recognition model ({{size}}). It runs on this computer.": "Pour distinguer les intervenants, le mode Réunion a besoin d'un modèle de reconnaissance des voix ({{size}}). Il fonctionne sur cet ordinateur.",
     "Transcribe a meeting, up to 4 hours, and tell its speakers apart. Everything runs on this computer.": "Transcrivez une réunion, jusqu'à 4 heures, en distinguant ses intervenants. Tout se passe sur cet ordinateur.",
     "Transcribed: {{time}}": "Transcrit : {{time}}",
-    "Meeting mode is listening": "Mode Réunion en cours"
+    "Meeting mode is listening": "Mode Réunion en cours",
+    "Audio": "Audio",
+    "Transcript": "Transcription",
+    "Progress": "Progression",
+    "Keep it in the app folder": "La garder dans le dossier de l'application",
+    "Backup": "Sauvegarde",
+    "Failed to save the meeting backup setting": "Impossible d'enregistrer le réglage de sauvegarde de la réunion",
+    "Saves the meeting as it goes, to resume it after a crash. In the temporary folder unless kept in the app folder. Applies to the next meeting; New meeting deletes it.": "Enregistre la réunion au fil de l'eau, pour la reprendre après un plantage. Dans le dossier temporaire, sauf si elle est gardée dans le dossier de l'application. S'applique à la prochaine réunion ; « Nouvelle réunion » la supprime.",
+    "Could not resume the meeting": "Impossible de reprendre la réunion",
+    "An unfinished meeting was saved": "Une réunion inachevée a été sauvegardée",
+    "{{count}} lines, {{time}} of meeting.": "{{count}} lignes, {{time}} de réunion.",
+    "{{time}} of audio, transcribed again if you resume.": "{{time}} d'audio, retranscrit si vous reprenez.",
+    "Saved on {{date}}.": "Sauvegardée le {{date}}.",
+    "Resume": "Reprendre"
 }

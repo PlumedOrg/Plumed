@@ -9,6 +9,7 @@ import { RecordLabel } from '@/components/record-label';
 import { MicLabel } from './mic-label/mic-label';
 import { MicDisconnectedBanner } from './mic-disconnected-banner/mic-disconnected-banner';
 import { MedicalDataPrompt } from '../onboarding/medical-data-prompt/medical-data-prompt';
+import { MeetingBackupPrompt } from '../meeting/meeting-backup-prompt/meeting-backup-prompt';
 import { MedicalDataCheckFailureNotice } from '../medical-data/medical-data-check-failure-notice/medical-data-check-failure-notice';
 
 export const Home = () => {
@@ -22,6 +23,7 @@ export const Home = () => {
             {isWayland && <WaylandCliOnboardingCard />}
             <MicDisconnectedBanner />
             <MedicalDataPrompt />
+            <MeetingBackupPrompt />
             <MedicalDataCheckFailureNotice />
 
             <div className="space-y-4">

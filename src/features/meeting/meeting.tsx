@@ -3,6 +3,7 @@ import { ExtensionPageLayout } from '@/features/extensions/extension-page-layout
 import { ExtensionHeader } from '@/features/extensions/extension-header/extension-header';
 import { useTranslation } from '@/i18n';
 import { useMeeting } from './hooks/use-meeting';
+import { MeetingBackupSettings } from './meeting-backup-settings/meeting-backup-settings';
 import { MeetingControls } from './meeting-controls/meeting-controls';
 import { MeetingModelGate } from './meeting-model-gate/meeting-model-gate';
 import { MeetingTranscript } from './meeting-transcript/meeting-transcript';
@@ -25,6 +26,7 @@ export const MeetingPage = () => {
             />
             <MeetingModelGate>
                 <MeetingControls meeting={meeting} />
+                <MeetingBackupSettings />
                 <MeetingTranscript lines={meeting.lines} />
             </MeetingModelGate>
         </ExtensionPageLayout>
