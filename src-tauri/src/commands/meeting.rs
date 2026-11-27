@@ -22,7 +22,8 @@ pub async fn meeting_start_mic(app: AppHandle) -> Result<(), String> {
 }
 
 #[command]
-pub async fn meeting_start_file(app: AppHandle, path: PathBuf) -> Result<(), String> {
+/// Returns the file duration in seconds, when known.
+pub async fn meeting_start_file(app: AppHandle, path: PathBuf) -> Result<Option<f64>, String> {
     blocking(app, move |app, state| state.start_file(app, &path)).await
 }
 

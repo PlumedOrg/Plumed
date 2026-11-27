@@ -75,15 +75,18 @@ impl MeetingState {
     }
 
     /// Transcribes an audio file (WAV, MP3, M4A, FLAC, OGG) into the meeting.
-    pub fn start_file(&self, app: &AppHandle, path: &Path) -> Result<()> {
+    /// Returns its duration in seconds when the format tells it.
+    pub fn start_file(&self, app: &AppHandle, path: &Path) -> Result<Option<f64>> {
         let file = std::fs::File::open(path).with_context(|| format!("cannot open {path:?}"))?;
         let decoder = rodio::Decoder::try_from(file).context("unsupported audio file")?;
         let sample_rate = decoder.sample_rate().get();
+        let duration = decoder.total_duration().map(|d| d.as_secs_f64());
         let blocks = mono_blocks(decoder);
         self.start(app, move |tx, meeting, cancel| {
             spawn_feeder(tx, meeting, cancel, blocks, sample_rate);
             Ok(None)
-        })
+        })?;
+        Ok(duration)
     }
 
     /// Makes PhoneMic the source: each phone recording goes to the meeting.
