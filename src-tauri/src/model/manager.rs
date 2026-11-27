@@ -145,13 +145,46 @@ pub fn auxiliary_dir(app: &AppHandle, variant: &'static Variant) -> Option<PathB
     store::installed_source(&root, variant).map(|_| store::variant_dir(&root, variant))
 }
 
-/// Downloads an auxiliary model; the speech model in use is unchanged.
+/// One auxiliary download at a time: the startup prefetch, then the Réunion
+/// page's own button waits for it instead of writing the same files.
+static AUXILIARY_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+
+/// Downloads the missing auxiliary models in the background from startup,
+/// so the Réunion page is ready when opened. Quiet: no progress event and not
+/// under the speech model's one-download lock, so both run in parallel (the
+/// auxiliary models are small next to a speech model). A failure is only
+/// logged; the page offers the download again.
+pub fn prefetch_auxiliary(app: &AppHandle) {
+    let Ok(root) = root(app) else {
+        return;
+    };
+    tauri::async_runtime::spawn(async move {
+        let _guard = AUXILIARY_LOCK.lock().await;
+        for variant in catalog::AUXILIARY {
+            if store::installed_source(&root, variant).is_some() {
+                continue;
+            }
+            // never cancelled: the sender lives until the download ends
+            let (_never, cancel) = watch::channel(false);
+            match download::download(&root, variant, &Endpoints::public(), cancel, |_| {}).await {
+                Ok(_) => log::info!("Downloaded the {} model in the background", variant.id),
+                Err(e) => log::warn!("Background download of {} failed: {e:?}", variant.id),
+            }
+        }
+    });
+}
+
+/// Downloads an auxiliary model, unless the prefetch got it meanwhile; the
+/// speech model in use is unchanged.
 pub async fn download_auxiliary(
     app: &AppHandle,
     variant: &'static Variant,
 ) -> Result<VariantStatus, DownloadError> {
     let root = root(app).map_err(|detail| DownloadError::Io { detail })?;
-    fetch(app, &root, variant).await?;
+    let _guard = AUXILIARY_LOCK.lock().await;
+    if store::installed_source(&root, variant).is_none() {
+        fetch(app, &root, variant).await?;
+    }
     Ok(variant_status(Some(&root), variant))
 }
 

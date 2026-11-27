@@ -229,6 +229,9 @@ pub fn run() {
             let model =
                 Arc::new(Model::new(app.handle().clone()).expect("Failed to initialize model"));
             app.manage(model);
+            // Plumed fork: the Réunion models come in the background, alongside
+            // the first launch and the speech model download.
+            crate::model::manager::prefetch_auxiliary(app.handle());
             app.manage(AudioState::new());
 
             let mut s = settings::load_settings(app.handle());
