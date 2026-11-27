@@ -24,8 +24,15 @@ impl SpeakerTrack {
         }
     }
 
-    pub fn push(&mut self, rows: &[f32]) {
-        self.probs.extend_from_slice(rows);
+    /// Sets the rows from absolute row `frame` on, replacing any received
+    /// before for the same time (the provisional rows of a paused meeting).
+    pub fn push_at(&mut self, frame: usize, rows: &[f32]) {
+        let n = self.num_speakers;
+        debug_assert!(frame <= self.frames_end(), "gap in the speaker rows");
+        let skip = (self.first_frame.saturating_sub(frame) * n).min(rows.len());
+        self.probs
+            .truncate((frame.max(self.first_frame) - self.first_frame) * n);
+        self.probs.extend_from_slice(&rows[skip..]);
     }
 
     fn frames_end(&self) -> usize {
@@ -78,15 +85,10 @@ mod tests {
     /// 2 speakers, 0.1 s rows: speaker 0 for 1 s, silence for 1 s, speaker 1 for 1 s.
     fn track() -> SpeakerTrack {
         let mut track = SpeakerTrack::new(2, 0.1);
-        for _ in 0..10 {
-            track.push(&[0.9, 0.05]);
-        }
-        for _ in 0..10 {
-            track.push(&[0.0, 0.0]);
-        }
-        for _ in 0..10 {
-            track.push(&[0.1, 0.8]);
-        }
+        let mut rows = [0.9, 0.05].repeat(10);
+        rows.extend([0.0, 0.0].repeat(10));
+        rows.extend([0.1, 0.8].repeat(10));
+        track.push_at(0, &rows);
         track
     }
 
@@ -114,5 +116,15 @@ mod tests {
         assert!((track.covered_secs() - 3.0).abs() < 1e-9);
         assert_eq!(track.speaker_of(2.1, 2.5), Some(1));
         assert_eq!(track.speaker_of(0.2, 0.6), None);
+    }
+
+    #[test]
+    fn later_rows_replace_provisional_ones_even_partly_dropped() {
+        let mut track = track();
+        track.drop_before(2.5);
+        // the real stream resends from 2 s: speaker 0 now
+        track.push_at(20, &[0.9, 0.0].repeat(15));
+        assert!((track.covered_secs() - 3.5).abs() < 1e-9);
+        assert_eq!(track.speaker_of(2.6, 3.4), Some(0));
     }
 }

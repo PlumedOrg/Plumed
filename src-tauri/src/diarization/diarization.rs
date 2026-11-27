@@ -119,7 +119,9 @@ impl DiarizationModel {
 /// [`push`](Self::push), close with [`finish`](Self::finish). Both return the
 /// new rows of speaker probabilities (`[frames][num_speakers]`, one row per
 /// 10 ms from the start of the recording). Only the audio a pending mel frame
-/// still needs is kept, so memory stays flat over hours.
+/// still needs is kept, so memory stays flat over hours. A clone can be
+/// finished to settle the audio so far while the original goes on.
+#[derive(Clone)]
 pub struct SortformerStream {
     front: MelFrontEnd,
     chunks: ChunkLoop,

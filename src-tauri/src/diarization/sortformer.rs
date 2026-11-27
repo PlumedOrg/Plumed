@@ -21,6 +21,7 @@ fn by_score_desc(x: f64, y: f64) -> Ordering {
     y.partial_cmp(&x).unwrap_or(Ordering::Equal)
 }
 
+#[derive(Clone)]
 pub struct SpeakerCache {
     num_speakers: usize,
     factor: usize,
@@ -255,6 +256,7 @@ impl SpeakerCache {
 /// computed; [`ChunkLoop::run`] processes every chunk whose look-ahead is
 /// available (or, once the clip length is known, every remaining chunk) and
 /// returns the new rows of speaker probabilities, one per 10 ms mel frame.
+#[derive(Clone)]
 pub struct ChunkLoop {
     config: SortformerConfig,
     cache: SpeakerCache,

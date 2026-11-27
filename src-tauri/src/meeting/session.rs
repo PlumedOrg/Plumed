@@ -52,8 +52,9 @@ impl MeetingCore {
         self.finished = false;
     }
 
-    pub fn add_speaker_probs(&mut self, rows: &[f32]) {
-        self.speakers.push(rows);
+    /// Speaker rows from absolute row `frame` on (see `SpeakerTrack::push_at`).
+    pub fn add_speaker_probs(&mut self, frame: usize, rows: &[f32]) {
+        self.speakers.push_at(frame, rows);
     }
 
     /// The audio has ended (for now): no chunk will replace the held words.
@@ -135,10 +136,10 @@ mod tests {
             0.0,
         );
         assert!(core.release().is_empty()); // no speakers known yet
-        core.add_speaker_probs(&rows(0, 2.0));
+        core.add_speaker_probs(0, &rows(0, 2.0));
         assert_eq!(core.release(), vec![0]);
         assert_eq!(texts(&core), vec![(0, "Bonjour.")]);
-        core.add_speaker_probs(&rows(1, 3.0));
+        core.add_speaker_probs(20, &rows(1, 3.0));
         assert_eq!(core.release(), vec![1]);
         assert_eq!(texts(&core), vec![(0, "Bonjour."), (1, "Salut. Ça va ?")]);
     }
@@ -149,7 +150,7 @@ mod tests {
         core.add_chunk(vec![word(1.5, "Paul"), word(2.5, "hum")], 0.0, 10.0, 0.0);
         let mut probs = rows(1, 2.0);
         probs.extend(vec![0.0; 20 * 2]); // 2 s of silence
-        core.add_speaker_probs(&probs);
+        core.add_speaker_probs(0, &probs);
         core.release();
         assert_eq!(texts(&core), vec![(1, "Paul hum")]);
     }
@@ -157,7 +158,7 @@ mod tests {
     #[test]
     fn the_end_of_a_chunk_waits_for_the_next_one_or_the_finish() {
         let mut core = MeetingCore::new(SpeakerTrack::new(2, FRAME));
-        core.add_speaker_probs(&rows(0, 30.0));
+        core.add_speaker_probs(0, &rows(0, 30.0));
         core.add_chunk(vec![word(1.0, "un"), word(9.5, "deux")], 0.0, 10.0, 0.0);
         core.release();
         assert_eq!(texts(&core), vec![(0, "un")]);
@@ -169,7 +170,7 @@ mod tests {
     #[test]
     fn a_forced_cut_overlap_keeps_each_word_once() {
         let mut core = MeetingCore::new(SpeakerTrack::new(2, FRAME));
-        core.add_speaker_probs(&rows(0, 30.0));
+        core.add_speaker_probs(0, &rows(0, 30.0));
         // the first chunk ends mid-word at 10 s; the second starts at 9 s
         core.add_chunk(
             vec![word(8.0, "avant"), word(9.2, "pareil"), word(9.8, "coup")],

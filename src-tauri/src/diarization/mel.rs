@@ -55,6 +55,7 @@ pub fn num_mel_frames(num_samples: usize) -> usize {
     num_samples / HOP + 1
 }
 
+#[derive(Clone)]
 pub struct MelFrontEnd {
     /// `[N_MELS][N_FREQ_BINS]`, row-major.
     filterbank: Vec<f32>,
