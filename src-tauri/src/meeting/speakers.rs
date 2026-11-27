@@ -24,6 +24,10 @@ impl SpeakerTrack {
         }
     }
 
+    pub fn num_speakers(&self) -> usize {
+        self.num_speakers
+    }
+
     /// No row before `frame`: a resumed meeting starts there.
     pub fn skip_to(&mut self, frame: usize) {
         self.first_frame = frame;
