@@ -6,6 +6,9 @@ pub mod cli;
 mod clipboard;
 mod commands;
 mod daily_checks;
+// Plumed fork: wired into the Réunion page in a later step.
+#[allow(dead_code)]
+mod diarization;
 mod dictionary;
 mod engine;
 mod formatting_rules;

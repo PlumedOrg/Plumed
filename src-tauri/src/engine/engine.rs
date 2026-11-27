@@ -190,6 +190,29 @@ fn ort_environment() -> Result<&'static Environment, ParakeetError> {
     Ok(ORT_ENVIRONMENT.get_or_init(|| environment))
 }
 
+/// A CPU session with the settings every Plumed graph runs with (the speech
+/// model and the Plumed fork's diarization model alike).
+pub(crate) fn build_session(
+    path: &Path,
+    intra_threads: Option<usize>,
+) -> Result<Session, ParakeetError> {
+    let providers = vec![CPU::default().build()];
+    let mut builder = Session::builder(ort_environment()?)?
+        .with_config_entry("session.log_severity_level", "3")?
+        .with_optimization_level(GraphOptimizationLevel::Level3)?
+        .with_execution_providers(providers)?
+        .with_memory_pattern(false)?
+        .with_parallel_execution(false)?;
+
+    if let Some(threads) = intra_threads {
+        builder = builder
+            .with_intra_threads(threads)?
+            .with_inter_threads(threads)?;
+    }
+
+    Ok(builder.commit_from_file(path)?)
+}
+
 impl Drop for ParakeetModel {
     fn drop(&mut self) {
         log::debug!(
@@ -345,8 +368,6 @@ impl ParakeetModel {
         intra_threads: Option<usize>,
         try_quantized: bool,
     ) -> Result<Session, ParakeetError> {
-        let providers = vec![CPU::default().build()];
-
         // Try quantized version first if requested, fallback to regular version
         let model_filename = if try_quantized {
             let quantized_name = format!("{}.int8.onnx", model_name);
@@ -368,20 +389,7 @@ impl ParakeetModel {
             regular_name
         };
 
-        let mut builder = Session::builder(ort_environment()?)?
-            .with_config_entry("session.log_severity_level", "3")?
-            .with_optimization_level(GraphOptimizationLevel::Level3)?
-            .with_execution_providers(providers)?
-            .with_memory_pattern(false)?
-            .with_parallel_execution(false)?;
-
-        if let Some(threads) = intra_threads {
-            builder = builder
-                .with_intra_threads(threads)?
-                .with_inter_threads(threads)?;
-        }
-
-        let session = builder.commit_from_file(model_dir.as_ref().join(&model_filename))?;
+        let session = build_session(&model_dir.as_ref().join(&model_filename), intra_threads)?;
 
         for input in session.inputs() {
             log::trace!(

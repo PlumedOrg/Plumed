@@ -42,6 +42,15 @@ Speech models: not bundled. The first startup wizard step (`src/features/onboard
 - Development: debug builds fall back to `resources/parakeet-tdt-0.6b-v3-int8/`; run `bash scripts/fetch-ultimed-model.sh` once (also for `engine::beam`'s ignored test). Release bundles list resources explicitly in `tauri.conf.json` so that folder never ships. CI doesn't fetch the model, except the Intel macOS smoke test (`--models-dir`).
 - Adding a model: publish on Hugging Face with the same layout, add repo + revision to `MODEL_REPOS`, add the variant with sizes and hashes to `catalog.rs`, keep old revisions in `MODEL_REPOS` while released apps use them, redeploy the relay, bump `MODEL_ID` if the family changes.
 
+## Diarization
+
+Speaker diarization (`src-tauri/src/diarization/`, for the upcoming Réunion page): NVIDIA's Nemotron-3-Diarization (Streaming Sortformer) from the repo `Olicorne/Nemotron-3-Diarization-web-onnx`, ported from ParakeetWeb's `app/src/sortformer.js` and `mel.js`. Two graphs: `embed.onnx` (local to each group of 8 mel frames) and the step graph (one chunk through the encoder); everything stateful is Rust.
+- `mel.rs`: raw log-mel (no normalization), `rustfft`. `mel_frames` slices are exact with 3 frames of margin; frames at or past `floor(N/160)` are zero (reference attention mask).
+- `sortformer.rs`: `SpeakerCache` (Arrival-Order Speaker Cache, FIFO, compression) and `ChunkLoop`, the offline loop (chunk 340 encoder frames = 27.2 s, 40 frames look-ahead) fed incrementally: a chunk runs once its look-ahead is in, which equals one whole-clip pass.
+- `diarization.rs`: `DiarizationModel::load` (sessions via `engine::build_session`), `SortformerStream::push`/`finish` (keeps only the audio pending mel frames need, so memory stays flat over hours). Production uses `int8/step.int8.onnx`: 99.99% decision agreement with fp32, 48 s of audio in 1.3 s on CPU (fp32 1.8 s).
+- `segments.rs`: `probs_to_segments` (threshold 0.5, min on 0.3 s, min off 0.5 s, renumbered by first arrival).
+- Tests (`tests.rs`, fixtures in `src-tauri/tests/fixtures/diarization/` from ParakeetWeb's `gen-sortformer-fixtures.py`): cache parity with a closed-form fake step (all at once and trickled, max |dp| < 1e-6), mel slicing; ignored real-model tests need `PLUMED_DIAR_MODEL_DIR` (fp32 vs transformers: max |dp| < 1e-4, 100% agreement, whole and in 0.37 s pieces; int8 agreement).
+
 ## Medical data updates
 
 Medical data updates (rules, confusion groups, phrase list updated without an app release). Code: `src-tauri/src/medical/data_set/` (the one place knowing bundled vs downloaded: manifest checks, on-disk sets, fallback), `src-tauri/src/medical/data_update.rs`, `src-tauri/src/commands/medical_data.rs`, frontend `src/features/medical-data/` and `src/features/onboarding/` (`startup-wizard/steps/medical-data-step.tsx`, `medical-data-prompt/`). Manifest format and storage: "Online updates" in `src-tauri/medical-data/SOURCE.md`.

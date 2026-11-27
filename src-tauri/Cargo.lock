@@ -3342,6 +3342,7 @@ dependencies = [
  "rodio",
  "rquickjs",
  "rubato",
+ "rustfft",
  "rustls",
  "semver",
  "serde",
