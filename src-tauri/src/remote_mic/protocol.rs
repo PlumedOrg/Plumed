@@ -51,7 +51,7 @@ const ACK_EVERY: u64 = 16;
 pub const CANDIDATE_TTL: Duration = Duration::from_secs(60);
 /// A bound phone is dropped after this long, so a lost or stolen phone keeps
 /// its access (a resumed session survives reloads, see the phone page) one
-/// working day at most.
+/// working day at most. Cited on the website PhoneMic page, keep it in sync.
 pub const BOUND_LIFETIME: Duration = Duration::from_secs(12 * 3600);
 
 #[derive(Deserialize)]

@@ -36,6 +36,7 @@ const RETRY_DELAY: Duration = Duration::from_secs(3);
 const QUEUE_LEN: usize = 4;
 /// A recording still queued after this long is dropped: by then the user has
 /// moved on, and pasting it would land in whatever window has the focus now.
+/// Cited on the website PhoneMic page, keep it in sync.
 const MAX_QUEUE_AGE: Duration = Duration::from_secs(30);
 /// A transcript ready more than this after the phone's `END` reached the
 /// desktop is not pasted: the user has probably moved on to another window
@@ -44,6 +45,7 @@ const MAX_QUEUE_AGE: Duration = Duration::from_secs(30);
 /// so it covers the queue wait and the transcription, not the relay delay.
 /// 20 s leaves room for transcribing a long recording (about 0.2 s per
 /// second of audio) while staying under the 30 s queue limit.
+/// Cited on the website PhoneMic page, keep it in sync.
 const MAX_PASTE_DELAY: Duration = Duration::from_secs(20);
 /// Event telling the interface a transcript was kept out of the paste.
 const LATE_EVENT: &str = "remote-mic-late-transcript";

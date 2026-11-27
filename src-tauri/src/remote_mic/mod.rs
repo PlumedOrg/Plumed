@@ -1,5 +1,7 @@
 //! Plumed fork: phone microphone through the Plumed relay
 //! (`PhoneMic_server/`, HTTPS long-poll only, end-to-end encrypted).
+//! Keep the website page website/src/content/docs/docs/fonctionnalites/phonemic.md
+//! up to date with any user-visible change (steps, delays, relay, security).
 
 pub mod audio;
 pub mod client;

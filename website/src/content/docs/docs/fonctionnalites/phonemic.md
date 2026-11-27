@@ -1,6 +1,6 @@
 ---
 title: PhoneMic
-description: Dicter depuis son téléphone, chiffré de bout en bout, même hors du réseau de l'ordinateur.
+description: Dicter depuis son téléphone, même sans micro sur l'ordinateur, chiffré de bout en bout, même hors du réseau de l'ordinateur.
 sidebar:
   order: 6
 ---
@@ -9,9 +9,9 @@ sidebar:
 Cette fonctionnalité est une préversion : attendez-vous à des bugs, et évitez d'y faire passer des contenus sensibles.
 :::
 
-Désactivé par défaut : **PhoneMic** dans la barre latérale.
+PhoneMic permet d'utiliser Plumed même si votre ordinateur n'a pas de micro : le téléphone sert de micro, même s'il n'est pas sur le même réseau que l'ordinateur (4G, Wi-Fi invité d'un établissement).
 
-Avec PhoneMic, le téléphone sert de micro, même s'il n'est pas sur le même réseau que l'ordinateur (4G, Wi-Fi invité d'un établissement) :
+PhoneMic est désactivé par défaut. Pour l'utiliser, ouvrez **PhoneMic** dans la barre latérale, puis :
 
 1. Cliquer sur **Connecter un téléphone** : un QR code s'affiche.
 2. Le scanner avec l'appareil photo du téléphone. La page PhoneMic de Plumed s'ouvre (en français, ou en anglais), sans rien installer.
