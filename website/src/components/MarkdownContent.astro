@@ -1,6 +1,6 @@
 ---
 // Starlight's page content, with two additions:
-// - on the /docs pages (except the settled ones), a warning while the site is young;
+// - on the pages still in progress, a "fresh paint" warning;
 // - on every page with at least two sections, a table of contents after the
 //   introduction (before the first H2), the same entries as Starlight's
 //   "Sur cette page".
@@ -9,19 +9,9 @@ import Default from '@astrojs/starlight/components/MarkdownContent.astro';
 import TocList from './TocList.astro';
 
 const path = Astro.url.pathname;
-// Not on the pages that are already settled
-const settled = [
-    '/docs/',
-    '/docs/installation/',
-    '/docs/faq/',
-    '/docs/depannage/',
-    '/docs/fonctionnalites/dictee/',
-    '/docs/fonctionnalites/corrections/',
-    '/docs/fonctionnalites/phonemic/',
-    '/docs/fonctionnalites/api-locale/',
-    '/docs/licences/',
-];
-const showNotice = path.startsWith('/docs') && !settled.includes(path.endsWith('/') ? path : `${path}/`);
+// Only on the pages still in progress
+const unsettled = ['/docs/fonctionnalites/reunion/'];
+const showNotice = unsettled.includes(path.endsWith('/') ? path : `${path}/`);
 
 // The first entry is the page title ("Vue d'ensemble"), not a section
 const sections = Astro.locals.starlightRoute.toc?.items.slice(1) ?? [];
