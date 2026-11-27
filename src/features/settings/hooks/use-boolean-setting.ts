@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { AppSettings } from '@/features/settings/settings.types';
 
-type BooleanSettingKey = {
+export type BooleanSettingKey = {
     [K in keyof AppSettings]: AppSettings[K] extends boolean ? K : never;
 }[keyof AppSettings];
 

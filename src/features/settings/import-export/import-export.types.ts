@@ -13,6 +13,7 @@ export type ExportedSystemSettings = Omit<
     | 'remove_hesitations'
     | 'block_cli_import'
     | 'short_dictation_context'
+    | 'slow_down_audio'
     | 'remote_mic_enabled'
     | 'remote_mic_url'
     | 'remote_mic_prompt_version'

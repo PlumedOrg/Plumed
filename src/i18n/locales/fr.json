@@ -738,5 +738,8 @@
     "The cancel shortcut cannot be made only of keys of the record shortcut.": "Le raccourci d'annulation ne peut pas être composé uniquement de touches du raccourci d'enregistrement.",
     "Choose another model": "Choisir un autre modèle",
     "Downloading the speech model": "Téléchargement du modèle de transcription",
-    "Plumed can transcribe once the model is downloaded. This happens only once.": "Plumed pourra transcrire une fois le modèle téléchargé. Cela n'arrive qu'une fois."
+    "Plumed can transcribe once the model is downloaded. This happens only once.": "Plumed pourra transcrire une fois le modèle téléchargé. Cela n'arrive qu'une fois.",
+    "Failed to save the slow down setting": "Impossible d'enregistrer le réglage de ralentissement",
+    "Slow down the audio (experimental)": "Ralentir l'audio (expérimental)",
+    "Slows your voice down by 25% (pitch unchanged) before transcribing it, which may help if you speak fast. Transcription takes a little longer. The live preview is not affected.": "Ralentit votre voix de 25 % (sans changer sa hauteur) avant de la transcrire, ce qui peut aider si vous parlez vite. La transcription prend un peu plus de temps. L'aperçu en direct n'est pas concerné."
 }

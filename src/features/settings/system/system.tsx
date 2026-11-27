@@ -18,6 +18,7 @@ import { RecordModeSettings } from '@/features/settings/system/record-mode-setti
 import { LogLevelSettings } from './log-level-settings/log-level-settings';
 import { KeepRecordingsSettings } from './keep-recordings-settings/keep-recordings-settings';
 import { ShortDictationContextSettings } from './short-dictation-context-settings/short-dictation-context-settings';
+import { SlowDownAudioSettings } from './slow-down-audio-settings/slow-down-audio-settings';
 import { BlockCliImportSettings } from './block-cli-import-settings/block-cli-import-settings';
 import { LocalApiSettings } from './local-api-settings/local-api-settings';
 import { OnlineSettings } from './online-settings/online-settings';
@@ -104,6 +105,8 @@ export const System = () => {
                             <KeepRecordingsSettings />
                             <SettingsUI.Separator />
                             <ShortDictationContextSettings />
+                            <SettingsUI.Separator />
+                            <SlowDownAudioSettings />
                             <SettingsUI.Separator />
                             <CopyToClipboardSettings />
                             <SettingsUI.Separator />

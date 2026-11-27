@@ -127,6 +127,13 @@ pub fn set_remote_mic_url(app: AppHandle, url: String) -> Result<String, String>
 }
 
 #[command]
+pub fn set_slow_down_audio(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let mut s = crate::settings::load_settings(&app);
+    s.slow_down_audio = enabled;
+    crate::settings::save_settings(&app, &s)
+}
+
+#[command]
 pub fn set_remove_hesitations(app: AppHandle, enabled: bool) -> Result<(), String> {
     let mut s = crate::settings::load_settings(&app);
     s.remove_hesitations = enabled;

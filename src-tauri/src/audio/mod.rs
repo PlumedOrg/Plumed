@@ -9,6 +9,7 @@ pub mod recorder;
 pub mod short_context;
 pub mod sound;
 pub mod streaming;
+pub mod time_stretch;
 pub mod types;
 pub mod vad;
 

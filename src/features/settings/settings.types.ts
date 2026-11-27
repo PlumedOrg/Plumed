@@ -29,6 +29,7 @@ export interface SystemSettings {
     wayland_clipboard_fallback_dismissed: boolean;
     block_cli_import: boolean;
     short_dictation_context: boolean;
+    slow_down_audio: boolean;
     remote_mic_enabled: boolean;
     remote_mic_url: string;
     remote_mic_prompt_version: string;

@@ -49,6 +49,7 @@ pub fn process_chunk(
     if resampled.is_empty() {
         return ChunkOutcome::Empty;
     }
+    let resampled = slow_down_if_enabled(app, resampled);
     let padded = pad_with_silence(&resampled, 16000);
 
     let dictionary = app.state::<Dictionary>().get();
@@ -306,7 +307,7 @@ pub fn process_recording_from_samples(
     trace: &mut StepTrace,
 ) -> Result<String> {
     // 1. Transcribe directly from samples
-    let result = transcribe_samples_direct(app, samples)?;
+    let result = transcribe_samples_direct(app, slow_down_if_enabled(app, samples))?;
     let raw_text = result.text;
 
     if raw_text.trim().is_empty() {
@@ -328,6 +329,18 @@ pub fn process_recording_from_samples(
     // 4. Formatting rules
     // The caller records the whole recording once (see record_dictation).
     Ok(apply_formatting_rules(app, text, trace))
+}
+
+/// Plumed fork: applies the "slow down the audio" setting to 16 kHz samples.
+fn slow_down_if_enabled(app: &AppHandle, samples: Vec<f32>) -> Vec<f32> {
+    if !crate::settings::load_settings(app).slow_down_audio {
+        return samples;
+    }
+    debug!(
+        "Slowing down {} samples before transcription",
+        samples.len()
+    );
+    crate::audio::time_stretch::time_stretch(&samples, crate::audio::time_stretch::SLOW_DOWN_SPEED)
 }
 
 fn transcribe_samples_direct(app: &AppHandle, samples: Vec<f32>) -> Result<TranscriptionResult> {

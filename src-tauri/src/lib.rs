@@ -541,6 +541,7 @@ pub fn run() {
             set_local_api_port,
             regenerate_local_api_token,
             set_short_dictation_context,
+            set_slow_down_audio,
             set_remote_mic_url,
             set_remote_mic_enabled,
             remote_mic_start,
