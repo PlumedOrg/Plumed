@@ -10,7 +10,7 @@ Why a fork: [Kieirra/murmure#498](https://github.com/Kieirra/murmure/issues/498)
 
 ## 2. Mandatory at the start of every session: check upstream
 
-**Last checked upstream commit:** `5f3ff05` (docs: move inner exe signing from backlog to roadmap). Taken since `8ad2363`: overlay shown once the microphone is open (1b74eff). Not taken yet: F21-F24 shortcut keys (37a74bb).
+**Last checked upstream commit:** `5f3ff05` (docs: move inner exe signing from backlog to roadmap). Taken since `8ad2363`: overlay shown once the microphone is open (1b74eff), F21-F24 shortcut keys (37a74bb, code only: its docs are upstream's deleted mkdocs site).
 **Date of check:** 2026-11-27
 
 1. `git fetch upstream` (remote `upstream` = `https://github.com/Kieirra/murmure.git`; add it if missing).
