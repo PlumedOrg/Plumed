@@ -116,6 +116,7 @@ permissions = [
     "allow-regenerate-local-api-token",
     "allow-set-short-dictation-context",
     "allow-set-slow-down-audio",
+    "allow-set-meeting-backup",
     "allow-set-remote-mic-url",
     "allow-set-remote-mic-enabled",
     "allow-remote-mic-start",

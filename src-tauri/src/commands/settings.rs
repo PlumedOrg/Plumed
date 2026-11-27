@@ -133,6 +133,21 @@ pub fn set_slow_down_audio(app: AppHandle, enabled: bool) -> Result<(), String> 
     crate::settings::save_settings(&app, &s)
 }
 
+/// Plumed fork: one of the meeting backup toggles.
+#[command]
+pub fn set_meeting_backup(app: AppHandle, part: String, enabled: bool) -> Result<(), String> {
+    let mut s = crate::settings::load_settings(&app);
+    let field = match part.as_str() {
+        "audio" => &mut s.meeting_backup_audio,
+        "text" => &mut s.meeting_backup_text,
+        "metadata" => &mut s.meeting_backup_metadata,
+        "persistent" => &mut s.meeting_backup_persistent,
+        _ => return Err(format!("unknown meeting backup part {part:?}")),
+    };
+    *field = enabled;
+    crate::settings::save_settings(&app, &s)
+}
+
 #[command]
 pub fn set_remove_hesitations(app: AppHandle, enabled: bool) -> Result<(), String> {
     let mut s = crate::settings::load_settings(&app);

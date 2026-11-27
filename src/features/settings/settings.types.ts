@@ -30,6 +30,10 @@ export interface SystemSettings {
     block_cli_import: boolean;
     short_dictation_context: boolean;
     slow_down_audio: boolean;
+    meeting_backup_audio: boolean;
+    meeting_backup_text: boolean;
+    meeting_backup_metadata: boolean;
+    meeting_backup_persistent: boolean;
     remote_mic_enabled: boolean;
     remote_mic_url: string;
     remote_mic_prompt_version: string;
