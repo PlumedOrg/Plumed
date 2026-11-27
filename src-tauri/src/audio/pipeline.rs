@@ -1,6 +1,6 @@
-use crate::audio::chunking::{ChunkPipeline, ChunkText, Chunker};
+use crate::audio::chunking::{chunk_all, ChunkPipeline, ChunkText};
 use crate::audio::clean_recording::clean_transcription;
-use crate::audio::helpers::{read_wav_mono_native, resample, rms};
+use crate::audio::helpers::{read_wav_mono_native, resample};
 use crate::audio::short_context;
 use crate::audio::types::AudioState;
 use crate::dictionary::{correct_transcription, sync_boost_words, Dictionary};
@@ -178,13 +178,7 @@ pub fn transcribe_samples_chunked(
     }
 
     let pipeline = ChunkPipeline::start_headless(app);
-    let mut chunker = Chunker::new(pipeline.sender(), sample_rate, None);
-    let window = sample_rate as usize * 33 / 1000;
-    for win in samples.chunks(window) {
-        chunker.push_samples(win);
-        chunker.on_throttle_tick(rms(win));
-    }
-    chunker.flush_remaining();
+    chunk_all(pipeline.sender(), samples, sample_rate);
     let chunks = pipeline.finalize();
 
     Ok(post_process_chunks(app, chunks, &mut StepTrace::off())
@@ -331,37 +325,49 @@ pub fn process_recording_from_samples(
     Ok(apply_formatting_rules(app, text, trace))
 }
 
+/// Plumed fork: playback speed of the "slow down the audio" setting (1 when off).
+pub(crate) fn slow_down_speed(app: &AppHandle) -> f32 {
+    if crate::settings::load_settings(app).slow_down_audio {
+        crate::audio::time_stretch::SLOW_DOWN_SPEED
+    } else {
+        1.0
+    }
+}
+
 /// Plumed fork: applies the "slow down the audio" setting to 16 kHz samples.
 fn slow_down_if_enabled(app: &AppHandle, samples: Vec<f32>) -> Vec<f32> {
-    if !crate::settings::load_settings(app).slow_down_audio {
+    let speed = slow_down_speed(app);
+    if speed == 1.0 {
         return samples;
     }
     debug!(
         "Slowing down {} samples before transcription",
         samples.len()
     );
-    crate::audio::time_stretch::time_stretch(&samples, crate::audio::time_stretch::SLOW_DOWN_SPEED)
+    crate::audio::time_stretch::time_stretch(&samples, speed)
 }
 
-fn transcribe_samples_direct(app: &AppHandle, samples: Vec<f32>) -> Result<TranscriptionResult> {
-    let _ = app.emit("transcription-processing-start", ());
+/// Runs `f` on the loaded engine, loading it if needed, with the dictionary
+/// boost words synced (Plumed: shared with the meeting transcription).
+pub(crate) fn with_engine<T>(
+    app: &AppHandle,
+    f: impl FnOnce(&mut ParakeetEngine) -> T,
+) -> Result<T> {
     crate::audio::preload_engine(app)?;
     let state = app.state::<AudioState>();
-
     let mut engine_guard = state.engine.lock();
     let engine = engine_guard
         .as_mut()
         .ok_or_else(|| anyhow::anyhow!("Engine not loaded"))?;
-
     sync_boost_words(engine, &app.state::<Dictionary>().get());
+    Ok(f(engine))
+}
 
-    let result = engine.transcribe_samples(samples, None).map_err(|e| {
-        let _ = app.emit("transcription-processing-end", ());
-        anyhow::anyhow!("Transcription failed: {}", e)
-    })?;
+fn transcribe_samples_direct(app: &AppHandle, samples: Vec<f32>) -> Result<TranscriptionResult> {
+    let _ = app.emit("transcription-processing-start", ());
+    let result = with_engine(app, |engine| engine.transcribe_samples(samples, None));
     let _ = app.emit("transcription-processing-end", ());
-
-    Ok(result)
+    result?.map_err(|e| anyhow::anyhow!("Transcription failed: {}", e))
 }
 
 #[cfg(test)]

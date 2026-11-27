@@ -6,3 +6,4 @@ pub mod session;
 pub mod speakers;
 pub mod transcript;
 pub mod words;
+pub mod worker;

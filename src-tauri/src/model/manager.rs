@@ -8,6 +8,7 @@ use super::memory;
 use super::store::{self, Source};
 use super::Model;
 use serde::Serialize;
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex, PoisonError};
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::watch;
@@ -136,6 +137,12 @@ async fn fetch(
 /// An auxiliary model (see `catalog::AUXILIARY`) as the UI shows it.
 pub fn auxiliary_status(app: &AppHandle, variant: &'static Variant) -> VariantStatus {
     variant_status(root(app).ok().as_deref(), variant)
+}
+
+/// The folder of an installed auxiliary model.
+pub fn auxiliary_dir(app: &AppHandle, variant: &'static Variant) -> Option<PathBuf> {
+    let root = root(app).ok()?;
+    store::installed_source(&root, variant).map(|_| store::variant_dir(&root, variant))
 }
 
 /// Downloads an auxiliary model; the speech model in use is unchanged.

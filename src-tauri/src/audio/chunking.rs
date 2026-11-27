@@ -377,11 +377,23 @@ fn drop_head_words(text: &str, count: usize) -> String {
         .join(" ")
 }
 
+/// Cuts a whole recording into chunks sent to `tx`, as if it were recorded
+/// live (33 ms ticks).
+pub fn chunk_all(tx: Sender<ChunkJob>, samples: &[f32], sample_rate: u32) {
+    let mut chunker = Chunker::new(tx, sample_rate, None);
+    let window = (sample_rate as usize * 33 / 1000).max(1);
+    for win in samples.chunks(window) {
+        chunker.push_samples(win);
+        chunker.on_throttle_tick(crate::audio::helpers::rms(win));
+    }
+    chunker.flush_remaining();
+}
+
 /// Accumulates the current chunk's native-rate mono samples and cuts it into the
 /// FIFO: a detected silence past CHUNK_SILENCE_ARM_SECS, or a forced cut at
 /// CHUNK_FORCE_CUT_SECS. A forced cut keeps ~1s of overlap as the next chunk's
 /// head so a word straddling the cut can be deduplicated downstream.
-pub(super) struct Chunker {
+pub(crate) struct Chunker {
     tx: Sender<ChunkJob>,
     sample_rate: u32,
     arm_samples: usize,
@@ -398,7 +410,7 @@ pub(super) struct Chunker {
 }
 
 impl Chunker {
-    pub(super) fn new(
+    pub(crate) fn new(
         tx: Sender<ChunkJob>,
         sample_rate: u32,
         preview: Option<PreviewLink>,
@@ -424,11 +436,11 @@ impl Chunker {
         }
     }
 
-    pub(super) fn push_samples(&mut self, mono: &[f32]) {
+    pub(crate) fn push_samples(&mut self, mono: &[f32]) {
         self.samples.extend_from_slice(mono);
     }
 
-    pub(super) fn on_throttle_tick(&mut self, rms: f32) {
+    pub(crate) fn on_throttle_tick(&mut self, rms: f32) {
         if self.samples.len() >= self.force_samples {
             self.cut_forced();
             return;
@@ -506,7 +518,7 @@ impl Chunker {
         self.reset_silence_state();
     }
 
-    pub(super) fn flush_remaining(mut self) {
+    pub(crate) fn flush_remaining(mut self) {
         if !self.samples.is_empty() {
             let samples = std::mem::take(&mut self.samples);
             let prefix = self.overlap_prefix;

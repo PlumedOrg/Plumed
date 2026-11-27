@@ -60,6 +60,7 @@ Meeting transcription core (`src-tauri/src/meeting/`, no Tauri or model code, so
 - `speakers.rs`: `SpeakerTrack` keeps the rows (10 ms each); `speaker_of` gives the speaker with the most probability mass over a word, `None` below a mean of 0.2 (then the previous speaker is used). Rows no pending word needs are dropped.
 - `transcript.rs`: `Line {speaker, start, end, text}`, one per speaker turn.
 - `session.rs`: `MeetingCore`. A word enters the transcript once the diarization covers it (about 30 s behind the audio: one 27.2 s chunk plus 3.2 s of look-ahead) and it is not in the held last second of its chunk. A forced chunk cut repeats 1 s of audio: the two chunks split that overlap in its middle, by timestamp. `finish` releases everything; a later `add_chunk` continues the same meeting.
+- `worker.rs`: `Meeting` (core, `DiarizationModel` from `manager::auxiliary_dir`, `SortformerStream`, timeline) and `spawn`, a thread consuming the `ChunkJob`s of any source (the dictation `Chunker`; a file through `chunking::chunk_all`). Per chunk: resample to 16 kHz, push the audio after the overlap to the diarization, transcribe the whole chunk with word timestamps (shared `pipeline::with_engine`, slow-down via `pipeline::slow_down_speed`), then emit `meeting-lines` (changed lines with their index) and `meeting-progress` (seconds processed). When the recording ends, a clone of the stream is finished to settle the last words, so the next recording continues the same diarization.
 
 ## Medical data updates
 
