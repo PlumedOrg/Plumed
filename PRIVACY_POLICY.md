@@ -1,6 +1,6 @@
 # Politique de confidentialité (Plumed)
 
-**Dernière mise à jour :** 24 novembre 2026
+**Dernière mise à jour :** 27 novembre 2026
 
 Plumed est une application de bureau de reconnaissance vocale libre, qui place la confidentialité au premier plan. Elle est conçue pour fonctionner sans connexion internet et pour garder vos données vocales sur votre appareil.
 
@@ -88,6 +88,14 @@ Les versions compilées sans serveur de statistiques configuré (par exemple vos
 
 Plumed permet d'exporter et d'importer les réglages sous forme de fichiers `.murmure`. Ces fichiers peuvent contenir : les réglages système, les raccourcis, les règles de mise en forme, les mots du dictionnaire, ainsi que vos modifications des listes de l'onglet Corrections (vocabulaire médical, mots qui se ressemblent, règles médicales, règles de grammaire, modèles de texte). Les réglages de l'API de transcription locale (activation, port, clé) ne sont jamais exportés.
 
+## Réunion (expérimental)
+
+La page Réunion transcrit une réunion et distingue ses intervenants **sur votre ordinateur** : l'audio (microphone, PhoneMic ou fichier) n'est envoyé nulle part. Le modèle de distinction des intervenants (environ 106 Mo) n'est téléchargé que lorsque vous cliquez sur « Télécharger » sur cette page, depuis Hugging Face ou, à défaut, depuis le relais de modèles de Plumed (`models.plumed.fr`), comme le modèle de reconnaissance vocale.
+
+Par défaut, la réunion est conservée **en mémoire uniquement** : son audio n'est jamais écrit sur le disque et sa transcription est effacée par « Nouvelle réunion » ou à la fermeture de Plumed.
+
+Si vous activez la **sauvegarde de la réunion** (désactivée par défaut, sur la page Réunion), Plumed enregistre au fil de la réunion, selon vos choix, son audio (`audio.wav`), sa transcription (`transcript.json`) et sa progression (`meeting.json` : heure de début, de dernière sauvegarde, durée transcrite), pour pouvoir la reprendre après un plantage. Ces fichiers sont placés dans le dossier temporaire du système (`plumed-meeting-backup`), ou dans le dossier de données de l'application (`meeting-backup`) si vous choisissez de la garder dans le dossier de l'application. Ils ne quittent jamais votre ordinateur et sont supprimés lorsque vous commencez une nouvelle réunion, cliquez sur « Nouvelle réunion » ou choisissez « Supprimer » au démarrage. Le dossier temporaire peut être lisible par l'administrateur de l'ordinateur et n'est pas toujours vidé automatiquement : n'activez pas la sauvegarde sur un ordinateur partagé.
+
 ## Utilisation du réseau
 
 **Ce programme ne transférera aucune information vers d'autres systèmes en réseau, sauf demande expresse de l'utilisateur ou de la personne qui l'installe ou l'exploite.**
@@ -99,6 +107,7 @@ Plumed peut accéder au réseau uniquement pour :
 - **Télécharger le modèle de reconnaissance vocale** (uniquement lorsque vous cliquez sur « Continuer » à l'étape du modèle de l'assistant du premier lancement, ou sur « Télécharger » dans Paramètres > Modèle) : les fichiers du modèle sont récupérés depuis Hugging Face, ou à défaut depuis le relais de modèles de Plumed (`models.plumed.fr`, exploité par le mainteneur de Plumed, qui relaie les mêmes fichiers depuis Hugging Face et n'enregistre ni les adresses IP ni les fichiers téléchargés). Aucun identifiant, cookie ou donnée d'utilisation n'est envoyé. Les fichiers sont vérifiés à l'aide d'empreintes SHA-256 intégrées à l'application.
 - **Vérifier les mises à jour** (s'exécute automatiquement au lancement puis une fois par jour si Plumed reste ouvert, jamais pour les commandes `plumed serve` et `plumed transcribe`, sauf si vous le désactivez dans Paramètres > En ligne)
 - **Télécharger et installer les mises à jour** (uniquement lorsque vous choisissez d'installer une mise à jour)
+- **Télécharger le modèle de distinction des intervenants de la page Réunion** (uniquement lorsque vous cliquez sur « Télécharger » sur cette page ; mêmes sources et mêmes vérifications que le modèle de reconnaissance vocale)
 - **PhoneMic, le microphone distant** (uniquement après que vous l'avez activé et cliqué sur « Connecter un téléphone » ; voir plus haut)
 - **Les statistiques d'utilisation anonymes** (uniquement si vous les avez acceptées ; voir plus haut)
 - **Vérifier les mises à jour des données médicales** (au lancement puis une fois par jour, depuis GitHub, uniquement après que vous l'avez accepté au premier lancement ou avec « Rechercher les mises à jour des règles médicales au démarrage et chaque jour » ; aucun identifiant, cookie ou donnée d'utilisation n'est envoyé) et **les télécharger** (uniquement lorsque vous cliquez sur « Télécharger »)
