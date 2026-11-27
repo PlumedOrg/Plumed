@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { useNavigate } from '@tanstack/react-router';
@@ -7,8 +7,10 @@ import { toast } from 'react-toastify';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/dialog';
 import { Page } from '@/components/page';
 import { useTranslation } from '@/i18n';
+import { useModelDownload } from '@/features/model/hooks/use-model-download';
 import { AppSettings } from '@/features/settings/settings.types';
 import { getDueSteps, StartupStep } from '../startup-prompts.helpers';
+import { DownloadDialog } from './download-dialog/download-dialog';
 import { MedicalDataStep } from './steps/medical-data-step';
 import { ModelStep } from './steps/model-step';
 import { RemoteMicStep } from './steps/remote-mic-step';
@@ -20,6 +22,9 @@ import { UpdateChannelStep } from './steps/update-channel-step';
 // while its question is unanswered, so existing users are not asked again.
 // The dialog cannot be dismissed: each step has its own way to answer or
 // postpone. Once done, a user who never opened the tutorial lands on it.
+// The model download started by the model step is owned here: if it is still
+// running (or failed) when the last step is answered, a blocking progress
+// dialog takes over until the model is there.
 export const StartupWizard = () => {
     const { t } = useTranslation();
     const navigate = useNavigate();
@@ -27,6 +32,11 @@ export const StartupWizard = () => {
     const [offerTelemetryNeverAgain, setOfferTelemetryNeverAgain] = useState(false);
     const [index, setIndex] = useState(0);
     const [open, setOpen] = useState(false);
+    const download = useModelDownload(() => {});
+    const [downloadOpen, setDownloadOpen] = useState(false);
+    // The variant the model step asked for, null once it is installed or
+    // given up: it decides whether the end of the wizard waits for it.
+    const downloadVariant = useRef<string | null>(null);
 
     const openTutorialFirstTime = useCallback(() => {
         invoke<AppSettings>('get_all_settings')
@@ -71,19 +81,54 @@ export const StartupWizard = () => {
         };
     }, [t, steps, open]);
 
+    const startDownload = (variant: string) => {
+        downloadVariant.current = variant;
+        void download.start(variant).then((done) => {
+            if (done) {
+                downloadVariant.current = null;
+            }
+        });
+    };
+
+    // The dialog closes by itself once the download succeeds.
+    useEffect(() => {
+        if (downloadOpen && !download.running && download.error == null) {
+            setDownloadOpen(false);
+            openTutorialFirstTime();
+        }
+    }, [downloadOpen, download.running, download.error, openTutorialFirstTime]);
+
     const next = () => {
         if (index + 1 < steps.length) {
             setIndex(index + 1);
             return;
         }
         setOpen(false);
+        if (downloadVariant.current !== null) {
+            setDownloadOpen(true);
+            return;
+        }
         openTutorialFirstTime();
+    };
+
+    const retryDownload = () => {
+        if (downloadVariant.current !== null) {
+            startDownload(downloadVariant.current);
+        }
+    };
+
+    const chooseAnotherModel = () => {
+        downloadVariant.current = null;
+        setDownloadOpen(false);
+        setSteps(['model']);
+        setIndex(0);
+        setOpen(true);
     };
 
     const renderStep = (step: StartupStep) => {
         switch (step) {
             case 'model':
-                return <ModelStep onNext={next} />;
+                return <ModelStep onNext={next} onDownload={startDownload} />;
             case 'remote-mic':
                 return <RemoteMicStep onNext={next} />;
             case 'telemetry':
@@ -96,59 +141,67 @@ export const StartupWizard = () => {
     };
 
     return (
-        <Dialog open={open}>
-            <DialogContent
-                className="max-w-lg"
-                overlayClassName="backdrop-blur-sm"
-                hideCloseButton
-                onEscapeKeyDown={(event) => event.preventDefault()}
-                onInteractOutside={(event) => event.preventDefault()}
-                data-testid="startup-wizard"
-            >
-                <DialogTitle className="sr-only">{t('Welcome to Plumed')}</DialogTitle>
-                <DialogDescription className="sr-only">
-                    {t('A few questions before you start. Each one can be changed later in the settings.')}
-                </DialogDescription>
-                <div className="overflow-hidden">
-                    <div
-                        className="flex items-start transition-transform duration-300 ease-in-out"
-                        style={{ transform: `translateX(-${index * 100}%)` }}
-                    >
-                        {steps.map((step, position) => (
-                            <div
-                                key={step}
-                                className="w-full shrink-0 px-1"
-                                inert={position !== index}
-                                aria-hidden={position !== index}
-                            >
-                                {renderStep(step)}
-                            </div>
-                        ))}
-                    </div>
-                </div>
-                {steps.length > 1 && (
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <Page.SecondaryButton
-                            onClick={() => setIndex(index - 1)}
-                            disabled={index === 0}
-                            className={index === 0 ? 'invisible' : undefined}
-                            data-testid="wizard-back"
+        <>
+            <DownloadDialog
+                open={downloadOpen}
+                download={download}
+                onRetry={retryDownload}
+                onChooseAnother={chooseAnotherModel}
+            />
+            <Dialog open={open}>
+                <DialogContent
+                    className="max-w-lg"
+                    overlayClassName="backdrop-blur-sm"
+                    hideCloseButton
+                    onEscapeKeyDown={(event) => event.preventDefault()}
+                    onInteractOutside={(event) => event.preventDefault()}
+                    data-testid="startup-wizard"
+                >
+                    <DialogTitle className="sr-only">{t('Welcome to Plumed')}</DialogTitle>
+                    <DialogDescription className="sr-only">
+                        {t('A few questions before you start. Each one can be changed later in the settings.')}
+                    </DialogDescription>
+                    <div className="overflow-hidden">
+                        <div
+                            className="flex items-start transition-transform duration-300 ease-in-out"
+                            style={{ transform: `translateX(-${index * 100}%)` }}
                         >
-                            <ArrowLeft className="w-4 h-4" />
-                            {t('Back')}
-                        </Page.SecondaryButton>
-                        <div className="flex items-center gap-2" data-testid="wizard-progress">
                             {steps.map((step, position) => (
-                                <span
+                                <div
                                     key={step}
-                                    className={`h-2 w-2 rounded-full ${position === index ? 'bg-sky-400' : 'bg-muted'}`}
-                                />
+                                    className="w-full shrink-0 px-1"
+                                    inert={position !== index}
+                                    aria-hidden={position !== index}
+                                >
+                                    {renderStep(step)}
+                                </div>
                             ))}
-                            <span>{`${index + 1} / ${steps.length}`}</span>
                         </div>
                     </div>
-                )}
-            </DialogContent>
-        </Dialog>
+                    {steps.length > 1 && (
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <Page.SecondaryButton
+                                onClick={() => setIndex(index - 1)}
+                                disabled={index === 0}
+                                className={index === 0 ? 'invisible' : undefined}
+                                data-testid="wizard-back"
+                            >
+                                <ArrowLeft className="w-4 h-4" />
+                                {t('Back')}
+                            </Page.SecondaryButton>
+                            <div className="flex items-center gap-2" data-testid="wizard-progress">
+                                {steps.map((step, position) => (
+                                    <span
+                                        key={step}
+                                        className={`h-2 w-2 rounded-full ${position === index ? 'bg-sky-400' : 'bg-muted'}`}
+                                    />
+                                ))}
+                                <span>{`${index + 1} / ${steps.length}`}</span>
+                            </div>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
+        </>
     );
 };

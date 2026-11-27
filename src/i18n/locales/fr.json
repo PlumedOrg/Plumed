@@ -462,7 +462,6 @@
     "Skip this version": "Ignorer cette version",
     "Not now": "Plus tard",
     "Download": "Télécharger",
-    "The model download failed": "Le téléchargement du modèle a échoué",
     "Failed to save the medical rules update setting": "Impossible d'enregistrer le réglage des mises à jour des règles médicales",
     "The medical rules is up to date.": "Les règles médicales sont à jour.",
     "Failed to check for a medical rules update": "Impossible de vérifier les mises à jour des règles médicales",
@@ -736,5 +735,8 @@
     "Learn more": "En savoir plus",
     "Setup guide": "Guide de configuration",
     "The cancel shortcut was removed: the record shortcut contains its keys.": "Le raccourci d'annulation a été retiré : le raccourci d'enregistrement contient ses touches.",
-    "The cancel shortcut cannot be made only of keys of the record shortcut.": "Le raccourci d'annulation ne peut pas être composé uniquement de touches du raccourci d'enregistrement."
+    "The cancel shortcut cannot be made only of keys of the record shortcut.": "Le raccourci d'annulation ne peut pas être composé uniquement de touches du raccourci d'enregistrement.",
+    "Choose another model": "Choisir un autre modèle",
+    "Downloading the speech model": "Téléchargement du modèle de transcription",
+    "Plumed can transcribe once the model is downloaded. This happens only once.": "Plumed pourra transcrire une fois le modèle téléchargé. Cela n'arrive qu'une fois."
 }

@@ -41,3 +41,5 @@ export const useModelDownload = (onStatus: (status: ModelStatus) => void) => {
 
     return { progress, error, running, start, cancel };
 };
+
+export type ModelDownload = ReturnType<typeof useModelDownload>;

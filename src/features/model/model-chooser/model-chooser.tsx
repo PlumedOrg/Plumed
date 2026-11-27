@@ -7,7 +7,8 @@ import { Typography } from '@/components/typography';
 import { useTranslation } from '@/i18n';
 import { ExperimentalModelDialog } from '../experimental-model-dialog/experimental-model-dialog';
 import { useModelDownload } from '../hooks/use-model-download';
-import { downloadErrorMessage, formatBytes, progressLabel, sourceLabel } from '../model.helpers';
+import { ModelDownloadProgress } from '../model-download-progress/model-download-progress';
+import { downloadErrorMessage, formatBytes, sourceLabel } from '../model.helpers';
 import { ModelStatus, ModelVariantStatus } from '../types';
 
 interface ModelChooserProps {
@@ -198,25 +199,7 @@ export const ModelChooser = ({ status, onStatus, onChosen, hideDownload = false 
                 ))}
             </div>
 
-            {downloading && download.progress != null && (
-                <div className="space-y-1" data-testid="model-progress">
-                    <div className="h-2 w-full overflow-hidden rounded bg-surface-border">
-                        <div
-                            className="h-full bg-sky-400 transition-[width]"
-                            style={{
-                                width: `${download.progress.total > 0 ? (download.progress.downloaded * 100) / download.progress.total : 0}%`,
-                            }}
-                        />
-                    </div>
-                    <Typography.Paragraph className="text-xs">
-                        {progressLabel(download.progress, t, i18n.language)} ({t('from')}{' '}
-                        {sourceLabel(download.progress.source, t)})
-                    </Typography.Paragraph>
-                </div>
-            )}
-            {downloading && download.progress == null && (
-                <Typography.Paragraph className="text-xs">{t('Connecting...')}</Typography.Paragraph>
-            )}
+            {downloading && <ModelDownloadProgress progress={download.progress} />}
 
             {!downloading && download.error != null && (
                 <Typography.Paragraph className="text-sm text-red-400" data-testid="model-error">

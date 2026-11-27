@@ -1,7 +1,5 @@
 import { useState } from 'react';
-import { invoke } from '@tauri-apps/api/core';
 import { Download } from 'lucide-react';
-import { toast } from 'react-toastify';
 import { Page } from '@/components/page';
 import { useTranslation } from '@/i18n';
 import { useModelStatus } from '@/features/model/hooks/use-model-status';
@@ -10,9 +8,14 @@ import { WizardStep } from '../wizard-step/wizard-step';
 import { StepProps } from './step.types';
 
 // Plumed fork (written with Claude Code): the speech model is not bundled.
-// Continue starts the download of the chosen model (no separate button). It
-// runs in the backend, so it keeps going while the next steps are answered.
-export const ModelStep = ({ onNext }: StepProps) => {
+// Continue starts the download of the chosen model (no separate button). The
+// wizard owns it, so it keeps going while the next steps are answered and
+// blocks the app in a progress dialog once they are.
+interface ModelStepProps extends StepProps {
+    onDownload: (variant: string) => void;
+}
+
+export const ModelStep = ({ onNext, onDownload }: ModelStepProps) => {
     const { t } = useTranslation();
     const { status, setStatus } = useModelStatus();
     const [chosen, setChosen] = useState<string | null>(null);
@@ -20,9 +23,7 @@ export const ModelStep = ({ onNext }: StepProps) => {
     const downloadAndContinue = () => {
         const variant = status?.variants.find((v) => v.id === chosen);
         if (status !== null && status.downloading == null && variant?.available && variant.installed == null) {
-            invoke('download_model', { variant: variant.id }).catch((e: unknown) =>
-                toast.error(`${t('The model download failed')}: ${String(e)}`)
-            );
+            onDownload(variant.id);
         }
         onNext();
     };
