@@ -21,7 +21,7 @@ hero:
       variant: secondary
 ---
 
-import { Card, CardGrid, Steps } from '@astrojs/starlight/components';
+import { Card, CardGrid } from '@astrojs/starlight/components';
 
 <CardGrid>
     <Card title="Dans n'importe quelle application" icon="pencil">
@@ -45,25 +45,66 @@ import { Card, CardGrid, Steps } from '@astrojs/starlight/components';
 
 ## Feuille de route
 
-<Steps>
+{/* Most recent at the top: the next steps, then the milestones going back in time. Styled by .plumed-timeline in plumed.css. */}
+<ol class="plumed-timeline">
+    <li class="plumed-timeline-future">
+        <span class="plumed-timeline-date">Prochainement</span>
 
-1. **Décembre 2025** : publication de ParakeetWeb, la dictée dans le navigateur à l'origine de Plumed.
+        Héberger le relais de Plumed sur le relais HDS (hébergement de données de santé) d'[InterHop.org](https://interhop.org).
 
-2. **Juillet 2026** : jeu de données [UltiMed-ASR-FR v1](https://huggingface.co/datasets/Olicorne/UltiMed-ASR-FR-v1), de l'audio médical français pour entraîner les modèles.
+    </li>
+    <li class="plumed-timeline-future">
+        <span class="plumed-timeline-date">Prochainement</span>
 
-3. **Septembre 2026** : premier modèle UltiMed, Parakeet entraîné sur ce jeu de données.
+        Signature Windows avec SignPath, pour que Windows ouvre Plumed sans avertissement.
 
-4. **Novembre 2026** : jeu de données et modèle UltiMed v2.
+    </li>
+    <li class="plumed-timeline-future">
+        <span class="plumed-timeline-date">Prochainement</span>
 
-5. **Novembre 2026** : naissance de Plumed, à partir du logiciel libre Murmure.
+        Notarisation Apple, la même chose sous macOS.
 
-6. **24 novembre 2026** : sortie de Plumed 1.0.
+    </li>
+    <li class="plumed-timeline-future">
+        <span class="plumed-timeline-date">Prochainement</span>
 
-</Steps>
+        Plus de tests.
 
-### Prochaines étapes
+    </li>
+    <li class="plumed-timeline-now">
+        <span class="plumed-timeline-date">24 novembre 2026</span>
 
-- Plus de tests.
-- Notarisation Apple, pour que macOS ouvre Plumed sans avertissement.
-- Signature Windows avec SignPath, pour la même chose sous Windows.
-- Héberger le relais de Plumed sur le relais HDS (hébergement de données de santé) d'[InterHop.org](https://interhop.org).
+        Sortie de **Plumed 1.0**.
+
+    </li>
+    <li class="plumed-timeline-past">
+        <span class="plumed-timeline-date">Novembre 2026</span>
+
+        Naissance de Plumed, à partir du logiciel libre Murmure.
+
+    </li>
+    <li class="plumed-timeline-past">
+        <span class="plumed-timeline-date">Novembre 2026</span>
+
+        Jeu de données et modèle UltiMed v2.
+
+    </li>
+    <li class="plumed-timeline-past">
+        <span class="plumed-timeline-date">Septembre 2026</span>
+
+        Premier modèle UltiMed : Parakeet entraîné sur ce jeu de données.
+
+    </li>
+    <li class="plumed-timeline-past">
+        <span class="plumed-timeline-date">Juillet 2026</span>
+
+        Jeu de données [UltiMed-ASR-FR v1](https://huggingface.co/datasets/Olicorne/UltiMed-ASR-FR-v1) : de l'audio médical français pour entraîner les modèles.
+
+    </li>
+    <li class="plumed-timeline-past">
+        <span class="plumed-timeline-date">Décembre 2025</span>
+
+        Publication de ParakeetWeb, la dictée dans le navigateur à l'origine de Plumed.
+
+    </li>
+</ol>

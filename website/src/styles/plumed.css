@@ -188,3 +188,56 @@ site-search button[data-open-modal] > kbd {
     color: var(--sl-color-gray-3);
     text-align: center;
 }
+
+/* The home page roadmap: a vertical line with one dot per step, the most
+   recent at the top. Next steps have a hollow dot on a dashed line, the
+   latest release a glowing dot. */
+.plumed-timeline {
+    list-style: none;
+    padding: 0;
+    margin: 1.5rem 0 0;
+}
+.plumed-timeline li {
+    position: relative;
+    margin: 0;
+    padding: 0 0 1.5rem 2rem;
+    border-left: 2px solid var(--sl-color-accent);
+}
+.plumed-timeline li:last-child {
+    border-left-color: transparent;
+    padding-bottom: 0;
+}
+.plumed-timeline li::before {
+    content: '';
+    position: absolute;
+    left: -0.5rem;
+    top: 0.3rem;
+    width: 0.875rem;
+    height: 0.875rem;
+    border-radius: 50%;
+    background: var(--sl-color-accent);
+    border: 2px solid var(--sl-color-accent);
+}
+.plumed-timeline li.plumed-timeline-future {
+    border-left-style: dashed;
+    border-left-color: var(--sl-color-gray-4);
+}
+.plumed-timeline li.plumed-timeline-future::before {
+    background: var(--sl-color-black);
+    border-color: var(--sl-color-gray-4);
+}
+.plumed-timeline li.plumed-timeline-now::before {
+    box-shadow: 0 0 0 0.3rem var(--sl-color-accent-low);
+}
+.plumed-timeline li > p {
+    margin: 0.25rem 0 0;
+}
+.plumed-timeline-date {
+    display: block;
+    font-size: var(--sl-text-sm);
+    font-weight: 600;
+    color: var(--sl-color-accent-high);
+}
+.plumed-timeline-future .plumed-timeline-date {
+    color: var(--sl-color-gray-3);
+}
