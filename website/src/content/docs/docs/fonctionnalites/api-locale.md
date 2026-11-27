@@ -9,6 +9,10 @@ Désactivée par défaut : **Paramètres > Avancé > API de transcription locale
 
 Une fois activée, Plumed sert sur `http://127.0.0.1:4800/v1` (port modifiable) une API compatible avec celle d'OpenAI : un programme ou un script qui sait parler à `POST /v1/audio/transcriptions` d'OpenAI fonctionne en changeant seulement son adresse de base. Le texte est transcrit exactement comme une dictée (vocabulaire médical, dictionnaire personnel, règles de correction et de formatage, grammaire, textes types), mais il n'est ajouté ni à l'historique ni aux statistiques de la page d'accueil.
 
+## Exemples
+
+Avec `curl` :
+
 ```sh
 curl http://127.0.0.1:4800/v1/audio/transcriptions \
   -H "Authorization: Bearer <CLÉ>" \
