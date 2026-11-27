@@ -80,7 +80,7 @@ export default defineConfig({
             components: {
                 // The "Documentation" link next to the GitHub icon
                 SocialIcons: './src/components/SocialIcons.astro',
-                // The "fresh paint" warning on the /docs pages
+                // The "fresh paint" warning, on the Réunion page only
                 MarkdownContent: './src/components/MarkdownContent.astro',
                 // The site version under each page
                 Footer: './src/components/Footer.astro',
