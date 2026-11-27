@@ -19,7 +19,11 @@ Les versions bêta sont sur la [page des releases](https://github.com/PlumedOrg/
 
 ## Windows
 
-L'installateur s'installe sans droits d'administrateur. Il n'est pas signé : Windows SmartScreen affiche un avertissement, il faut choisir « Informations complémentaires » puis « Exécuter quand même ».
+L'installateur s'installe sans droits d'administrateur.
+
+:::caution[Pas encore signé]
+L'installateur n'est pas encore signé : la demande de signature auprès de SignPath est en cours (en attente depuis le 27 novembre 2026). D'ici là, Windows SmartScreen affiche un avertissement : choisissez « Informations complémentaires » puis « Exécuter quand même ».
+:::
 
 ## Linux
 
@@ -27,11 +31,15 @@ Sous Wayland, la saisie directe du texte demande une règle udev que l'applicati
 
 ## macOS
 
-macOS 13.4 ou plus récent. L'application est signée ad hoc mais pas notarisée (la demande de compte développeur Apple est en attente depuis le 27 novembre 2026), macOS la bloque donc au premier lancement. Autorisez-la dans **Réglages Système > Confidentialité et sécurité** (« Ouvrir quand même »), ou exécutez dans un terminal :
+macOS 13.4 ou plus récent.
+
+:::caution[Pas encore notarisé]
+L'application n'est pas encore notarisée par Apple (elle est seulement signée ad hoc) : la demande de compte développeur Apple est en cours (en attente depuis le 27 novembre 2026). D'ici là, macOS la bloque au premier lancement. Autorisez-la dans **Réglages Système > Confidentialité et sécurité** (« Ouvrir quand même »), ou exécutez dans un terminal :
 
 ```sh
 xattr -dr com.apple.quarantine /Applications/Plumed.app
 ```
+:::
 
 ## Premier lancement
 
@@ -40,6 +48,8 @@ Un assistant pose quelques questions, une par étape :
 1. **Le modèle de reconnaissance vocale** à télécharger (une seule fois, depuis Hugging Face ou à défaut depuis le relais de Plumed `models.plumed.fr`). Ensuite, Plumed fonctionne entièrement hors ligne.
 2. **Les statistiques d'utilisation anonymes** : désactivées sauf si vous répondez oui.
 3. **La vérification des mises à jour des règles médicales**.
-4. **Le canal de mise à jour** (stable ou bêta).
+4. **Le canal de mise à jour** de l'application (stable ou bêta).
+
+Les deux vérifications de mises à jour, si vous les acceptez, se font à chaque démarrage, puis une fois par jour si Plumed reste ouvert. Rien n'est téléchargé sans votre accord.
 
 Toutes ces réponses se changent ensuite dans **Paramètres > En ligne**. Le **Tutoriel**, dans la barre latérale, fait ensuite essayer les commandes de dictée une par une.
