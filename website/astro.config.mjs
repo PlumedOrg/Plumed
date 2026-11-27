@@ -22,13 +22,43 @@ function analyticsHead() {
     return [{ tag: 'script', attrs }];
 }
 
+// Search engines: PLUMED is also a well known molecular dynamics library
+// (plumed.org), so "Plumed" alone ranks it first. These tags tie this site to
+// the dictation app ("Plumed dictée", "Plumed speech-to-text", "Plumed STT")
+// and to its GitHub and Hugging Face pages, which link back here.
+const STRUCTURED_DATA = {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: 'Plumed',
+    alternateName: ['Plumed dictée vocale', 'Plumed speech-to-text', 'Plumed STT', 'Plumed audio'],
+    description:
+        'Plumed: free, offline French medical voice dictation (speech-to-text, STT) for Windows, macOS and Linux. Dictée vocale médicale en français, gratuite et hors ligne.',
+    url: 'https://plumed.fr',
+    image: 'https://plumed.fr/accueil.png',
+    applicationCategory: 'HealthApplication',
+    operatingSystem: 'Windows, macOS, Linux',
+    inLanguage: 'fr',
+    isAccessibleForFree: true,
+    license: 'https://www.gnu.org/licenses/agpl-3.0.html',
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
+    author: { '@type': 'Person', name: 'Olivier Cornelis', url: 'https://olicorne.org/fr' },
+    sameAs: ['https://github.com/PlumedOrg/Plumed', 'https://huggingface.co/datasets/Olicorne/UltiMed-ASR-FR-v1'],
+};
+
+/** Tags on every page: the preview image of shared links and the structured data. */
+const SEO_HEAD = [
+    { tag: 'meta', attrs: { property: 'og:image', content: 'https://plumed.fr/accueil.png' } },
+    { tag: 'meta', attrs: { name: 'twitter:image', content: 'https://plumed.fr/accueil.png' } },
+    { tag: 'script', attrs: { type: 'application/ld+json' }, content: JSON.stringify(STRUCTURED_DATA) },
+];
+
 export default defineConfig({
     site: 'https://plumed.fr',
     integrations: [
         starlight({
             title: 'Plumed',
             description:
-                'Dictée vocale médicale en français, gratuite, hors ligne et respectueuse de la confidentialité.',
+                'Plumed, dictée vocale médicale en français (speech-to-text) : gratuite, hors ligne et respectueuse de la confidentialité.',
             logo: { src: './src/assets/logo.svg' },
             favicon: '/favicon.svg',
             locales: { root: { label: 'Français', lang: 'fr' } },
@@ -39,7 +69,7 @@ export default defineConfig({
                     href: 'https://github.com/PlumedOrg/Plumed',
                 },
             ],
-            head: analyticsHead(),
+            head: [...SEO_HEAD, ...analyticsHead()],
             customCss: ['./src/styles/plumed.css'],
             components: {
                 // The "Documentation" link next to the GitHub icon
