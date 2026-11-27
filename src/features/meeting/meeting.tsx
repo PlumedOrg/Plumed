@@ -6,6 +6,7 @@ import { useMeeting } from './hooks/use-meeting';
 import { MeetingBackupSettings } from './meeting-backup-settings/meeting-backup-settings';
 import { MeetingControls } from './meeting-controls/meeting-controls';
 import { MeetingModelGate } from './meeting-model-gate/meeting-model-gate';
+import { MeetingStatusBar } from './meeting-status-bar/meeting-status-bar';
 import { MeetingTranscript } from './meeting-transcript/meeting-transcript';
 
 // Plumed fork (written with Claude Code): the Réunion page, a meeting
@@ -28,8 +29,9 @@ export const MeetingPage = () => {
             />
             <MeetingModelGate>
                 <MeetingControls meeting={meeting} />
-                <MeetingBackupSettings />
-                <MeetingTranscript lines={meeting.lines} />
+                <MeetingBackupSettings running={meeting.running} />
+                <MeetingTranscript lines={meeting.lines} anchors={meeting.anchors} />
+                <MeetingStatusBar meeting={meeting} />
             </MeetingModelGate>
         </ExtensionPageLayout>
     );

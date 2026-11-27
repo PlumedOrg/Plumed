@@ -79,7 +79,9 @@ export const MeetingControls = ({ meeting }: { meeting: Meeting }) => {
                 {hasMeeting && !busy && (
                     <Page.SecondaryButton onClick={reset} data-testid="meeting-reset">
                         <Trash2 />
-                        {confirmingReset ? t('Click again to erase the transcript') : t('New meeting')}
+                        {confirmingReset
+                            ? t('Click again to erase the meeting (transcript, audio and backup)')
+                            : t('New meeting')}
                     </Page.SecondaryButton>
                 )}
             </div>
@@ -93,10 +95,18 @@ export const MeetingControls = ({ meeting }: { meeting: Meeting }) => {
                             />
                         </div>
                     )}
+                    <div className="flex flex-wrap items-baseline gap-3">
+                        <span
+                            className="font-mono text-4xl tabular-nums text-foreground"
+                            data-testid="meeting-duration"
+                        >
+                            {formatDuration(processedSecs)}
+                        </span>
+                        <span className="text-sm text-muted-foreground">{t('transcribed')}</span>
+                    </div>
                     <Typography.Paragraph className="text-xs text-muted-foreground">
-                        {t('Transcribed: {{time}}', { time: formatDuration(processedSecs) })}
-                        {stopping && ` · ${t('Finishing the transcription...')}`}
-                        {running && !stopping && ` · ${t('Speakers appear about 30 s after they speak.')}`}
+                        {stopping && t('Finishing the transcription...')}
+                        {running && !stopping && t('Speakers appear about 30 s after they speak.')}
                     </Typography.Paragraph>
                 </div>
             )}

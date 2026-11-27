@@ -23,12 +23,12 @@ Pendant une réunion, l'ordinateur ne se met pas en veille tout seul, et la dict
 
 ## Transcription
 
-Chaque ligne a la forme `- Paul: bonjour à tous`. Les intervenants s'appellent A, B, C... : leurs noms se modifient au-dessus de la transcription. Plumed reconnaît les voix : un intervenant qui reprend la parole après un long silence, ou qu'il avait d'abord pris pour deux personnes, retrouve sa lettre, et les lignes déjà écrites sont corrigées. Les horodatages sont facultatifs, depuis le début de la réunion ou à partir d'une heure de début (par exemple `14:00`), avec un décalage en secondes si besoin. Le bouton de copie copie toute la transcription.
+Chaque ligne a la forme `- Paul: bonjour à tous`. Les intervenants s'appellent A, B, C... : leurs noms se modifient au-dessus de la transcription. Plumed reconnaît les voix : un intervenant qui reprend la parole après un long silence, ou qu'il avait d'abord pris pour deux personnes, retrouve sa lettre, et les lignes déjà écrites sont corrigées. Les horodatages sont facultatifs. Par défaut, ils donnent l'heure réelle à laquelle chaque ligne a été dite pour le microphone, et le temps écoulé depuis le début pour un fichier ou PhoneMic. On peut aussi indiquer une heure de début (par exemple `14:00`), et un décalage en secondes si besoin. La transcription défile dans son propre cadre, et une barre en bas de la page indique si l'enregistrement est en cours, avec sa durée et un bouton Arrêter. Le bouton de copie copie toute la transcription.
 
 Seules les corrections orthographiques médicales s'appliquent (si elles sont activées), pas les autres corrections de la dictée.
 
 ## Sauvegarde
 
-Désactivée par défaut. Sur la page Réunion, on peut choisir de sauvegarder au fil de l'eau l'**audio**, la **transcription** et la **progression**, dans le dossier temporaire ou, avec **La garder dans le dossier de l'application**, dans le dossier de données de Plumed. Le réglage s'applique à la réunion suivante.
+Désactivée par défaut. Dans les **Réglages de la réunion** (ouverts à l'arrivée sur la page, refermés quand la réunion démarre), on peut choisir de sauvegarder au fil de l'eau l'**audio**, la **transcription** et les **informations de la réunion** (heure de début, durée transcrite, dernière sauvegarde), dans le dossier temporaire ou, avec **Garder la sauvegarde dans le dossier de l'application**, dans le dossier de données de Plumed. Le réglage s'applique à la réunion suivante.
 
 Si Plumed se ferme en pleine réunion (plantage, coupure de courant), il propose au démarrage de **Reprendre** la réunion ou de **Supprimer** la sauvegarde. Avec la transcription sauvegardée, la réunion reprend là où elle s'était arrêtée (si l'audio est sauvegardé depuis le début, les intervenants sont reconnus à leur voix et gardent leur lettre) ; avec l'audio seul, il est transcrit à nouveau. **Nouvelle réunion** supprime la sauvegarde. Voir la [politique de confidentialité](/confidentialite/).
