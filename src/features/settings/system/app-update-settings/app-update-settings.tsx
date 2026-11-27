@@ -18,7 +18,7 @@ export const AppUpdateSettings = () => {
                 </Typography.Title>
                 <Typography.Paragraph>
                     {t(
-                        'Beta versions get new features first and may have more bugs. When disabled, Plumed never checks by itself; a button in the sidebar checks on demand.'
+                        'Plumed checks for a new version at each start, then once a day if it stays open. Beta versions get new features first and may have more bugs. When disabled, Plumed never checks by itself; a button in the sidebar checks on demand.'
                     )}
                 </Typography.Paragraph>
             </SettingsUI.Description>

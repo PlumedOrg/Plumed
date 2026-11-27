@@ -697,7 +697,6 @@
     "Stable versions": "Versions stables",
     "Beta versions": "Versions bêta",
     "Disabled": "Désactivées",
-    "Beta versions get new features first and may have more bugs. When disabled, Plumed never checks by itself; a button in the sidebar checks on demand.": "Les versions bêta reçoivent les nouveautés en premier et peuvent contenir plus de bugs. Désactivées, Plumed ne vérifie jamais de lui-même ; un bouton dans la barre latérale vérifie à la demande.",
     "Failed to save the app updates setting": "Impossible d'enregistrer le réglage des mises à jour",
     "Edit": "Modifier",
     "Text templates": "Textes types",
@@ -775,5 +774,6 @@
     "{{count}} lines, {{time}} of meeting.": "{{count}} lignes, {{time}} de réunion.",
     "{{time}} of audio, transcribed again if you resume.": "{{time}} d'audio, retranscrit si vous reprenez.",
     "Saved on {{date}}.": "Sauvegardée le {{date}}.",
-    "Resume": "Reprendre"
+    "Resume": "Reprendre",
+    "Plumed checks for a new version at each start, then once a day if it stays open. Beta versions get new features first and may have more bugs. When disabled, Plumed never checks by itself; a button in the sidebar checks on demand.": "Plumed cherche une nouvelle version à chaque démarrage, puis une fois par jour s'il reste ouvert. Les versions bêta reçoivent les nouveautés en premier et peuvent contenir plus de bugs. Désactivé, Plumed ne vérifie jamais de lui-même ; un bouton dans la barre latérale vérifie à la demande."
 }

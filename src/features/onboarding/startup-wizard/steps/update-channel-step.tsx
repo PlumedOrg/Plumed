@@ -25,7 +25,7 @@ export const UpdateChannelStep = ({ onNext }: StepProps) => {
             icon={RefreshCcw}
             title={t('App updates')}
             description={t(
-                'Beta versions get new features first and may have more bugs. When disabled, Plumed never checks by itself; a button in the sidebar checks on demand.'
+                'Plumed checks for a new version at each start, then once a day if it stays open. Beta versions get new features first and may have more bugs. When disabled, Plumed never checks by itself; a button in the sidebar checks on demand.'
             )}
             footer={
                 <Page.PrimaryButton onClick={() => void confirm()} data-testid="wizard-update-channel-next">
