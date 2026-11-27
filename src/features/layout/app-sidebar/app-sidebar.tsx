@@ -54,12 +54,12 @@ const getTopLevelItems = (t: (key: string) => string) => [
 ];
 
 export const AppSidebar = () => {
-    const { pathname } = useLocation();
+    const { pathname, hash } = useLocation();
     const version = useGetVersion();
     const { isChecking, checkNow } = useCheckAppUpdateNow();
     const { t } = useTranslation();
     const topLevelItems = getTopLevelItems(t);
-    const isAboutActive = pathname === '/about';
+    const isAboutActive = pathname === '/settings' && hash === 'about';
 
     return (
         <Sidebar className="bg-background border-border border-r overflow-hidden w-[15.5rem]">
@@ -114,7 +114,8 @@ export const AppSidebar = () => {
                     <span>{t('Report a bug')}</span>
                 </a>
                 <Link
-                    to="/about"
+                    to="/settings"
+                    hash="about"
                     className={`${isAboutActive ? 'text-sky-400' : 'text-muted-foreground hover:text-foreground'} text-xs transition-colors flex items-center gap-2 px-2`}
                     data-testid="about-tab"
                 >

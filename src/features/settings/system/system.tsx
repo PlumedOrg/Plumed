@@ -22,7 +22,8 @@ import { SlowDownAudioSettings } from './slow-down-audio-settings/slow-down-audi
 import { BlockCliImportSettings } from './block-cli-import-settings/block-cli-import-settings';
 import { LocalApiSettings } from './local-api-settings/local-api-settings';
 import { OnlineSettings } from './online-settings/online-settings';
-import { ArrowDownUp, Brain, Globe, Keyboard, Monitor, Settings, Wrench } from 'lucide-react';
+import { ArrowDownUp, Brain, Globe, Info, Keyboard, Monitor, Settings, Wrench } from 'lucide-react';
+import { About } from '@/features/about/about';
 import { ImportExport } from '@/features/settings/import-export/import-export';
 import { ModelSettings } from '@/features/model/model-settings/model-settings';
 import { useLocation, useNavigate } from '@tanstack/react-router';
@@ -32,8 +33,17 @@ import { Shortcuts } from '@/features/settings/shortcuts/shortcuts';
 
 // Plumed fork (written with Claude Code): the Settings page (once "System"), its
 // sections are tabs. "Model" picks the speech model. "Online" holds every setting
-// that reaches the network. Import / export is the last tab. The URL hash selects the tab.
-const SYSTEM_TABS = ['general', 'shortcuts', 'online', 'advanced', 'model', 'overlay', 'import-export'] as const;
+// that reaches the network. Then import / export, and About last. The URL hash selects the tab.
+const SYSTEM_TABS = [
+    'general',
+    'shortcuts',
+    'online',
+    'advanced',
+    'model',
+    'overlay',
+    'import-export',
+    'about',
+] as const;
 type SystemTab = (typeof SYSTEM_TABS)[number];
 
 export const System = () => {
@@ -63,6 +73,7 @@ export const System = () => {
                         { value: 'model', label: t('Model'), icon: Brain },
                         { value: 'overlay', label: t('Overlay'), icon: Monitor },
                         { value: 'import-export', label: t('Import / Export'), icon: ArrowDownUp },
+                        { value: 'about', label: t('About'), icon: Info },
                     ]}
                 >
                     {activeTab === 'general' && (
@@ -118,6 +129,7 @@ export const System = () => {
                     {activeTab === 'online' && <OnlineSettings />}
                     {activeTab === 'shortcuts' && <Shortcuts />}
                     {activeTab === 'import-export' && <ImportExport />}
+                    {activeTab === 'about' && <About />}
                 </Tabs>
             </div>
         </main>

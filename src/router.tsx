@@ -1,7 +1,6 @@
 import { createRouter, createRoute, createRootRoute, Navigate } from '@tanstack/react-router';
 import { Home } from './features/home/home';
 import { Layout } from './features/layout/layout';
-import { About } from './features/about/about';
 import { Corrections } from './features/corrections/corrections';
 import { System } from './features/settings/system/system';
 import { RemoteMic } from './features/extensions/remote-mic/remote-mic';
@@ -88,10 +87,11 @@ const meetingRoute = createRoute({
     component: MeetingPage,
 });
 
+// Plumed: About became the last tab of the Settings page
 const aboutRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/about',
-    component: About,
+    component: () => <Navigate to="/settings" hash="about" />,
 });
 
 const tutorialRoute = createRoute({

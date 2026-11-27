@@ -95,7 +95,7 @@ export const About = () => {
     const yearDisplay = currentYear <= 2025 ? '2025' : `2025-${currentYear}`;
 
     return (
-        <main className="isolate relative flex flex-col items-center text-center pt-4">
+        <div className="isolate relative flex flex-col items-center text-center pt-4">
             <StarryBackground className="fixed inset-0 -z-10" />
 
             <motion.div
@@ -237,6 +237,6 @@ export const About = () => {
                     <p className="text-xs text-muted-foreground">&copy; {yearDisplay} Al1x-ai. All rights reserved.</p>
                 </motion.div>
             </motion.div>
-        </main>
+        </div>
     );
 };
