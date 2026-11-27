@@ -39,6 +39,21 @@ pub struct IndexedLine {
     pub line: Line,
 }
 
+/// Shows a transcript line with the medical spelling fixes when they are on
+/// (the only post-processing of a meeting). The transcript keeps the model's
+/// words: a line still grows while the meeting goes on.
+pub fn spelling(app: &AppHandle) -> impl Fn(&Line) -> Line {
+    let fixes = crate::formatting_rules::load(app).is_ok_and(|s| s.built_in.medical_fixes);
+    move |line: &Line| Line {
+        text: if fixes {
+            crate::medical::apply_medical_fixes(line.text.clone())
+        } else {
+            line.text.clone()
+        },
+        ..line.clone()
+    }
+}
+
 /// One meeting, kept across its recordings: a new recording continues the
 /// timeline and the speakers.
 pub struct Meeting {
@@ -131,11 +146,12 @@ impl Meeting {
     fn emit_released(&mut self, app: &AppHandle) {
         let changed = self.core.release();
         if !changed.is_empty() {
+            let spell = spelling(app);
             let lines: Vec<IndexedLine> = changed
                 .into_iter()
                 .map(|index| IndexedLine {
                     index,
-                    line: self.core.transcript.lines[index].clone(),
+                    line: spell(&self.core.transcript.lines[index]),
                 })
                 .collect();
             let _ = app.emit(LINES_EVENT, lines);

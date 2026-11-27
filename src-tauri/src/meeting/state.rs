@@ -187,14 +187,20 @@ impl MeetingState {
             .is_some_and(Recording::is_running)
     }
 
-    pub fn snapshot(&self) -> MeetingSnapshot {
+    pub fn snapshot(&self, app: &AppHandle) -> MeetingSnapshot {
         let running = self.is_running();
         let meeting = self.meeting.lock().clone();
         match meeting {
             Some(meeting) => {
                 let meeting = meeting.lock();
                 MeetingSnapshot {
-                    lines: meeting.core.transcript.lines.clone(),
+                    lines: meeting
+                        .core
+                        .transcript
+                        .lines
+                        .iter()
+                        .map(worker::spelling(app))
+                        .collect(),
                     processed_secs: meeting.processed_secs(),
                     running,
                 }

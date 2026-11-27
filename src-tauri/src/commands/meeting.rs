@@ -47,7 +47,7 @@ pub async fn meeting_reset(app: AppHandle) -> Result<(), String> {
 
 #[command]
 pub async fn meeting_snapshot(app: AppHandle) -> Result<MeetingSnapshot, String> {
-    blocking(app, |_, state| Ok(state.snapshot())).await
+    blocking(app, |app, state| Ok(state.snapshot(app))).await
 }
 
 /// PhoneMic recordings go to the meeting (instead of being pasted) until
