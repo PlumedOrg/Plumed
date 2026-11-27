@@ -14,4 +14,4 @@ export const CLI_COMMANDS: CliCommandDescriptor[] = [
 ];
 
 /** The Wayland section of the dictation doc: how to bind the commands in the desktop settings. */
-export const CLI_DOC_URL = `${PLUMED_DOCS_URL}/fonctionnalites/dictee/#sous-wayland`;
+export const CLI_DOC_URL = `${PLUMED_DOCS_URL}/fonctionnalites/dictee/#sous-linux-avec-wayland`;

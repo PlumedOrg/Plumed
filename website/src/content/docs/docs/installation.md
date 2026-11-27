@@ -27,7 +27,7 @@ L'installateur n'est pas encore signé : la demande de signature auprès de Sign
 
 ## Linux
 
-Sous Wayland, la saisie directe du texte demande une règle udev que l'application propose d'installer, et les raccourcis clavier se configurent dans votre système (voir [Dictée](/docs/fonctionnalites/dictee/#sous-wayland)).
+Avec Wayland, la saisie directe du texte demande une règle udev que l'application propose d'installer, et les raccourcis clavier se configurent dans votre système (voir [Dictée](/docs/fonctionnalites/dictee/#sous-linux-avec-wayland)).
 
 ## macOS
 

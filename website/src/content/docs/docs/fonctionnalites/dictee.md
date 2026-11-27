@@ -26,9 +26,9 @@ Pendant l'enregistrement, un indicateur affiche le niveau du micro et un aperçu
 
 **Paramètres > Général > Mode d'insertion de texte** choisit comment le texte arrive dans l'application : collage standard (`Ctrl+V`), collage pour terminal (`Ctrl+Maj+V`) ou saisie directe. Si le texte ne s'affiche pas, il est de toute façon dans le presse-papiers : appuyez sur `Ctrl+V`.
 
-## Sous Wayland
+## Sous Linux avec Wayland
 
-Sous Wayland, une application ne peut pas écouter le clavier globalement : les raccourcis se créent dans les paramètres de votre bureau, qui lancent une commande Plumed. L'application affiche les étapes pour votre bureau (GNOME, KDE, ...). Le mode « Appuyer pour démarrer/arrêter » est alors le seul possible.
+Sous Linux, avec Wayland (l'affichage par défaut des versions récentes d'Ubuntu, de Fedora ou de Debian), une application ne peut pas écouter le clavier globalement : les raccourcis se créent dans les paramètres de votre bureau, qui lancent une commande Plumed. L'application affiche les étapes pour votre bureau (GNOME, KDE, ...). Le mode « Appuyer pour démarrer/arrêter » est alors le seul possible.
 
 ```sh
 plumed --transcription   # démarre ou arrête une dictée

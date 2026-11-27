@@ -10,7 +10,13 @@ import TocList from './TocList.astro';
 
 const path = Astro.url.pathname;
 // Not on the pages that are already settled
-const settled = ['/docs/', '/docs/installation/', '/docs/faq/', '/docs/depannage/'];
+const settled = [
+    '/docs/',
+    '/docs/installation/',
+    '/docs/faq/',
+    '/docs/depannage/',
+    '/docs/fonctionnalites/dictee/',
+];
 const showNotice = path.startsWith('/docs') && !settled.includes(path.endsWith('/') ? path : `${path}/`);
 
 // The first entry is the page title ("Vue d'ensemble"), not a section

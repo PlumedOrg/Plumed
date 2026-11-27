@@ -10,7 +10,7 @@ La transcription est toujours copiée dans le presse-papiers : appuyez sur `Ctrl
 ## Le raccourci ne fait rien
 
 - Un autre logiciel utilise peut-être déjà ce raccourci : changez-le dans **Paramètres > Raccourcis**.
-- Sous Wayland (Linux), les raccourcis doivent être créés dans les paramètres de votre bureau : voir [Sous Wayland](/docs/fonctionnalites/dictee/#sous-wayland).
+- Sous Wayland (Linux), les raccourcis doivent être créés dans les paramètres de votre bureau : voir [Sous Linux avec Wayland](/docs/fonctionnalites/dictee/#sous-linux-avec-wayland).
 
 ## Le microphone n'est pas détecté
 
