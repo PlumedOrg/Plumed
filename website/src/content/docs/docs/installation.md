@@ -27,7 +27,7 @@ Sous Wayland, la saisie directe du texte demande une règle udev que l'applicati
 
 ## macOS
 
-macOS 13.4 ou plus récent. L'application est signée ad hoc mais pas notarisée (pas de compte développeur Apple), macOS la bloque donc au premier lancement. Autorisez-la dans **Réglages Système > Confidentialité et sécurité** (« Ouvrir quand même »), ou exécutez dans un terminal :
+macOS 13.4 ou plus récent. L'application est signée ad hoc mais pas notarisée (la demande de compte développeur Apple est en attente depuis le 27 novembre 2026), macOS la bloque donc au premier lancement. Autorisez-la dans **Réglages Système > Confidentialité et sécurité** (« Ouvrir quand même »), ou exécutez dans un terminal :
 
 ```sh
 xattr -dr com.apple.quarantine /Applications/Plumed.app
