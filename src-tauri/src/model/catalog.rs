@@ -10,7 +10,8 @@
 //! variant is installed under those local names whatever its quantization.
 
 use plumed_relay_protocol::models::{
-    CAMPPLUS_VOICES, ModelRepo, NEMOTRON_DIARIZATION, ULTIMED_V1_ULTRA, ULTIMED_V2_REDUX, ULTIMED_V2_ULTRA,
+    ModelRepo, CAMPPLUS_VOICES, NEMOTRON_DIARIZATION, ULTIMED_V1_ULTRA, ULTIMED_V2_REDUX,
+    ULTIMED_V2_ULTRA,
 };
 use serde::Serialize;
 
