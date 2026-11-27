@@ -43,15 +43,26 @@ pub async fn delete_model(app: AppHandle, variant: String) -> Result<ModelStatus
     manager::delete(&app, &variant).await
 }
 
-/// The speaker diarization model of the Réunion page, downloaded on first use.
+/// The models of the Réunion page (`catalog::AUXILIARY`: diarization and
+/// voices), downloaded on first use.
 #[command]
-pub fn get_diarization_model_status(app: AppHandle) -> manager::VariantStatus {
-    manager::auxiliary_status(&app, &crate::model::catalog::DIARIZATION)
+pub fn get_meeting_models_status(app: AppHandle) -> Vec<manager::VariantStatus> {
+    crate::model::catalog::AUXILIARY
+        .iter()
+        .map(|variant| manager::auxiliary_status(&app, variant))
+        .collect()
 }
 
+/// Downloads one of the Réunion models, then returns them all.
 #[command]
-pub async fn download_diarization_model(
+pub async fn download_meeting_model(
     app: AppHandle,
-) -> Result<manager::VariantStatus, DownloadError> {
-    manager::download_auxiliary(&app, &crate::model::catalog::DIARIZATION).await
+    variant: String,
+) -> Result<Vec<manager::VariantStatus>, DownloadError> {
+    let found = crate::model::catalog::AUXILIARY
+        .iter()
+        .find(|v| v.id == variant)
+        .ok_or(DownloadError::Unavailable)?;
+    manager::download_auxiliary(&app, found).await?;
+    Ok(get_meeting_models_status(app))
 }
