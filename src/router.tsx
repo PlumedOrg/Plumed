@@ -6,6 +6,7 @@ import { Corrections } from './features/corrections/corrections';
 import { System } from './features/settings/system/system';
 import { RemoteMic } from './features/extensions/remote-mic/remote-mic';
 import { Tutorial } from './features/tutorial/tutorial';
+import { MeetingPage } from './features/meeting/meeting';
 
 const rootRoute = createRootRoute({
     component: () => <Layout />,
@@ -81,6 +82,12 @@ const settingsImportExportRoute = createRoute({
     component: () => <Navigate to="/settings" hash="import-export" />,
 });
 
+const meetingRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/meeting',
+    component: MeetingPage,
+});
+
 const aboutRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/about',
@@ -106,6 +113,7 @@ const routeTree = rootRoute.addChildren([
     personalizeFormattingRulesRoute,
     extensionsIndexRoute,
     extensionsRemoteMicRoute,
+    meetingRoute,
     aboutRoute,
 ]);
 

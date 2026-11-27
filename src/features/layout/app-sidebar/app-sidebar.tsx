@@ -1,4 +1,4 @@
-import { Home, Settings, Info, Bug, Newspaper, RadioTower, SpellCheck, GraduationCap } from 'lucide-react';
+import { Home, Settings, Info, Bug, Newspaper, RadioTower, SpellCheck, GraduationCap, Users } from 'lucide-react';
 import { Link, useLocation } from '@tanstack/react-router';
 import {
     Sidebar,
@@ -25,6 +25,12 @@ const getTopLevelItems = (t: (key: string) => string) => [
         url: '/corrections',
         icon: SpellCheck,
         dataTestId: 'corrections-tab',
+    },
+    {
+        name: t('Meeting'),
+        url: '/meeting',
+        icon: Users,
+        dataTestId: 'meeting-tab',
     },
     {
         name: t('PhoneMic'),
