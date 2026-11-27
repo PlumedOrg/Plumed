@@ -21,7 +21,7 @@ hero:
       variant: secondary
 ---
 
-import { Card, CardGrid } from '@astrojs/starlight/components';
+import { Card, CardGrid, Steps } from '@astrojs/starlight/components';
 
 <CardGrid>
     <Card title="Dans n'importe quelle application" icon="pencil">
@@ -42,3 +42,28 @@ import { Card, CardGrid } from '@astrojs/starlight/components';
         </Card>
     </div>
 </CardGrid>
+
+## Feuille de route
+
+<Steps>
+
+1. **Décembre 2025** : publication de ParakeetWeb, la dictée dans le navigateur à l'origine de Plumed.
+
+2. **Juillet 2026** : jeu de données [UltiMed-ASR-FR v1](https://huggingface.co/datasets/Olicorne/UltiMed-ASR-FR-v1), de l'audio médical français pour entraîner les modèles.
+
+3. **Septembre 2026** : premier modèle UltiMed, Parakeet entraîné sur ce jeu de données.
+
+4. **Novembre 2026** : jeu de données et modèle UltiMed v2.
+
+5. **Novembre 2026** : naissance de Plumed, à partir du logiciel libre Murmure.
+
+6. **24 novembre 2026** : sortie de Plumed 1.0.
+
+</Steps>
+
+### Prochaines étapes
+
+- Plus de tests.
+- Notarisation Apple, pour que macOS ouvre Plumed sans avertissement.
+- Signature Windows avec SignPath, pour la même chose sous Windows.
+- Héberger le relais de Plumed sur le relais HDS (hébergement de données de santé) d'[InterHop.org](https://interhop.org).
