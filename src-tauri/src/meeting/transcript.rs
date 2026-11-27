@@ -45,7 +45,11 @@ impl Transcript {
     /// the turns of `into` that now follow each other become one line.
     pub fn relabel(&mut self, from: usize, into: usize) {
         for line in std::mem::take(&mut self.lines) {
-            let speaker = if line.speaker == from { into } else { line.speaker };
+            let speaker = if line.speaker == from {
+                into
+            } else {
+                line.speaker
+            };
             self.append(Line { speaker, ..line });
         }
     }
@@ -97,7 +101,11 @@ mod tests {
             .collect();
         assert_eq!(
             texts,
-            vec![(0, "Bonjour Paul.", 0.0), (1, "Salut.", 2.0), (0, "Alors", 3.0)]
+            vec![
+                (0, "Bonjour Paul.", 0.0),
+                (1, "Salut.", 2.0),
+                (0, "Alors", 3.0)
+            ]
         );
         assert!((transcript.lines[0].end - 1.3).abs() < 1e-9);
     }

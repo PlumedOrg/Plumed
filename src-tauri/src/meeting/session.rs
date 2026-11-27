@@ -329,7 +329,10 @@ mod tests {
         core.add_speaker_probs(60, &[0.0f32, 0.0, 0.9].repeat(20));
         core.finish();
         core.release();
-        assert_eq!(texts(&core), vec![(0, "Un."), (1, "Deux."), (0, "Trois. Quatre.")]);
+        assert_eq!(
+            texts(&core),
+            vec![(0, "Un."), (1, "Deux."), (0, "Trois. Quatre.")]
+        );
     }
 
     #[test]

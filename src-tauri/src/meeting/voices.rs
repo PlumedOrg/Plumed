@@ -122,8 +122,10 @@ impl<E: Embedder> VoiceTracker<E> {
             let Some(start) = (f * HOP).checked_sub(self.audio_start) else {
                 continue;
             };
-            let (Some(samples), audio) = (self.audio.get(start..start + HOP), &mut self.slots[slot].audio)
-            else {
+            let (Some(samples), audio) = (
+                self.audio.get(start..start + HOP),
+                &mut self.slots[slot].audio,
+            ) else {
                 continue;
             };
             if audio.len() >= MAX_SAMPLES {
@@ -135,7 +137,9 @@ impl<E: Embedder> VoiceTracker<E> {
                 .iter()
                 .any(|&secs| (before + 1..=audio.len()).contains(&(secs * SAMPLE_RATE)));
         }
-        let seen = (self.next_frame * HOP).saturating_sub(self.audio_start).min(self.audio.len());
+        let seen = (self.next_frame * HOP)
+            .saturating_sub(self.audio_start)
+            .min(self.audio.len());
         self.audio.drain(..seen);
         self.audio_start += seen;
 
@@ -159,14 +163,18 @@ impl<E: Embedder> VoiceTracker<E> {
         };
         let same = |other: &[f32]| similarity(embedding, other) >= SAME_VOICE;
         let slots = self.slots.iter().enumerate().filter_map(|(other, s)| {
-            (other != slot && s.embedding.as_deref().is_some_and(same)).then_some(Target::Slot(other))
+            (other != slot && s.embedding.as_deref().is_some_and(same))
+                .then_some(Target::Slot(other))
         });
         let voices = self
             .known
             .iter()
             .filter(|(_, e)| same(e))
             .map(|&(voice, _)| Target::Voice(voice));
-        slots.chain(voices).map(|like| Match { slot, like }).collect()
+        slots
+            .chain(voices)
+            .map(|like| Match { slot, like })
+            .collect()
     }
 
     /// The voice `from` was merged into `into`.
@@ -183,7 +191,11 @@ impl<E: Embedder> VoiceTracker<E> {
 /// latest lines first; voices with under 4 s are left out.
 fn voice_audio(wav: &Path, lines: &[Line]) -> Vec<(usize, Vec<f32>)> {
     let mut reader = match hound::WavReader::open(wav) {
-        Ok(reader) if reader.spec().sample_rate as usize == SAMPLE_RATE && reader.spec().channels == 1 => reader,
+        Ok(reader)
+            if reader.spec().sample_rate as usize == SAMPLE_RATE && reader.spec().channels == 1 =>
+        {
+            reader
+        }
         Ok(_) => return Vec::new(),
         Err(e) => {
             warn!("Backed up meeting audio unreadable: {e}");
@@ -262,7 +274,10 @@ mod tests {
         let mut all = rows(0, 5);
         all.extend(rows(1, 5));
         all.extend(rows(2, 3));
-        assert!(voices.add_rows(0, &all).is_empty(), "two voices, slot 2 under 4 s");
+        assert!(
+            voices.add_rows(0, &all).is_empty(),
+            "two voices, slot 2 under 4 s"
+        );
         assert_eq!(
             voices.add_rows(1300, &rows(2, 2)),
             vec![Match {
@@ -314,7 +329,9 @@ mod tests {
         let mut writer = hound::WavWriter::create(&wav, spec).unwrap();
         for value in [-0.1f32, 0.1, -0.1] {
             for _ in 0..5 * SAMPLE_RATE {
-                writer.write_sample((value * i16::MAX as f32) as i16).unwrap();
+                writer
+                    .write_sample((value * i16::MAX as f32) as i16)
+                    .unwrap();
             }
         }
         writer.finalize().unwrap();

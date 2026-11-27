@@ -102,7 +102,11 @@ impl Fbank {
             }
             frame[0] -= PREEMPH * frame[0];
             for (k, c) in buf.iter_mut().enumerate() {
-                let x = if k < FRAME_LEN { frame[k] * self.window[k] } else { 0.0 };
+                let x = if k < FRAME_LEN {
+                    frame[k] * self.window[k]
+                } else {
+                    0.0
+                };
                 *c = Complex::new(x, 0.0);
             }
             self.fft.process(&mut buf);
@@ -125,8 +129,10 @@ impl Fbank {
     pub fn normalized(&self, pcm: &[f32]) -> (Vec<f32>, usize) {
         let (mut feats, n_frames) = self.raw(pcm);
         for b in 0..NUM_BINS {
-            let mean =
-                (0..n_frames).map(|t| feats[t * NUM_BINS + b] as f64).sum::<f64>() / n_frames as f64;
+            let mean = (0..n_frames)
+                .map(|t| feats[t * NUM_BINS + b] as f64)
+                .sum::<f64>()
+                / n_frames as f64;
             for t in 0..n_frames {
                 feats[t * NUM_BINS + b] -= mean as f32;
             }
@@ -181,12 +187,17 @@ mod tests {
         let fbank = Fbank::new();
         let (feats, n_frames) = fbank.normalized(&signal());
         for b in 0..NUM_BINS {
-            let mean: f32 = (0..n_frames).map(|t| feats[t * NUM_BINS + b]).sum::<f32>() / n_frames as f32;
+            let mean: f32 =
+                (0..n_frames).map(|t| feats[t * NUM_BINS + b]).sum::<f32>() / n_frames as f32;
             assert!(mean.abs() < 1e-4, "bin {b}: {mean}");
         }
         assert_eq!(fbank.raw(&[0.1; FRAME_LEN - 1]).1, 0);
         assert_eq!(fbank.raw(&[0.1; FRAME_LEN]).1, 1);
         // silence floors at ln(f32::EPSILON) instead of -inf
-        assert!(fbank.raw(&[0.0; FRAME_LEN]).0.iter().all(|&v| v == f32::EPSILON.ln()));
+        assert!(fbank
+            .raw(&[0.0; FRAME_LEN])
+            .0
+            .iter()
+            .all(|&v| v == f32::EPSILON.ln()));
     }
 }
