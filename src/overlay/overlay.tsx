@@ -3,6 +3,7 @@ import { useProcessingState } from '@/features/home/audio-visualizer/hooks/use-p
 import { useStreamingState } from './streaming-text/use-streaming-state';
 import { StreamingText } from './streaming-text/streaming-text';
 import clsx from 'clsx';
+import { Loader2 } from 'lucide-react';
 import { VISUALIZER_CONFIG } from './visualizer-config';
 import { useOverlayConfig } from './use-overlay-config';
 import { useOverlayError } from './use-overlay-error';
@@ -16,7 +17,7 @@ export const Overlay = () => {
     const resultPanel = useResultPanel(resultPanelDurationSecs, overlayPosition !== undefined);
     const error = useOverlayError();
     const { frozenSegments, provisional, hasStreamingText } = useStreamingState();
-    const { isProcessing } = useProcessingState();
+    const { isProcessing } = useProcessingState(0);
     const setRoot = useOverlayInputRegion();
 
     const renderContent = () => {
@@ -39,10 +40,10 @@ export const Overlay = () => {
                         'fade-in',
                         'zoom-in',
                         'duration-200',
-                        'text-red-500'
+                        error.kind === 'notice' ? 'text-violet-400' : 'text-red-500'
                     )}
                 >
-                    {error}
+                    {error.message}
                 </span>
             );
         }
@@ -79,13 +80,17 @@ export const Overlay = () => {
                         VISUALIZER_CONFIG[overlaySize].className
                     )}
                 >
-                    <AudioVisualizer
-                        bars={VISUALIZER_CONFIG[overlaySize].bars}
-                        rows={9}
-                        audioPixelWidth={VISUALIZER_CONFIG[overlaySize].pixelWidth}
-                        audioPixelHeight={VISUALIZER_CONFIG[overlaySize].pixelHeight}
-                        isProcessing={isProcessing}
-                    />
+                    {/* Plumed fork: a spinner from the release of the shortcut to the text */}
+                    {isProcessing ? (
+                        <Loader2 className="h-4 w-4 animate-spin text-violet-400" data-testid="overlay-spinner" />
+                    ) : (
+                        <AudioVisualizer
+                            bars={VISUALIZER_CONFIG[overlaySize].bars}
+                            rows={9}
+                            audioPixelWidth={VISUALIZER_CONFIG[overlaySize].pixelWidth}
+                            audioPixelHeight={VISUALIZER_CONFIG[overlaySize].pixelHeight}
+                        />
+                    )}
                 </div>
             </div>
         );

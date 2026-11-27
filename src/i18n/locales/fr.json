@@ -232,6 +232,7 @@
     "Murmure": "Murmure",
     "Murmure's own start and stop sounds will also be silent.": "Les sons de début et de fin de Murmure seront eux aussi inaudibles.",
     "Muted": "Coupé",
+    "No sound was heard": "Aucun son n'a été entendu",
     "No logs are written. Set a level again before reporting a bug.": "Aucun log n'est écrit. Réactiver un niveau avant de signaler un bug.",
     "No supported audio server detected (PipeWire or PulseAudio required).": "Aucun serveur audio compatible détecté (PipeWire ou PulseAudio requis).",
     "Not supported on Wayland": "Non pris en charge sous Wayland",

@@ -1,7 +1,9 @@
 import { listen } from '@tauri-apps/api/event';
 import { useState, useEffect, useRef } from 'react';
 
-export const useProcessingState = () => {
+// Plumed fork (written with Claude Code): the overlay passes 0 so its spinner
+// shows as soon as the shortcut is released.
+export const useProcessingState = (delayMs = 400) => {
     const [isProcessing, setIsProcessing] = useState(false);
     const timeoutRef = useRef<number | null>(null);
 
@@ -12,7 +14,7 @@ export const useProcessingState = () => {
             timeoutRef.current = window.setTimeout(() => {
                 setIsProcessing(true);
                 timeoutRef.current = null;
-            }, 400);
+            }, delayMs);
         });
 
         const unlistenEnd = listen('transcription-processing-end', () => {
@@ -33,7 +35,7 @@ export const useProcessingState = () => {
             unlistenStart.then((un) => un());
             unlistenEnd.then((un) => un());
         };
-    }, []);
+    }, [delayMs]);
 
     return { isProcessing };
 };
