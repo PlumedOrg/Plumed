@@ -2,7 +2,6 @@ import { motion } from 'framer-motion';
 import { Heart, Github, Star, ExternalLink as ExternalLinkIcon } from 'lucide-react';
 import StarryBackground from './starry-background/starry-background';
 import { ExternalLink } from '@/components/external-link';
-import { useGetVersion } from '../layout/hooks/use-get-version';
 import { useTranslation } from '@/i18n';
 import appIcon from '@/assets/app-icon.png';
 import { ForkCredits } from './fork-credits/fork-credits';
@@ -89,10 +88,7 @@ const SUPPORT_LINKS = [
 ];
 
 export const About = () => {
-    const version = useGetVersion();
     const { t } = useTranslation();
-    const currentYear = new Date().getFullYear();
-    const yearDisplay = currentYear <= 2025 ? '2025' : `2025-${currentYear}`;
 
     return (
         <div className="isolate relative flex flex-col items-center text-center pt-4">
@@ -139,10 +135,15 @@ export const About = () => {
                 <motion.div variants={sectionVariants} className="w-full space-y-5">
                     <div className="text-center space-y-3">
                         <h2 className="text-xl font-semibold text-foreground tracking-tight">
-                            {t('Help Murmure Grow')}
+                            {t('Plumed is a fork of Murmure')}
                         </h2>
                         <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                            {t('Murmure is free and open-source. Your support helps keep it alive and improving.')}
+                            <ExternalLink href="https://www.murmure.app" withIcon={false}>
+                                Murmure
+                            </ExternalLink>{' '}
+                            {t(
+                                'is free and open-source, and supporting it will help improve the whole free software ecosystem.'
+                            )}
                         </p>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
@@ -195,46 +196,6 @@ export const About = () => {
                             );
                         })}
                     </div>
-                </motion.div>
-
-                <motion.div variants={sectionVariants} className="flex flex-col items-center gap-2 pt-2">
-                    <div
-                        className="h-px w-full max-w-xs"
-                        style={{
-                            background: 'linear-gradient(to right, transparent, rgb(63 63 70), transparent)',
-                        }}
-                    />
-                    <p className="text-xs text-muted-foreground">v{version || '-'}</p>
-                    <p className="text-xs text-muted-foreground">
-                        {t('Powered by')} <span className="text-sky-400/70">{t('Parakeet UltiMed')}</span>
-                        {' · '}
-                        <ExternalLink
-                            href="https://www.gnu.org/licenses/agpl-3.0.html"
-                            className="!text-muted-foreground hover:!text-foreground"
-                            withIcon={false}
-                        >
-                            {t('GNU AGPL v3')}
-                        </ExternalLink>
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                        {t('Model by NVIDIA and Moondream, int8 export by @thiswillbeyourgithub')}
-                        {' · '}
-                        <ExternalLink
-                            href="https://creativecommons.org/licenses/by/4.0/"
-                            className="!text-muted-foreground hover:!text-foreground"
-                            withIcon={false}
-                        >
-                            {t('CC BY 4.0')}
-                        </ExternalLink>
-                    </p>
-                    <ExternalLink
-                        href="https://www.murmure.app"
-                        className="!text-sky-400/70 hover:!text-sky-400 text-xs"
-                        withIcon={false}
-                    >
-                        www.murmure.app
-                    </ExternalLink>
-                    <p className="text-xs text-muted-foreground">&copy; {yearDisplay} Al1x-ai. All rights reserved.</p>
                 </motion.div>
             </motion.div>
         </div>
