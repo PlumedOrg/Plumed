@@ -39,6 +39,14 @@ pub const NEMOTRON_DIARIZATION: ModelRepo = ModelRepo {
     revision: "dc7ddd23a2242c61eb20914af226d9e5f24b6cf0",
 };
 
+/// 3D-Speaker's CAM++ speaker embedding model, exported to ONNX by the
+/// sherpa-onnx project: whose voice is whose, to merge the speakers the
+/// diarization split (Réunion page).
+pub const CAMPPLUS_VOICES: ModelRepo = ModelRepo {
+    repo: "csukuangfj/speaker-embedding-models",
+    revision: "a8055d6daef723a6a4ecf4de233708575bf4994f",
+};
+
 /// Every repository the app may download from, so every one the relay serves
 /// by default. A new pinned revision goes here (and in the relay's
 /// `PLUMED_MODELS_REPOS` if the deployment overrides it).
@@ -47,6 +55,7 @@ pub const MODEL_REPOS: &[ModelRepo] = &[
     ULTIMED_V2_ULTRA,
     ULTIMED_V2_REDUX,
     NEMOTRON_DIARIZATION,
+    CAMPPLUS_VOICES,
 ];
 
 /// Path prefix of the relay's files.

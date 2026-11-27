@@ -10,7 +10,7 @@
 //! variant is installed under those local names whatever its quantization.
 
 use plumed_relay_protocol::models::{
-    ModelRepo, NEMOTRON_DIARIZATION, ULTIMED_V1_ULTRA, ULTIMED_V2_REDUX, ULTIMED_V2_ULTRA,
+    CAMPPLUS_VOICES, ModelRepo, NEMOTRON_DIARIZATION, ULTIMED_V1_ULTRA, ULTIMED_V2_REDUX, ULTIMED_V2_ULTRA,
 };
 use serde::Serialize;
 
@@ -284,9 +284,36 @@ pub const DIARIZATION: Variant = Variant {
     experimental: false,
 };
 
+pub const VOICE_FAMILY: Family = Family {
+    id: "voice",
+    name: "3D-Speaker CAM++",
+    repo: CAMPPLUS_VOICES,
+};
+
+/// Local name of the speaker embedding graph.
+pub const VOICE_MODEL_FILE: &str = "campplus.onnx";
+
+/// Whose voice is whose, for the Réunion page: merges the speakers the
+/// diarization split and finds them again after a pause. Apache-2.0 (from
+/// `iic/speech_campplus_sv_zh_en_16k-common_advanced`).
+pub const VOICE: Variant = Variant {
+    id: "voice-campplus",
+    family: &VOICE_FAMILY,
+    name: "3D-Speaker CAM++",
+    summary: "recognizes the voices of a meeting",
+    files: &[ModelFile {
+        path: "3dspeaker_speech_campplus_sv_zh_en_16k-common_advanced.onnx",
+        size: 28_281_165,
+        sha256: "53cab20ba8f2eb2f6e2d89ecc18e88ef3222169b61b4419cbc13666744a4574b",
+        local_name: VOICE_MODEL_FILE,
+    }],
+    available: true,
+    experimental: false,
+};
+
 /// Models downloaded besides the speech model: their folders are kept by
 /// `store::remove_stale`.
-pub const AUXILIARY: &[&Variant] = &[&DIARIZATION];
+pub const AUXILIARY: &[&Variant] = &[&DIARIZATION, &VOICE];
 
 /// Every variant, speech and auxiliary.
 pub fn all_variants() -> impl Iterator<Item = &'static Variant> {
