@@ -37,6 +37,14 @@ Toutes : le texte est écrit là où se trouve le curseur, que ce soit un logici
 
 Windows, macOS (13.4 ou plus récent) ou Linux. La reconnaissance utilise le processeur, sans carte graphique nécessaire. Les dictées courtes sont transcrites en une fraction de seconde sur un ordinateur récent, un peu plus sur une machine ancienne.
 
+## Que faire si je n'ai pas de micro ?
+
+Utilisez votre téléphone : avec [PhoneMic](/docs/fonctionnalites/phonemic/), il sert de micro pour Plumed après avoir scanné un QR code, sans rien installer sur le téléphone. Un casque ou un micro USB fonctionne aussi, et donne en général une meilleure reconnaissance qu'un micro intégré.
+
+## Que faire si j'ai un problème ?
+
+Consultez la page [Dépannage](/docs/depannage/), qui couvre les problèmes les plus courants. Si elle ne suffit pas, signalez le problème sur [GitHub](https://github.com/PlumedOrg/Plumed/issues/new/choose) ou via [olicorne.org/fr/contact](https://olicorne.org/fr/contact).
+
 ## Plumed reconnaît mal un mot que j'utilise souvent. Que faire ?
 
 Ajoutez-le au **dictionnaire personnel** (**Paramètres > Corrections > Dictionnaire personnel**) : il sera favorisé pendant la reconnaissance et écrit avec votre orthographe. Pour un nom de médicament mal reconnu, une [règle de correction](/docs/fonctionnalites/medicaments/#règles-de-correction) convient mieux. Pour redicter un seul mot, le [contexte pour les dictées courtes](/docs/fonctionnalites/dictees-courtes/) aide le modèle.
