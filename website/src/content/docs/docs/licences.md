@@ -15,6 +15,8 @@ Plumed est un logiciel libre sous licence [GNU AGPL v3](https://github.com/Plume
 - **[LPSN](https://lpsn.dsmz.de/)** (List of Prokaryotic names with Standing in Nomenclature) : noms de bactéries inclus dans la liste d'amplification de phrases, sous licence [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Citation requise : Parte, A.C., Sardà Carbasse, J., Meier-Kolthoff, J.P., Reimer, L.C. & Göker, M. (2020). List of Prokaryotic names with Standing in Nomenclature (LPSN) moves to the DSMZ. _International Journal of Systematic and Evolutionary Microbiology_ 70, 5607-5612. https://doi.org/10.1099/ijsem.0.004332
 - **[Grammalecte](https://grammalecte.net)** par Olivier R. : le correcteur grammatical de l'étape 7 des corrections, version 2.3.0 (GNU GPL v3 ou ultérieure), inclus sans modification (sa version JavaScript, celle de l'extension Firefox) avec sa licence. Sources : [le paquet inclus](https://addons.mozilla.org/firefox/downloads/file/4643560/grammalecte_fr-2.3.0.xpi) et [l'archive des sources de la même version](https://grammalecte.net/zip/Grammalecte-fr-v2.3.0.zip). Détails dans [`grammar-data/SOURCE.md`](https://github.com/PlumedOrg/Plumed/blob/medmain/src-tauri/grammar-data/SOURCE.md).
 
+Merci enfin aux testeurs, dont les retours ont façonné Plumed.
+
 Le détail des règles médicales incluses (provenance, mise à jour) est dans [`medical-data/SOURCE.md`](https://github.com/PlumedOrg/Plumed/blob/medmain/src-tauri/medical-data/SOURCE.md).
 
 Le contenu de ce site est sous la même licence que le code (AGPL v3).
