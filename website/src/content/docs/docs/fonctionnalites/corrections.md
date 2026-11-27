@@ -70,7 +70,34 @@ Les règles viennent du projet [UltiMed-ASR-FR-v2-regex-fixes](https://github.co
 | [manual_fix_rules.jsonl](https://github.com/PlumedOrg/Plumed/blob/medmain/src-tauri/medical-data/regex-fixes/manual_fix_rules.jsonl) | règles écrites à la main |
 | [plumed_fix_rules.jsonl](https://github.com/PlumedOrg/Plumed/blob/medmain/src-tauri/medical-data/plumed-rules/plumed_fix_rules.jsonl) | règles propres à Plumed, hors UltiMed (par exemple « plume med » devient « Plumed »), appliquées en dernier |
 
-Chaque ligne contient le mot correct (`replacement`), les formes erronées entendues (`variants`) et une expression régulière (`pattern`) qui les reconnaît, avec ou sans accents. Ces règles sont mises à jour sans attendre une nouvelle version de Plumed : voir [Médicaments et termes médicaux](/docs/fonctionnalites/medicaments/).
+Chaque ligne contient le mot correct (`replacement`), les formes erronées entendues (`variants`) et une expression régulière (`pattern`) qui les reconnaît, avec ou sans accents. Ces règles sont mises à jour sans attendre une nouvelle version de Plumed : voir [Mises à jour des règles](#mises-à-jour-des-règles).
+
+Activée par défaut : **Paramètres > Corrections > Erreurs résiduelles**, interrupteur en haut de l'onglet.
+
+Quelques exemples :
+
+| Transcription brute | Après correction |
+| --- | --- |
+| tacadol | Takadol |
+| polllachiurie | pollakiurie |
+| soucrural | sous-crural |
+
+Ce sont les mêmes règles que le mode médical de [ParakeetWeb](http://parakeetweb.olicorne.org/?mode=med), appliquées en local. Provenance et licence (AGPL-3.0-or-later) : [`SOURCE.md`](https://github.com/PlumedOrg/Plumed/blob/medmain/src-tauri/medical-data/SOURCE.md).
+
+### Règles de correction
+
+Dans l'onglet **Erreurs résiduelles**, la section **Règles de correction** permet de :
+
+- **Essayer les règles** : tapez une phrase pour voir ce que les règles en font.
+- **Trouver une règle préinstallée** : cherchez par le mot correct (« Takadol ») ou par ce que la transcription a écrit (« tacadol »), puis modifiez le texte reconnu ou le remplacement, ou désactivez la règle.
+- **Ajouter une règle** : un texte mal reconnu (expression régulière, sans distinction de casse, limites de mot ajoutées automatiquement) et son remplacement. Les règles ajoutées passent avant les règles préinstallées.
+- **Vos modifications** : tout ce que vous avez changé, chaque règle pouvant être rétablie.
+
+Ces modifications sont enregistrées séparément de vos règles de mise en forme : importer ou réinitialiser l'un ne touche pas l'autre. Pour corriger autre chose qu'un médicament (un nom propre, par exemple), utilisez plutôt les règles de [Formatage](#formatage).
+
+### Mises à jour des règles
+
+Si vous l'avez accepté au premier lancement (modifiable dans **Paramètres > En ligne**), Plumed vérifie au démarrage, puis une fois par jour s'il reste ouvert, s'il existe de nouvelles règles médicales. Rien n'est téléchargé sans votre clic, et « Voir les changements » montre les lignes ajoutées et retirées avant d'installer.
 
 ## Formatage
 
@@ -100,7 +127,14 @@ Le correcteur [Grammalecte](https://grammalecte.net) relit le texte. Plumed n'ap
 
 ## Textes types
 
-Une phrase déclencheuse insère un texte préparé. Dictez « Insère l'examen clinique normal. » et Plumed écrit un examen clinique normal complet, à compléter. Voir [Textes types](/docs/fonctionnalites/textes-types/) ; la liste fournie est [templates.jsonl](https://github.com/PlumedOrg/Plumed/blob/medmain/src-tauri/medical-data/text-templates/templates.jsonl).
+Une phrase déclencheuse insère un texte préparé. Dictez « Insère l'examen clinique normal. » et Plumed écrit un examen clinique normal complet, à compléter.
+
+- Appliqués en dernier, après la grammaire, pour que le texte soit inséré tel quel, avec la même tolérance que les autres commandes vocales.
+- Les textes fournis peuvent être lus et modifiés : la version modifiée devient la vôtre et l'originale est désactivée.
+- L'exemple fourni est désactivé tant que vous ne l'activez pas (le [Tutoriel](/docs/fonctionnalites/dictee/) propose de l'essayer).
+- Vous pouvez ajouter, modifier et supprimer vos propres textes.
+
+La liste fournie est [templates.jsonl](https://github.com/PlumedOrg/Plumed/blob/medmain/src-tauri/medical-data/text-templates/templates.jsonl).
 
 ## Modifier les listes
 

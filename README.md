@@ -16,7 +16,7 @@ Téléchargements et guide d'installation (Windows, Linux, macOS) : [plumed.fr/d
 
 ## Documentation
 
-[Dictée](https://plumed.fr/docs/fonctionnalites/dictee/) · [Corrections](https://plumed.fr/docs/fonctionnalites/corrections/) · [Médicaments](https://plumed.fr/docs/fonctionnalites/medicaments/) · [Textes types](https://plumed.fr/docs/fonctionnalites/textes-types/) · [PhoneMic](https://plumed.fr/docs/fonctionnalites/phonemic/) · [Réunion](https://plumed.fr/docs/fonctionnalites/reunion/) · [API locale](https://plumed.fr/docs/fonctionnalites/api-locale/) · [FAQ](https://plumed.fr/docs/faq/) · [Dépannage](https://plumed.fr/docs/depannage/) · [Confidentialité](PRIVACY_POLICY.md)
+[Dictée](https://plumed.fr/docs/fonctionnalites/dictee/) · [Corrections](https://plumed.fr/docs/fonctionnalites/corrections/) · [PhoneMic](https://plumed.fr/docs/fonctionnalites/phonemic/) · [Réunion](https://plumed.fr/docs/fonctionnalites/reunion/) · [API locale](https://plumed.fr/docs/fonctionnalites/api-locale/) · [FAQ](https://plumed.fr/docs/faq/) · [Dépannage](https://plumed.fr/docs/depannage/) · [Confidentialité](PRIVACY_POLICY.md)
 
 ## Remerciements et licences
 
