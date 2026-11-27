@@ -1,4 +1,4 @@
-import { Home, Settings, Info, Bug, Newspaper, RadioTower, SpellCheck, GraduationCap, Users } from 'lucide-react';
+import { Home, Settings, Info, Bug, RadioTower, SpellCheck, GraduationCap, Users } from 'lucide-react';
 import { Link, useLocation } from '@tanstack/react-router';
 import {
     Sidebar,
@@ -17,7 +17,7 @@ import { Separator } from '@/components/separator';
 import { useTranslation } from '@/i18n';
 import appIcon from '@/assets/app-icon.png';
 import { ExternalLink } from '@/components/external-link';
-import { AUTHOR_URL, PLUMED_LATEST_RELEASE_URL, PLUMED_NEW_ISSUE_URL, PLUMED_RELEASES_URL } from '@/utils/plumed-links';
+import { AUTHOR_URL, PLUMED_NEW_ISSUE_URL } from '@/utils/plumed-links';
 
 // Plumed fork: every page is a direct entry. The Tutorial stays right below PhoneMic.
 const getTopLevelItems = (t: (key: string) => string) => [
@@ -104,15 +104,6 @@ export const AppSidebar = () => {
                 </SidebarGroup>
             </SidebarContent>
             <SidebarFooter className="bg-background ">
-                <a
-                    href={version.length > 0 ? `${PLUMED_RELEASES_URL}/tag/${version}` : PLUMED_LATEST_RELEASE_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-muted-foreground text-xs hover:text-foreground transition-colors flex items-center gap-2 px-2"
-                >
-                    <Newspaper className="w-4 h-4" />
-                    <span>{t('Release notes')}</span>
-                </a>
                 <a
                     href={PLUMED_NEW_ISSUE_URL}
                     target="_blank"

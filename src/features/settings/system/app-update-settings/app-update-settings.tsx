@@ -6,13 +6,15 @@ import { Typography } from '@/components/typography';
 import { useTranslation } from '@/i18n';
 import { AppUpdateChannelSelect } from '@/features/update-checker/app-update-channel-select/app-update-channel-select';
 import { useCheckAppUpdateNow } from '@/features/update-checker/hooks/use-check-app-update-now';
-import { PLUMED_RELEASES_URL } from '@/utils/plumed-links';
+import { PLUMED_LATEST_RELEASE_URL, PLUMED_RELEASES_URL } from '@/utils/plumed-links';
+import { useGetVersion } from '@/features/layout/hooks/use-get-version';
 
 // Plumed fork (written with Claude Code): which app releases the updater
 // offers (see AGENTS.FORK.md, auto-updater section), and a check on demand.
 export const AppUpdateSettings = () => {
     const { t } = useTranslation();
     const { isChecking, checkNow } = useCheckAppUpdateNow();
+    const version = useGetVersion();
 
     return (
         <>
@@ -41,6 +43,11 @@ export const AppUpdateSettings = () => {
                     {isChecking && <Loader2 className="h-4 w-4 animate-spin" />}
                     {t('Check now')}
                 </Button>
+                <ExternalLink
+                    href={version.length > 0 ? `${PLUMED_RELEASES_URL}/tag/${version}` : PLUMED_LATEST_RELEASE_URL}
+                >
+                    {t('Release notes')}
+                </ExternalLink>
                 <ExternalLink href={PLUMED_RELEASES_URL}>{t('Open the releases page')}</ExternalLink>
             </div>
         </>
