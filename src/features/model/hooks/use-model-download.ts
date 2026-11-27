@@ -5,8 +5,14 @@ import { ModelDownloadProgress, ModelStatus } from '../types';
 
 // Plumed fork (written with Claude Code): starts, follows and cancels a model
 // download. A cancelled or failed download keeps its files: starting it again
-// resumes where it stopped.
-export const useModelDownload = (onStatus: (status: ModelStatus) => void) => {
+// resumes where it stopped. `download` defaults to the speech models; the
+// Réunion page passes the diarization model's command.
+const downloadModel = (variant: string) => invoke<ModelStatus>('download_model', { variant });
+
+export const useModelDownload = <S = ModelStatus>(
+    onStatus: (status: S) => void,
+    download: (variant: string) => Promise<S> = downloadModel as (variant: string) => Promise<S>
+) => {
     const [progress, setProgress] = useState<ModelDownloadProgress | null>(null);
     const [error, setError] = useState<unknown>(null);
     const [running, setRunning] = useState(false);
@@ -25,7 +31,7 @@ export const useModelDownload = (onStatus: (status: ModelStatus) => void) => {
         setError(null);
         setProgress(null);
         try {
-            onStatus(await invoke<ModelStatus>('download_model', { variant }));
+            onStatus(await download(variant));
             return true;
         } catch (e) {
             setError(e);
