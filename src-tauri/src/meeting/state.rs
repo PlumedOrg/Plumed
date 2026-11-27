@@ -2,6 +2,7 @@
 //! one source (the microphone, a file, a PhoneMic recording); stopping it
 //! keeps the meeting, which the next recording continues.
 
+use super::backup::{self, Resume};
 use super::transcript::Line;
 use super::worker::{self, Meeting};
 use crate::audio::chunking::{ChunkJob, Chunker};
@@ -170,13 +171,35 @@ impl MeetingState {
         }
     }
 
-    /// Forgets the meeting (stopped first): the next recording starts anew.
-    pub fn reset(&self) {
+    /// Stops the source, waits for its last chunks and drops the meeting.
+    fn forget(&self) {
         self.stop();
         if let Some(recording) = self.recording.lock().take() {
             let _ = recording.worker.join();
         }
         *self.meeting.lock() = None;
+    }
+
+    /// Forgets the meeting (stopped first) and its backup: the next
+    /// recording starts anew.
+    pub fn reset(&self, app: &AppHandle) {
+        self.forget();
+        backup::delete(app);
+    }
+
+    /// Continues the meeting backed up by a previous run: its transcript, or
+    /// else its audio transcribed again (then returns the audio duration).
+    pub fn resume_backup(&self, app: &AppHandle) -> Result<Option<f64>> {
+        self.forget();
+        match backup::take(app)? {
+            Some(Resume::Text(restored)) => {
+                let meeting = Meeting::resume(app, restored)?;
+                *self.meeting.lock() = Some(Arc::new(Mutex::new(meeting)));
+                Ok(None)
+            }
+            Some(Resume::Audio(path)) => self.start_file(app, &path),
+            None => Err(anyhow!("no meeting backup found")),
+        }
     }
 
     /// A recording is running or its last chunks are still transcribed.

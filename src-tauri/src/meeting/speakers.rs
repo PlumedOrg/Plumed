@@ -24,6 +24,12 @@ impl SpeakerTrack {
         }
     }
 
+    /// No row before `frame`: a resumed meeting starts there.
+    pub fn skip_to(&mut self, frame: usize) {
+        self.first_frame = frame;
+        self.probs.clear();
+    }
+
     /// Sets the rows from absolute row `frame` on, replacing any received
     /// before for the same time (the provisional rows of a paused meeting).
     pub fn push_at(&mut self, frame: usize, rows: &[f32]) {

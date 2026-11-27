@@ -2,6 +2,7 @@
 //! Loading the diarization model and waiting for a previous recording block,
 //! so they run off the main thread.
 
+use crate::meeting::backup::Found;
 use crate::meeting::state::{MeetingSnapshot, MeetingState};
 use std::path::PathBuf;
 use tauri::{command, AppHandle, Manager};
@@ -38,11 +39,29 @@ pub async fn meeting_stop(app: AppHandle) -> Result<(), String> {
 
 #[command]
 pub async fn meeting_reset(app: AppHandle) -> Result<(), String> {
-    blocking(app, |_, state| {
-        state.reset();
+    blocking(app, |app, state| {
+        state.reset(app);
         Ok(())
     })
     .await
+}
+
+/// A meeting backup left by a previous run, if any.
+#[command]
+pub fn meeting_backup_find(app: AppHandle) -> Option<Found> {
+    crate::meeting::backup::find(&app)
+}
+
+/// Continues the backed up meeting. Returns the duration of its audio when
+/// it is transcribed again (no transcript was saved).
+#[command]
+pub async fn meeting_backup_resume(app: AppHandle) -> Result<Option<f64>, String> {
+    blocking(app, |app, state| state.resume_backup(app)).await
+}
+
+#[command]
+pub fn meeting_backup_delete(app: AppHandle) {
+    crate::meeting::backup::delete(&app);
 }
 
 #[command]

@@ -2,7 +2,7 @@
 //! chunk words and speaker probabilities come in, transcript lines go out.
 
 use super::speakers::SpeakerTrack;
-use super::transcript::Transcript;
+use super::transcript::{Line, Transcript};
 use super::words::TimedWord;
 
 /// How long the end of each chunk is held back: a forced cut repeats this much
@@ -31,6 +31,14 @@ impl MeetingCore {
             last_speaker: 0,
             transcript: Transcript::default(),
         }
+    }
+
+    /// Continues a backed up transcript: the next audio comes from frame
+    /// `frame` of the timeline on.
+    pub fn resume(&mut self, lines: Vec<Line>, frame: usize) {
+        self.last_speaker = lines.last().map_or(0, |line| line.speaker);
+        self.transcript.lines = lines;
+        self.speakers.skip_to(frame);
     }
 
     /// Adds the words of the chunk `[chunk_start, chunk_end)`, whose first
@@ -187,5 +195,28 @@ mod tests {
         core.finish();
         core.release();
         assert_eq!(texts(&core), vec![(0, "avant pareil coupé après")]);
+    }
+
+    #[test]
+    fn a_resumed_transcript_goes_on_from_its_frame() {
+        let mut core = MeetingCore::new(SpeakerTrack::new(2, FRAME));
+        let before = Line {
+            speaker: 1,
+            start: 0.0,
+            end: 99.0,
+            text: "Avant la coupure.".into(),
+        };
+        core.resume(vec![before], 1000); // 100 s
+        core.add_chunk(
+            vec![word(100.5, "Après."), word(102.5, "Oui.")],
+            100.0,
+            110.0,
+            0.0,
+        );
+        core.add_speaker_probs(1000, &rows(0, 2.0));
+        core.add_speaker_probs(1020, &rows(1, 0.5));
+        assert_eq!(core.release(), vec![1]);
+        // a word without its frames yet waits
+        assert_eq!(texts(&core), vec![(1, "Avant la coupure."), (0, "Après.")]);
     }
 }

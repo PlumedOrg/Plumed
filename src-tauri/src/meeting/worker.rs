@@ -2,6 +2,7 @@
 //! `Chunker`, PhoneMic, file), feeds the new audio to the diarization and the
 //! whole chunk to the speech engine, and emits the transcript lines.
 
+use super::backup::{Backup, Restored};
 use super::session::MeetingCore;
 use super::speakers::SpeakerTrack;
 use super::transcript::Line;
@@ -62,21 +63,44 @@ pub struct Meeting {
     stream: SortformerStream,
     /// 16 kHz samples of meeting audio so far.
     timeline: usize,
+    /// Diarization frames before this meeting's stream (a resumed backup).
+    frame_offset: usize,
+    backup: Option<Backup>,
 }
 
 impl Meeting {
     pub fn new(app: &AppHandle) -> Result<Self> {
+        Self::open(app, None)
+    }
+
+    /// Continues a backed up transcript. The timeline goes on from a frame
+    /// boundary near where it stopped; the diarization starts anew, so the
+    /// speakers may get other letters than before.
+    pub fn resume(app: &AppHandle, restored: Restored) -> Result<Self> {
+        Self::open(app, Some(restored))
+    }
+
+    fn open(app: &AppHandle, restored: Option<Restored>) -> Result<Self> {
         let dir = crate::model::manager::auxiliary_dir(app, &DIARIZATION)
             .ok_or_else(|| anyhow!("the speaker diarization model is not downloaded"))?;
         let model = DiarizationModel::load(&dir, DIARIZATION_STEP, None)?;
         let stream = model.stream();
         let speakers = SpeakerTrack::new(model.config.num_speakers, FRAME_SEC);
-        Ok(Self {
+        let mut meeting = Self {
             core: MeetingCore::new(speakers),
             model,
             stream,
             timeline: 0,
-        })
+            frame_offset: 0,
+            backup: Backup::open(app, restored.is_some()),
+        };
+        if let Some(restored) = restored {
+            let frame = (restored.processed_secs / FRAME_SEC).round() as usize;
+            meeting.frame_offset = frame;
+            meeting.timeline = (frame as f64 * FRAME_SEC * SAMPLE_RATE as f64).round() as usize;
+            meeting.core.resume(restored.lines, frame);
+        }
+        Ok(meeting)
     }
 
     pub fn processed_secs(&self) -> f64 {
@@ -84,7 +108,7 @@ impl Meeting {
     }
 
     fn speaker_rows(&mut self, stream_finished: bool, audio: &[f32]) -> Result<()> {
-        let frame = self.stream.frames_written();
+        let frame = self.frame_offset + self.stream.frames_written();
         let rows = if stream_finished {
             // a clone settles the audio so far; the meeting may go on
             self.stream.clone().finish(&mut self.model.runner)?
@@ -110,6 +134,9 @@ impl Meeting {
         let overlap = (overlap_prefix * SAMPLE_RATE / sample_rate.max(1) as usize).min(audio.len());
         let chunk_start = self.timeline.saturating_sub(overlap) as f64 / SAMPLE_RATE as f64;
         self.speaker_rows(false, &audio[overlap..])?;
+        if let Some(backup) = self.backup.as_mut() {
+            backup.add_audio(&audio[overlap..]);
+        }
         self.timeline += audio.len() - overlap;
 
         let speed = slow_down_speed(app);
@@ -155,6 +182,9 @@ impl Meeting {
                 })
                 .collect();
             let _ = app.emit(LINES_EVENT, lines);
+        }
+        if let Some(backup) = &self.backup {
+            backup.save(&self.core.transcript.lines, self.processed_secs());
         }
         let _ = app.emit(PROGRESS_EVENT, self.processed_secs());
     }
