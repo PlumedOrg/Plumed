@@ -11,6 +11,8 @@ use serde::{Deserialize, Serialize};
 /// clean-up step of the Explanation flow, not steps of their own.
 /// Recognition covers the medical vocabulary and the sound-alike words, which
 /// act while decoding and cannot be told apart in the text.
+/// Keep the website page website/src/content/docs/docs/fonctionnalites/corrections.md in sync
+/// when a step is added, removed or moved.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum PipelineStep {

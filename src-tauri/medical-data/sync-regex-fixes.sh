@@ -10,6 +10,8 @@
 # Copies its rules/*_fix_rules.jsonl, rules/confusion_groups.jsonl and
 # rules/dictation_rules.csv byte for byte and records each file's commit and
 # sha256 in regex-fixes/PROVENANCE, then reminds you to run the tests.
+# Afterwards, update the counts in the website page
+# website/src/content/docs/docs/fonctionnalites/corrections.md.
 # Written with Claude Code.
 set -eu
 

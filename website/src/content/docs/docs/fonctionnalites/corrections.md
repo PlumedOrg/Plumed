@@ -5,7 +5,7 @@ sidebar:
   order: 2
 ---
 
-Un modèle de reconnaissance vocale généraliste connaît mal notre vocabulaire. Dictez « venlafaxine » et il peut écrire « veine la faxine » ; dictez « 15 mg par kilo par jour » et il l'écrit en toutes lettres. Ces erreurs reviennent toujours de la même façon, donc on peut les prévoir.
+Plumed utilise les modèles de reconnaissance vocale [UltiMed](https://github.com/UltiMed-Org), entraînés sur du vocabulaire médical, mais aucun modèle ne connaît parfaitement notre vocabulaire. Dictez « venlafaxine » et il peut écrire « veine la faxine » ; dictez « 15 mg par kilo par jour » et il l'écrit en toutes lettres. Ces erreurs reviennent toujours de la même façon, donc on peut les prévoir.
 
 Plumed intervient à deux moments :
 
@@ -67,7 +67,8 @@ Les règles viennent du projet [UltiMed-ASR-FR-v2-regex-fixes](https://github.co
 | [parhaf_fix_rules.jsonl](https://github.com/PlumedOrg/Plumed/blob/medmain/src-tauri/medical-data/regex-fixes/parhaf_fix_rules.jsonl) | termes du corpus médical PARHAF |
 | [acronyms_fix_rules.jsonl](https://github.com/PlumedOrg/Plumed/blob/medmain/src-tauri/medical-data/regex-fixes/acronyms_fix_rules.jsonl) | sigles |
 | [parrot_fix_rules.jsonl](https://github.com/PlumedOrg/Plumed/blob/medmain/src-tauri/medical-data/regex-fixes/parrot_fix_rules.jsonl) | termes du corpus PARROT |
-| [manual_fix_rules.jsonl](https://github.com/PlumedOrg/Plumed/blob/medmain/src-tauri/medical-data/regex-fixes/manual_fix_rules.jsonl) | règles écrites à la main, appliquées en dernier |
+| [manual_fix_rules.jsonl](https://github.com/PlumedOrg/Plumed/blob/medmain/src-tauri/medical-data/regex-fixes/manual_fix_rules.jsonl) | règles écrites à la main |
+| [plumed_fix_rules.jsonl](https://github.com/PlumedOrg/Plumed/blob/medmain/src-tauri/medical-data/plumed-rules/plumed_fix_rules.jsonl) | règles propres à Plumed, hors UltiMed (par exemple « plume med » devient « Plumed »), appliquées en dernier |
 
 Chaque ligne contient le mot correct (`replacement`), les formes erronées entendues (`variants`) et une expression régulière (`pattern`) qui les reconnaît, avec ou sans accents. Ces règles sont mises à jour sans attendre une nouvelle version de Plumed : voir [Médicaments et termes médicaux](/docs/fonctionnalites/medicaments/).
 
@@ -77,7 +78,7 @@ Vos règles de mise en forme : « dire ceci » donne « écrire cela ». Au dép
 
 ### Règles de dictée
 
-Une nouvelle installation contient 45 règles de dictée médicale : unités, constantes, ponctuation et mise en page dictées. Quelques exemples :
+Une nouvelle installation contient 47 règles de dictée médicale : unités, constantes, ponctuation et mise en page dictées. Quelques exemples :
 
 | Vous dites | Plumed écrit |
 | --- | --- |
@@ -91,7 +92,7 @@ Une nouvelle installation contient 45 règles de dictée médicale : unités, co
 | saute une ligne | (retour à la ligne) |
 
 - La liste : [dictation_rules.csv](https://github.com/PlumedOrg/Plumed/blob/medmain/src-tauri/medical-data/regex-fixes/dictation_rules.csv), d'UltiMed, avec pour chaque règle un exemple avant et après.
-- **Revenir à la liste d'origine** remet exactement ces 45 règles.
+- **Revenir à la liste d'origine** remet exactement ces 47 règles.
 
 ## Grammaire
 

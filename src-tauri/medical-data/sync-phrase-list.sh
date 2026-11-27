@@ -7,6 +7,8 @@
 # Copies phrase_boosting/french_medical.txt with its first line (the defaults
 # line, `*:1.5::fhpn`) replaced by Plumed's tuning, and records the source
 # commit and sha256 in phrase-boosting/PROVENANCE.
+# Afterwards, update the counts in the website page
+# website/src/content/docs/docs/fonctionnalites/corrections.md.
 # Written with Claude Code.
 set -eu
 

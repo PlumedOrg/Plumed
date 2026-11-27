@@ -145,6 +145,7 @@ fn with_short_context(
 
 /// Post-processes the concatenated chunks at the end of transcription,
 /// recording the text after each step in `trace` (Plumed).
+/// Keep the step order described in the website page website/src/content/docs/docs/fonctionnalites/corrections.md in sync.
 pub fn post_process_chunks(app: &AppHandle, chunks: ChunkText, trace: &mut StepTrace) -> String {
     let accumulated = chunks.corrected;
     if accumulated.trim().is_empty() {

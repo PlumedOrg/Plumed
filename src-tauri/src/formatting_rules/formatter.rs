@@ -48,6 +48,7 @@ pub fn apply_formatting(text: String, settings: &FormattingSettings) -> String {
 }
 
 /// `apply_formatting`, recording the text after each step in `trace` (Plumed).
+/// Keep the step order described in the website page website/src/content/docs/docs/fonctionnalites/corrections.md in sync.
 pub fn apply_formatting_traced(
     text: String,
     settings: &FormattingSettings,

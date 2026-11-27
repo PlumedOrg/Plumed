@@ -35,7 +35,8 @@ pub const BUNDLED_VERSION: &str = "2026.11.23.4";
 
 /// Rule file names, in the order they apply: UltiMed's, then Plumed's own
 /// (last, so it also respells what an UltiMed rule wrote). A downloaded set
-/// must have all of them.
+/// must have all of them. Keep the file table of
+/// the website page website/src/content/docs/docs/fonctionnalites/corrections.md in sync.
 pub const RULE_FILES: [&str; 7] = [
     "drug_fix_rules.jsonl",
     "dictionary_fix_rules.jsonl",
