@@ -302,6 +302,23 @@ fn every_plumed_rule_compiles() {
     assert!(bundled.rules.iter().all(Option::is_some));
 }
 
+/// The app's own name, as the model hears it ("plume med", "plumes-aide").
+#[test]
+fn plumed_rules_spell_the_app_name() {
+    let r = DrugRules::new(
+        Arc::new(Bundled::from_jsonl(&[crate::medical::data_set::PLUMED_RULES])),
+        &[],
+    );
+    for heard in [
+        "plumed", "Plumed", "plume med", "Plumes med", "plume-méd", "plumes aide", "Plume-aide",
+        "plumemed",
+    ] {
+        assert_eq!(r.apply(&format!("dicté avec {heard}.")), "dicté avec Plumed.", "{heard}");
+    }
+    assert_eq!(r.apply("une plume médicale"), "une plume médicale");
+    assert_eq!(r.apply("une plume, aide"), "une plume, aide");
+}
+
 /// GitHub refuses 0-byte release assets, so publish-medical-data.sh uploads
 /// an empty rule file as a single newline: it must still mean "no rules".
 #[test]
