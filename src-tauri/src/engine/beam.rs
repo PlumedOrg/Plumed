@@ -635,32 +635,75 @@ mod tests {
     /// Beam vs greedy on a real clip (the bundled French smoke sample unless
     /// PLUMED_BEAM_WAV names another 16 kHz mono wav), with the model
     /// `scripts/fetch-ultimed-model.sh` puts in resources/ unless
+    /// The development model (`scripts/fetch-ultimed-model.sh`), or the one
+    /// PLUMED_MODEL_DIR names.
+    fn dev_engine() -> crate::engine::types::ParakeetEngine {
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..");
+        let model_dir = std::env::var("PLUMED_MODEL_DIR").map_or_else(
+            |_| root.join("resources/parakeet-tdt-0.6b-v3-int8"),
+            Into::into,
+        );
+        crate::engine::types::ParakeetEngine::load_int8(
+            &model_dir,
+            Some(root.join("resources/tokenizer.json")),
+        )
+        .expect("model")
+    }
+
+    /// A 16 kHz mono 16-bit WAV as samples in [-1, 1].
+    fn read_wav(path: &std::path::Path) -> Vec<f32> {
+        hound::WavReader::open(path)
+            .expect("wav")
+            .samples::<i16>()
+            .map(|s| s.expect("sample") as f32 / 32768.0)
+            .collect()
+    }
+
+    /// Benchmark harness: transcribes every WAV listed (one path per line)
+    /// in PLUMED_WAV_LIST with the default beam, one `{"wav", "text"}` JSON
+    /// line per file on stdout (prefixed `HYP `, to grep it out of the test
+    /// output). PLUMED_SPEED (e.g. 0.8) first slows the audio down like the
+    /// "slow down the audio" setting. Used to measure the effect of slowing down:
+    /// `PLUMED_WAV_LIST=list.txt cargo test --release --lib engine::beam::tests::transcribe_wav_list -- --ignored --nocapture`
+    #[test]
+    #[ignore]
+    fn transcribe_wav_list() {
+        use crate::audio::pipeline::pad_with_silence;
+        let list = std::env::var("PLUMED_WAV_LIST").expect("PLUMED_WAV_LIST");
+        let mut engine = dev_engine();
+        let model = engine.model.as_mut().expect("loaded");
+        let speed: f32 =
+            std::env::var("PLUMED_SPEED").map_or(1.0, |s| s.parse().expect("PLUMED_SPEED"));
+        for wav in std::fs::read_to_string(list).expect("list").lines() {
+            let samples = crate::audio::time_stretch::time_stretch(
+                &read_wav(std::path::Path::new(wav)),
+                speed,
+            );
+            let padded = pad_with_silence(&samples, 16000);
+            let result = model
+                .transcribe_samples(padded, DEFAULT_BEAM_WIDTH)
+                .expect("transcribe");
+            println!(
+                "HYP {}",
+                serde_json::json!({"wav": wav, "text": result.text})
+            );
+        }
+    }
+
     /// PLUMED_MODEL_DIR names another:
     /// `cargo test --release --lib engine::beam -- --ignored --nocapture`
     #[test]
     #[ignore]
     fn beam_vs_greedy_on_a_sample() {
         use crate::audio::pipeline::pad_with_silence;
-        use crate::engine::types::ParakeetEngine;
         use std::path::Path;
 
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("..");
-        let model_dir = std::env::var("PLUMED_MODEL_DIR").map_or_else(
-            |_| root.join("resources/parakeet-tdt-0.6b-v3-int8"),
-            Into::into,
-        );
         let wav = std::env::var("PLUMED_BEAM_WAV")
             .map_or_else(|_| root.join(".github/smoke/smoke-fr.wav"), Into::into);
-        let mut engine =
-            ParakeetEngine::load_int8(&model_dir, Some(root.join("resources/tokenizer.json")))
-                .expect("model");
+        let mut engine = dev_engine();
         let model = engine.model.as_mut().expect("loaded");
-        let samples: Vec<f32> = hound::WavReader::open(&wav)
-            .expect("wav")
-            .samples::<i16>()
-            .map(|s| s.expect("sample") as f32 / 32768.0)
-            .collect();
-        let padded = pad_with_silence(&samples, 16000);
+        let padded = pad_with_silence(&read_wav(Path::new(&wav)), 16000);
         for width in [1, DEFAULT_BEAM_WIDTH] {
             let start = std::time::Instant::now();
             let result = model
