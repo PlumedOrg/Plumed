@@ -358,6 +358,11 @@ pub fn run() {
             // Before the startup wizard can ask anything this launch.
             telemetry::count_launch(app.handle());
 
+            // Plumed: the update checks are small requests, so they do not
+            // wait for the model to load (the sidebar offered a new version
+            // seconds after showing the old one).
+            daily_checks::spawn(app.handle());
+
             let startup_handle = app.handle().clone();
             std::thread::spawn(move || {
                 // Open `/dev/uinput` before the model loads, holding the
@@ -391,7 +396,6 @@ pub fn run() {
                 }
                 crate::grammar::warm_up(&startup_handle);
                 telemetry::send_if_due(&startup_handle);
-                daily_checks::spawn(&startup_handle);
             });
 
             setup_tray(app.handle())?;

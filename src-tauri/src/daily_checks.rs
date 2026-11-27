@@ -1,5 +1,5 @@
 //! Plumed fork: the automatic update checks (app releases, medical rules),
-//! after the model loaded and then once a day while the app stays open, so
+//! at startup without waiting for the model, then once a day while the app stays open, so
 //! a user who never quits Plumed still gets them. Each check keeps its own
 //! opt-in (update channel, medical rules toggle). Only the GUI app starts
 //! this: the headless `transcribe` and `serve` commands return before
