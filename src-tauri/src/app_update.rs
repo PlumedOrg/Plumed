@@ -304,9 +304,8 @@ mod tests {
     #[test]
     fn a_release_without_our_platform_is_no_update_yet() {
         use tauri_plugin_updater::Error;
-        let missing = no_build_yet_is_no_update::<()>(Err(Error::TargetNotFound(
-            "darwin-aarch64".into(),
-        )));
+        let missing =
+            no_build_yet_is_no_update::<()>(Err(Error::TargetNotFound("darwin-aarch64".into())));
         assert_eq!(missing, Ok(None));
         let other = no_build_yet_is_no_update::<()>(Err(Error::EmptyEndpoints));
         assert!(other.is_err());

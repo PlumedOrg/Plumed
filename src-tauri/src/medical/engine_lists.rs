@@ -142,7 +142,8 @@ pub fn apply_settings(app: &AppHandle, before: Option<&BuiltInOptions>, after: &
     let data = data_set::current();
     with_loaded_engine(app, |engine| {
         for list in &LISTS {
-            let shape = |options: &BuiltInOptions| ((list.enabled)(options), (list.tuning)(options));
+            let shape =
+                |options: &BuiltInOptions| ((list.enabled)(options), (list.tuning)(options));
             if before.map(shape) != Some(shape(after)) {
                 list.arm_on(app, engine, &data, after);
             }

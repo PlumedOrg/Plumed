@@ -649,7 +649,10 @@ mod tests {
 
     #[test]
     fn list_defaults_reads_the_header() {
-        assert_eq!(list_defaults("#!commitment 0.5\n*:0.5:0.01:fhpn\nalpha"), (0.5, 0.01));
+        assert_eq!(
+            list_defaults("#!commitment 0.5\n*:0.5:0.01:fhpn\nalpha"),
+            (0.5, 0.01)
+        );
         assert_eq!(list_defaults("alpha\n*:3"), (1.0, DEFAULT_BOOST_MIN_P));
     }
 

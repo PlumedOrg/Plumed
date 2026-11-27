@@ -33,7 +33,11 @@ pub fn migrate_cancel_shortcut_default(settings: &mut serde_json::Value) {
     if object.contains_key("cancel_shortcut_escape_migrated") {
         return;
     }
-    if object.get("cancel_shortcut").and_then(serde_json::Value::as_str) == Some("ctrl+backspace") {
+    if object
+        .get("cancel_shortcut")
+        .and_then(serde_json::Value::as_str)
+        == Some("ctrl+backspace")
+    {
         object.insert("cancel_shortcut".to_string(), "escape".into());
     }
     object.insert("cancel_shortcut_escape_migrated".to_string(), true.into());
