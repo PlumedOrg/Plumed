@@ -227,10 +227,12 @@ fn finalize_chunked_session(
     let _ = app.emit("transcription-processing-start", ());
     let processing_started = std::time::Instant::now();
     let chunks = pipeline.finalize();
-    let _ = app.emit("transcription-processing-end", ());
 
     let mut trace = crate::history::StepTrace::on();
     let text = crate::audio::pipeline::post_process_chunks(app, chunks, &mut trace);
+    // Plumed fork (written with Claude Code): the overlay spinner lasts until
+    // the corrected text is ready, not only the speech recognition.
+    let _ = app.emit("transcription-processing-end", ());
     crate::audio::pipeline::record_dictation(
         app,
         &text,
@@ -241,10 +243,15 @@ fn finalize_chunked_session(
     if let Err(e) = write_transcription(app, &text) {
         error!("Failed to use clipboard: {}", e);
     }
-    if state.current_session() == my_gen {
-        overlay::show_result_panel_if_allowed(app, &text);
+    let is_current = state.current_session() == my_gen;
+    if is_current && text.trim().is_empty() {
+        show_no_speech_heard(app);
+    } else {
+        if is_current {
+            overlay::show_result_panel_if_allowed(app, &text);
+        }
+        reset_recording_ui(app);
     }
-    reset_recording_ui(app);
 
     // A newer session took ownership while this one was post-processing: it now
     // owns the flag and releases it on its own stop path.
@@ -294,10 +301,34 @@ pub fn cancel_recording(app: &AppHandle) {
     info!("Recording cancelled by user");
 }
 
-fn reset_recording_ui(app: &AppHandle) {
+/// How long the overlay says that nothing was heard before it hides.
+const NO_SPEECH_MESSAGE_MS: u64 = 2500;
+
+/// Plumed fork (written with Claude Code): a dictation that gave no text (a
+/// muted microphone, silence) says so in the overlay instead of vanishing.
+/// The overlay hides afterwards unless a new dictation started meanwhile.
+fn show_no_speech_heard(app: &AppHandle) {
+    reset_recording_indicators(app);
+    let _ = app.emit("no-speech-heard", ());
+    let session = app.state::<AudioState>().current_session();
+    let app = app.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(NO_SPEECH_MESSAGE_MS));
+        // a newer dictation owns the overlay (and maybe its result card)
+        if app.state::<AudioState>().current_session() == session {
+            overlay::hide_overlay_if_idle(&app);
+        }
+    });
+}
+
+fn reset_recording_indicators(app: &AppHandle) {
     let _ = app.emit("mic-level", 0.0f32);
     crate::overlay::tray::set_tray_idle(app);
     crate::audio::streaming::reset_overlay_preview(app);
+}
+
+fn reset_recording_ui(app: &AppHandle) {
+    reset_recording_indicators(app);
     let s = crate::settings::load_settings(app);
     if s.overlay_mode.as_str() == "recording" && !overlay::has_pending_result() {
         overlay::hide_recording_overlay(app);
