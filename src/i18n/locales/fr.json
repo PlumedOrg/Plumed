@@ -761,5 +761,6 @@
     "Timestamps": "Horodatage",
     "To tell the speakers apart, the meeting mode needs a speaker recognition model ({{size}}). It runs on this computer.": "Pour distinguer les intervenants, le mode Réunion a besoin d'un modèle de reconnaissance des voix ({{size}}). Il fonctionne sur cet ordinateur.",
     "Transcribe a meeting, up to 4 hours, and tell its speakers apart. Everything runs on this computer.": "Transcrivez une réunion, jusqu'à 4 heures, en distinguant ses intervenants. Tout se passe sur cet ordinateur.",
-    "Transcribed: {{time}}": "Transcrit : {{time}}"
+    "Transcribed: {{time}}": "Transcrit : {{time}}",
+    "Meeting mode is listening": "Mode Réunion en cours"
 }

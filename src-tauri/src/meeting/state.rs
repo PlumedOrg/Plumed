@@ -179,12 +179,16 @@ impl MeetingState {
         *self.meeting.lock() = None;
     }
 
-    pub fn snapshot(&self) -> MeetingSnapshot {
-        let running = self
-            .recording
+    /// A recording is running or its last chunks are still transcribed.
+    pub fn is_running(&self) -> bool {
+        self.recording
             .lock()
             .as_ref()
-            .is_some_and(Recording::is_running);
+            .is_some_and(Recording::is_running)
+    }
+
+    pub fn snapshot(&self) -> MeetingSnapshot {
+        let running = self.is_running();
         let meeting = self.meeting.lock().clone();
         match meeting {
             Some(meeting) => {

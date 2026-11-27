@@ -21,6 +21,13 @@ pub fn record_audio(app: &AppHandle) {
         let _ = app.emit("model-missing", ());
         return;
     }
+    // Plumed fork (written with Claude Code): the Réunion page uses the model
+    // and the microphone, a dictation would compete with it.
+    if app.state::<crate::meeting::state::MeetingState>().is_running() {
+        warn!("Recording refused: a meeting is being transcribed");
+        show_recording_notification(app, "meeting-busy", String::new());
+        return;
+    }
     let state = app.state::<AudioState>();
     let my_gen = state.begin_session();
     state.set_session_active(true);
