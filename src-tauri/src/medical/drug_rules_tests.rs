@@ -311,12 +311,15 @@ fn plumed_rules_spell_the_app_name() {
     );
     for heard in [
         "plumed", "Plumed", "plume med", "Plumes med", "plume-méd", "plumes aide", "Plume-aide",
-        "plumemed",
+        "plumemed", "plumaide", "Plumaide", "plume mède", "plumes-mède", "plumède", "plumede",
+        "plus mède", "Plus med",
     ] {
         assert_eq!(r.apply(&format!("dicté avec {heard}.")), "dicté avec Plumed.", "{heard}");
     }
     assert_eq!(r.apply("une plume médicale"), "une plume médicale");
     assert_eq!(r.apply("une plume, aide"), "une plume, aide");
+    assert_eq!(r.apply("plus médical"), "plus médical");
+    assert_eq!(r.apply("plus méd."), "plus méd.");
 }
 
 /// GitHub refuses 0-byte release assets, so publish-medical-data.sh uploads
