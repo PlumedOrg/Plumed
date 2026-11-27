@@ -2,7 +2,7 @@
 // and events (see src-tauri/src/meeting/state.rs and worker.rs).
 
 export interface MeetingLine {
-    /** 0 to 3: Sortformer tracks up to four speakers. */
+    /** Voice id: 0 is A, 1 is B... Sortformer hears up to four speakers at once, a long meeting can have more (gaps after merges). */
     speaker: number;
     /** Seconds since the start of the meeting. */
     start: number;
@@ -10,7 +10,7 @@ export interface MeetingLine {
     text: string;
 }
 
-/** `meeting-lines` event: the lines added or grown. */
+/** `meeting-lines` event: the lines added or grown (`meeting-lines-reset` sends them all after a voice merge). */
 export interface IndexedLine extends MeetingLine {
     index: number;
 }

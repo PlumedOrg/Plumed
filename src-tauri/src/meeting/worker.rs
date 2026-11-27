@@ -6,6 +6,7 @@ use super::backup::{Backup, Restored};
 use super::session::MeetingCore;
 use super::speakers::SpeakerTrack;
 use super::transcript::Line;
+use super::voices::VoiceTracker;
 use super::words::chunk_words;
 use crate::audio::chunking::ChunkJob;
 use crate::audio::helpers::resample;
@@ -14,11 +15,12 @@ use crate::audio::pipeline::{
 };
 use crate::audio::time_stretch::time_stretch;
 use crate::diarization::diarization::{DiarizationModel, SortformerStream, FRAME_SEC, SAMPLE_RATE};
+use crate::diarization::voice::VoiceModel;
 use crate::engine::transcription_engine::TranscriptionEngine;
 use crate::engine::types::{ParakeetInferenceParams, TimestampGranularity};
-use crate::model::catalog::{DIARIZATION, DIARIZATION_STEP};
+use crate::model::catalog::{DIARIZATION, DIARIZATION_STEP, VOICE, VOICE_MODEL_FILE};
 use anyhow::{anyhow, Result};
-use log::{debug, error};
+use log::{debug, error, info, warn};
 use parking_lot::Mutex;
 use serde::Serialize;
 use std::sync::mpsc::Receiver;
@@ -28,6 +30,8 @@ use tauri::{AppHandle, Emitter};
 
 /// Transcript lines that were added or grew, by index.
 pub const LINES_EVENT: &str = "meeting-lines";
+/// The whole transcript, after voices were merged.
+pub const LINES_RESET_EVENT: &str = "meeting-lines-reset";
 /// Seconds of meeting audio processed so far.
 pub const PROGRESS_EVENT: &str = "meeting-progress";
 /// The recording ended and all its audio is transcribed.
@@ -65,6 +69,8 @@ pub struct Meeting {
     timeline: usize,
     /// Diarization frames before this meeting's stream (a resumed backup).
     frame_offset: usize,
+    /// None without the voice model: the speakers are then never merged.
+    voices: Option<VoiceTracker<VoiceModel>>,
     backup: Option<Backup>,
 }
 
@@ -75,7 +81,8 @@ impl Meeting {
 
     /// Continues a backed up transcript. The timeline goes on from a frame
     /// boundary near where it stopped; the diarization starts anew, so the
-    /// speakers may get other letters than before.
+    /// speakers get new letters until their voices are recognized (which
+    /// needs the voice model and the backed up audio).
     pub fn resume(app: &AppHandle, restored: Restored) -> Result<Self> {
         Self::open(app, Some(restored))
     }
@@ -85,22 +92,29 @@ impl Meeting {
             .ok_or_else(|| anyhow!("the speaker diarization model is not downloaded"))?;
         let model = DiarizationModel::load(&dir, DIARIZATION_STEP, None)?;
         let stream = model.stream();
-        let speakers = SpeakerTrack::new(model.config.num_speakers, FRAME_SEC);
-        let mut meeting = Self {
-            core: MeetingCore::new(speakers),
+        let num_speakers = model.config.num_speakers;
+        let resumed = restored.is_some();
+        let frame = restored
+            .as_ref()
+            .map_or(0, |r| (r.processed_secs / FRAME_SEC).round() as usize);
+        let mut voices = voice_model(app).map(|m| VoiceTracker::new(m, num_speakers, frame));
+        let mut core = MeetingCore::new(SpeakerTrack::new(num_speakers, FRAME_SEC));
+        if let Some(restored) = restored {
+            if let (Some(voices), Some(wav)) = (voices.as_mut(), &restored.audio) {
+                // before the backup appends to the file
+                voices.learn_voices(wav, &restored.lines);
+            }
+            core.resume(restored.lines, frame);
+        }
+        Ok(Self {
+            core,
             model,
             stream,
-            timeline: 0,
-            frame_offset: 0,
-            backup: Backup::open(app, restored.is_some()),
-        };
-        if let Some(restored) = restored {
-            let frame = (restored.processed_secs / FRAME_SEC).round() as usize;
-            meeting.frame_offset = frame;
-            meeting.timeline = (frame as f64 * FRAME_SEC * SAMPLE_RATE as f64).round() as usize;
-            meeting.core.resume(restored.lines, frame);
-        }
-        Ok(meeting)
+            timeline: (frame as f64 * FRAME_SEC * SAMPLE_RATE as f64).round() as usize,
+            frame_offset: frame,
+            voices,
+            backup: Backup::open(app, resumed),
+        })
     }
 
     pub fn processed_secs(&self) -> f64 {
@@ -116,6 +130,14 @@ impl Meeting {
             self.stream.push(&mut self.model.runner, audio)?
         };
         self.core.add_speaker_probs(frame, &rows);
+        if let Some(voices) = self.voices.as_mut() {
+            for found in voices.add_rows(frame, &rows) {
+                if let Some((from, into)) = self.core.link(found) {
+                    info!("Meeting: speaker {from} has the voice of speaker {into}, merged");
+                    voices.merged(from, into);
+                }
+            }
+        }
         Ok(())
     }
 
@@ -133,6 +155,9 @@ impl Meeting {
         };
         let overlap = (overlap_prefix * SAMPLE_RATE / sample_rate.max(1) as usize).min(audio.len());
         let chunk_start = self.timeline.saturating_sub(overlap) as f64 / SAMPLE_RATE as f64;
+        if let Some(voices) = self.voices.as_mut() {
+            voices.add_audio(&audio[overlap..]);
+        }
         self.speaker_rows(false, &audio[overlap..])?;
         if let Some(backup) = self.backup.as_mut() {
             backup.add_audio(&audio[overlap..]);
@@ -172,7 +197,16 @@ impl Meeting {
 
     fn emit_released(&mut self, app: &AppHandle) {
         let changed = self.core.release();
-        if !changed.is_empty() {
+        if self.core.take_relabeled() {
+            let lines: Vec<Line> = self
+                .core
+                .transcript
+                .lines
+                .iter()
+                .map(spelling(app))
+                .collect();
+            let _ = app.emit(LINES_RESET_EVENT, lines);
+        } else if !changed.is_empty() {
             let spell = spelling(app);
             let lines: Vec<IndexedLine> = changed
                 .into_iter()
@@ -188,6 +222,17 @@ impl Meeting {
         }
         let _ = app.emit(PROGRESS_EVENT, self.processed_secs());
     }
+}
+
+/// The voice model, when downloaded and loadable.
+fn voice_model(app: &AppHandle) -> Option<VoiceModel> {
+    let Some(dir) = crate::model::manager::auxiliary_dir(app, &VOICE) else {
+        info!("Meeting: no voice model, speakers will not be merged");
+        return None;
+    };
+    VoiceModel::load(&dir.join(VOICE_MODEL_FILE))
+        .map_err(|e| warn!("Meeting: voice model not loaded: {e:#}"))
+        .ok()
 }
 
 /// Processes the chunks of one recording until `Finalize` or until every

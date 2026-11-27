@@ -42,6 +42,8 @@ export const useMeeting = () => {
                     return next;
                 })
             ),
+            // voices were merged: past lines changed and joined
+            listen<MeetingLine[]>('meeting-lines-reset', (event) => setLines(event.payload)),
             listen<number>('meeting-progress', (event) => setProcessedSecs(event.payload)),
             listen('meeting-idle', () => {
                 setRunning(false);

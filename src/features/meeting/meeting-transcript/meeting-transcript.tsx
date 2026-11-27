@@ -6,7 +6,7 @@ import { Switch } from '@/components/switch';
 import { Typography } from '@/components/typography';
 import { useCopyFeedback } from '@/components/hooks/use-copy-feedback';
 import { useTranslation } from '@/i18n';
-import { DEFAULT_SPEAKER_NAMES, formatTranscript, lineTimestamp, speakerName } from '../meeting.helpers';
+import { formatTranscript, lineTimestamp, speakerLetter, speakerName } from '../meeting.helpers';
 import { MeetingLine, TimestampOptions } from '../meeting.types';
 
 const SPEAKER_COLORS = ['text-sky-400', 'text-amber-400', 'text-emerald-400', 'text-fuchsia-400'];
@@ -15,11 +15,11 @@ const SPEAKER_COLORS = ['text-sky-400', 'text-amber-400', 'text-emerald-400', 't
 // speaker turn, with renamable speakers and optional timestamps.
 export const MeetingTranscript = ({ lines }: { lines: MeetingLine[] }) => {
     const { t } = useTranslation();
-    const [names, setNames] = useState<string[]>(DEFAULT_SPEAKER_NAMES);
+    const [names, setNames] = useState<string[]>([]);
     const [timestamps, setTimestamps] = useState<TimestampOptions>({ enabled: false, startClock: '', offsetSecs: 0 });
     const text = formatTranscript(lines, names, timestamps);
     const { copied, handleCopy } = useCopyFeedback(text);
-    const speakers = [...new Set(lines.map((line) => line.speaker))].sort();
+    const speakers = [...new Set(lines.map((line) => line.speaker))].sort((a, b) => a - b);
 
     if (lines.length === 0) {
         return null;
@@ -30,16 +30,18 @@ export const MeetingTranscript = ({ lines }: { lines: MeetingLine[] }) => {
                 {speakers.map((speaker) => (
                     <label key={speaker} className="flex items-center gap-2 text-sm">
                         <span className={SPEAKER_COLORS[speaker % SPEAKER_COLORS.length]}>
-                            {DEFAULT_SPEAKER_NAMES[speaker] ?? speaker + 1}
+                            {speakerLetter(speaker)}
                         </span>
                         <Input
                             className="h-8 w-36"
-                            value={names[speaker] ?? ''}
-                            aria-label={t('Name of speaker {{speaker}}', { speaker: DEFAULT_SPEAKER_NAMES[speaker] })}
+                            value={names[speaker] ?? speakerLetter(speaker)}
+                            aria-label={t('Name of speaker {{speaker}}', { speaker: speakerLetter(speaker) })}
                             onChange={(e) =>
-                                setNames((previous) =>
-                                    previous.map((name, i) => (i === speaker ? e.target.value : name))
-                                )
+                                setNames((previous) => {
+                                    const next = [...previous];
+                                    next[speaker] = e.target.value;
+                                    return next;
+                                })
                             }
                             data-testid={`meeting-speaker-${speaker}`}
                         />

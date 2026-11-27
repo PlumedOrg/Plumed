@@ -64,6 +64,9 @@ pub struct Found {
 pub struct Restored {
     pub lines: Vec<Line>,
     pub processed_secs: f64,
+    /// The meeting's audio from its start, when backed up all along (to
+    /// recognize its voices).
+    pub audio: Option<PathBuf>,
 }
 
 /// The backup of the meeting in progress.
@@ -164,9 +167,12 @@ fn restored_in(dir: &Path, lines: Vec<Line>, metadata: Option<Metadata>) -> Rest
         .or_else(|| audio_secs(&dir.join(AUDIO)))
         .or_else(|| lines.last().map(|line| line.end))
         .unwrap_or(0.0);
+    let audio = dir.join(AUDIO);
+    let whole = audio_secs(&audio).is_some_and(|secs| (secs - processed_secs).abs() < 1.0);
     Restored {
         lines,
         processed_secs,
+        audio: whole.then_some(audio),
     }
 }
 
@@ -389,6 +395,24 @@ mod tests {
         // no metadata, no transcript: the audio tells how far the meeting went
         let found = find_in(&dir).unwrap();
         assert_eq!((found.processed_secs, found.has_text), (1.0, false));
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn only_audio_kept_from_the_start_is_used_to_recognize_voices() {
+        let dir = scratch("voices");
+        let mut backup = Backup::open_in(dir.clone(), ALL).unwrap();
+        backup.add_audio(&[0.5; 32000]);
+        let lines = vec![line(0, 0.0, 2.0, "bonjour")];
+        backup.save(&lines, 2.0);
+        let metadata = read_metadata(&dir);
+        assert_eq!(
+            restored_in(&dir, lines.clone(), metadata).audio,
+            Some(dir.join(AUDIO))
+        );
+        // audio turned on halfway: it does not start with the meeting
+        backup.save(&lines, 10.0);
+        assert_eq!(restored_in(&dir, lines, read_metadata(&dir)).audio, None);
         std::fs::remove_dir_all(&dir).unwrap();
     }
 

@@ -1,7 +1,5 @@
 import { MeetingLine, TimestampOptions } from './meeting.types';
 
-export const DEFAULT_SPEAKER_NAMES = ['A', 'B', 'C', 'D'];
-
 export const AUDIO_EXTENSIONS = ['wav', 'mp3', 'm4a', 'mp4', 'aac', 'flac', 'ogg'];
 
 const DAY_SECS = 24 * 3600;
@@ -25,8 +23,12 @@ export const lineTimestamp = (start: number, options: TimestampOptions): string 
     return formatDuration(((secs % DAY_SECS) + DAY_SECS) % DAY_SECS);
 };
 
+/** 0 -> "A", 25 -> "Z", 26 -> "27" (voice ids grow when speakers come and go). */
+export const speakerLetter = (speaker: number): string =>
+    speaker < 26 ? String.fromCharCode(65 + speaker) : String(speaker + 1);
+
 export const speakerName = (names: string[], speaker: number): string =>
-    names[speaker]?.trim() || DEFAULT_SPEAKER_NAMES[speaker] || String(speaker + 1);
+    names[speaker]?.trim() || speakerLetter(speaker);
 
 /** "- [00:01:05] Paul: bla" */
 export const formatLine = (line: MeetingLine, names: string[], options: TimestampOptions): string => {
