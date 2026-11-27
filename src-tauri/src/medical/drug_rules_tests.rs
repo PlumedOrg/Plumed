@@ -306,15 +306,34 @@ fn every_plumed_rule_compiles() {
 #[test]
 fn plumed_rules_spell_the_app_name() {
     let r = DrugRules::new(
-        Arc::new(Bundled::from_jsonl(&[crate::medical::data_set::PLUMED_RULES])),
+        Arc::new(Bundled::from_jsonl(&[
+            crate::medical::data_set::PLUMED_RULES,
+        ])),
         &[],
     );
     for heard in [
-        "plumed", "Plumed", "plume med", "Plumes med", "plume-méd", "plumes aide", "Plume-aide",
-        "plumemed", "plumaide", "Plumaide", "plume mède", "plumes-mède", "plumède", "plumede",
-        "plus mède", "Plus med",
+        "plumed",
+        "Plumed",
+        "plume med",
+        "Plumes med",
+        "plume-méd",
+        "plumes aide",
+        "Plume-aide",
+        "plumemed",
+        "plumaide",
+        "Plumaide",
+        "plume mède",
+        "plumes-mède",
+        "plumède",
+        "plumede",
+        "plus mède",
+        "Plus med",
     ] {
-        assert_eq!(r.apply(&format!("dicté avec {heard}.")), "dicté avec Plumed.", "{heard}");
+        assert_eq!(
+            r.apply(&format!("dicté avec {heard}.")),
+            "dicté avec Plumed.",
+            "{heard}"
+        );
     }
     assert_eq!(r.apply("une plume médicale"), "une plume médicale");
     assert_eq!(r.apply("une plume, aide"), "une plume, aide");
