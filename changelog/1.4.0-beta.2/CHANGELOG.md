@@ -1,0 +1,5 @@
+# Plumed 1.4.0-beta.2 (2026-11-27)
+
+- **App updates**: the Online settings tab gets a "Check now" button, a link to the release notes and a link to the releases page. Clicking the version number in the sidebar also checks for an update. The check now runs right at startup instead of after the speech model has loaded, so a new version shows up within seconds.
+- **Réunion page**: the meeting settings (audio, transcript and meeting information backups, backup location) sit in a "Meeting settings" panel with a description for each, open when the page opens and folded once the meeting starts. The transcribed duration is shown in large, a bar at the bottom of the window says whether a recording is running (with a Stop button), and the transcript scrolls in its own box so the buttons stay reachable. Without a start time typed in, the timestamps of a microphone recording give the real clock time each line was said. The "New meeting" confirmation now says it erases the whole meeting (transcript, audio and backup).
+- **About** is now the last tab of the Settings page, and its Murmure section is clearer.
