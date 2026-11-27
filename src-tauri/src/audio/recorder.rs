@@ -52,7 +52,19 @@ impl AudioRecorder {
             .lock()
             .as_ref()
             .map(|pipeline| pipeline.sender());
+        let preview = crate::settings::load_settings(&app).streaming_preview;
+        Self::open(app, Some(file_path), chunk_cfg, preview)
+    }
 
+    /// Plumed fork: a recorder writing to `file_path` if given and sending its
+    /// chunks to `chunk_cfg` (the meeting worker uses its own sender).
+    pub fn open(
+        app: AppHandle,
+        file_path: Option<&Path>,
+        chunk_cfg: Option<Sender<ChunkJob>>,
+        preview: bool,
+    ) -> Result<Self> {
+        let audio_state = app.state::<crate::audio::types::AudioState>();
         let (device, previous_default_source) = Self::get_device(app.clone())?;
         let config = match device
             .default_input_config()
@@ -67,7 +79,10 @@ impl AudioRecorder {
             }
         };
 
-        let writer = match create_wav_writer(file_path, &config) {
+        let writer = match file_path
+            .map(|path| create_wav_writer(path, &config))
+            .transpose()
+        {
             Ok(writer) => writer,
             Err(error) => {
                 crate::audio::microphone::restore_default_source_after_recording(
@@ -76,12 +91,9 @@ impl AudioRecorder {
                 return Err(error);
             }
         };
-        let writer_arc = Arc::new(Mutex::new(Some(writer)));
+        let writer_arc = Arc::new(Mutex::new(writer));
 
-        let preview_link = PreviewLink::from_state(
-            &audio_state,
-            crate::settings::load_settings(&app).streaming_preview,
-        );
+        let preview_link = PreviewLink::from_state(&audio_state, preview);
 
         let writer_ctx = WriterThreadCtx {
             app: app.clone(),
@@ -333,13 +345,12 @@ fn spawn_writer_thread(
                         if let Err(e) = writer.write_sample(sample_i16) {
                             error!("Error writing sample: {}", e);
                         }
-
-                        // accumulate for RMS
-                        acc_sum_squares += sample * sample;
-                        acc_count += 1;
                     }
                 }
             }
+            // accumulate for RMS (Plumed: also without a WAV file, for meetings)
+            acc_sum_squares += mono.iter().map(|s| s * s).sum::<f32>();
+            acc_count += mono.len();
 
             if let Some(chunker) = chunker.as_mut() {
                 chunker.push_samples(&mono);
