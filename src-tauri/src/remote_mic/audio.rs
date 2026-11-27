@@ -28,7 +28,7 @@ pub fn accumulate_pcm(buffer: &mut Vec<i16>, payload: &[u8]) -> bool {
 }
 
 /// Convert the accumulated Int16 buffer to Vec<f32>, resampling if needed
-fn finalize_buffer(buffer: Vec<i16>, source_sample_rate: u32) -> Vec<f32> {
+pub(crate) fn finalize_buffer(buffer: Vec<i16>, source_sample_rate: u32) -> Vec<f32> {
     // Convert i16 to f32 (normalize to -1.0..1.0)
     let samples_f32: Vec<f32> = buffer
         .into_iter()

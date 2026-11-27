@@ -16,7 +16,6 @@ mod grammar;
 mod history;
 mod local_api;
 mod medical;
-#[allow(dead_code)] // Plumed: wired to the Réunion page in a later commit
 mod meeting;
 mod model;
 mod overlay;
@@ -347,6 +346,7 @@ pub fn run() {
             }
 
             app.manage(remote_mic::session::RemoteMicState::default());
+            app.manage(meeting::state::MeetingState::default());
             app.manage(utils::enigo_session::EnigoState::default());
 
             // Plumed: parse the medical rules now, not on the first transcription
@@ -447,6 +447,12 @@ pub fn run() {
             cancel_model_download,
             get_diarization_model_status,
             download_diarization_model,
+            meeting_start_mic,
+            meeting_start_file,
+            meeting_stop,
+            meeting_reset,
+            meeting_snapshot,
+            meeting_start_phone,
             set_active_model,
             delete_model,
             read_murmure_file,

@@ -29,6 +29,8 @@ use tauri::{AppHandle, Emitter};
 pub const LINES_EVENT: &str = "meeting-lines";
 /// Seconds of meeting audio processed so far.
 pub const PROGRESS_EVENT: &str = "meeting-progress";
+/// The recording ended and all its audio is transcribed.
+pub const IDLE_EVENT: &str = "meeting-idle";
 
 #[derive(Serialize, Clone)]
 pub struct IndexedLine {
@@ -171,5 +173,6 @@ pub fn spawn(
             error!("Meeting pause failed: {e:#}");
         }
         meeting.emit_released(&app);
+        let _ = app.emit(IDLE_EVENT, ());
     })
 }

@@ -22,7 +22,7 @@ use serde::Serialize;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::mpsc;
 
 /// After a confirmation, `BOUND` is sent again this often, `BOUND_RESENDS`
@@ -557,6 +557,8 @@ struct Queued {
 struct RecordingQueue {
     tx: mpsc::Sender<Queued>,
     generation: Arc<AtomicU64>,
+    /// Plumed: lets the Réunion page take the recordings (see `push`).
+    app: Option<AppHandle>,
 }
 
 impl RecordingQueue {
@@ -566,12 +568,20 @@ impl RecordingQueue {
         let queue = Self {
             tx,
             generation: generation.clone(),
+            app: None,
         };
         (queue, rx, generation)
     }
 
     /// `false` when the queue is full and the recording was dropped.
     fn push(&self, pcm: Vec<i16>, sample_rate: u32) -> bool {
+        if let Some(app) = &self.app {
+            let meeting = app.state::<crate::meeting::state::MeetingState>();
+            if meeting.takes_phone() {
+                meeting.push_phone(super::audio::finalize_buffer(pcm, sample_rate));
+                return true;
+            }
+        }
         let item = Queued {
             pcm,
             sample_rate,
@@ -600,7 +610,8 @@ impl Queued {
 
 /// Transcribes and pastes recordings one at a time, in arrival order.
 fn spawn_transcriber(app: AppHandle) -> RecordingQueue {
-    let (queue, mut rx, generation) = RecordingQueue::new();
+    let (mut queue, mut rx, generation) = RecordingQueue::new();
+    queue.app = Some(app.clone());
     tauri::async_runtime::spawn(async move {
         while let Some(item) = rx.recv().await {
             if !item.is_current(generation.load(Ordering::SeqCst), Instant::now()) {

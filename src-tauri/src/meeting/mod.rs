@@ -4,6 +4,7 @@
 
 pub mod session;
 pub mod speakers;
+pub mod state;
 pub mod transcript;
 pub mod words;
 pub mod worker;

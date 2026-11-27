@@ -381,11 +381,7 @@ fn drop_head_words(text: &str, count: usize) -> String {
 /// live (33 ms ticks).
 pub fn chunk_all(tx: Sender<ChunkJob>, samples: &[f32], sample_rate: u32) {
     let mut chunker = Chunker::new(tx, sample_rate, None);
-    let window = (sample_rate as usize * 33 / 1000).max(1);
-    for win in samples.chunks(window) {
-        chunker.push_samples(win);
-        chunker.on_throttle_tick(crate::audio::helpers::rms(win));
-    }
+    chunker.push_ticked(samples);
     chunker.flush_remaining();
 }
 
@@ -438,6 +434,15 @@ impl Chunker {
 
     pub(crate) fn push_samples(&mut self, mono: &[f32]) {
         self.samples.extend_from_slice(mono);
+    }
+
+    /// Pushes already recorded audio as if it came live, in 33 ms ticks.
+    pub(crate) fn push_ticked(&mut self, samples: &[f32]) {
+        let window = (self.sample_rate as usize * 33 / 1000).max(1);
+        for win in samples.chunks(window) {
+            self.push_samples(win);
+            self.on_throttle_tick(crate::audio::helpers::rms(win));
+        }
     }
 
     pub(crate) fn on_throttle_tick(&mut self, rms: f32) {
