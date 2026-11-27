@@ -16,6 +16,8 @@ mod grammar;
 mod history;
 mod local_api;
 mod medical;
+#[allow(dead_code)] // Plumed: wired to the Réunion page in a later commit
+mod meeting;
 mod model;
 mod overlay;
 mod remote_mic;

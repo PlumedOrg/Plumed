@@ -53,6 +53,14 @@ Speaker diarization (`src-tauri/src/diarization/`, for the upcoming Réunion pag
 - `segments.rs`: `probs_to_segments` (threshold 0.5, min on 0.3 s, min off 0.5 s, renumbered by first arrival).
 - Tests (`tests.rs`, fixtures in `src-tauri/tests/fixtures/diarization/` from ParakeetWeb's `gen-sortformer-fixtures.py`): cache parity with a closed-form fake step (all at once and trickled, max |dp| < 1e-6), mel slicing; ignored real-model tests need `PLUMED_DIAR_MODEL_DIR` (fp32 vs transformers: max |dp| < 1e-4, 100% agreement, whole and in 0.37 s pieces; int8 agreement).
 
+## Meeting (Réunion)
+
+Meeting transcription core (`src-tauri/src/meeting/`, no Tauri or model code, so it is unit tested): chunk words and Sortformer probability rows come in, speaker lines go out.
+- `words.rs`: `chunk_words` places a chunk's word segments (`TimestampGranularity::Word`) on the meeting timeline, undoing the 0.25 s inference padding and the slow-down (`t_meeting = chunk_start + (t - 0.25) * speed`).
+- `speakers.rs`: `SpeakerTrack` keeps the rows (10 ms each); `speaker_of` gives the speaker with the most probability mass over a word, `None` below a mean of 0.2 (then the previous speaker is used). Rows no pending word needs are dropped.
+- `transcript.rs`: `Line {speaker, start, end, text}`, one per speaker turn.
+- `session.rs`: `MeetingCore`. A word enters the transcript once the diarization covers it (about 30 s behind the audio: one 27.2 s chunk plus 3.2 s of look-ahead) and it is not in the held last second of its chunk. A forced chunk cut repeats 1 s of audio: the two chunks split that overlap in its middle, by timestamp. `finish` releases everything; a later `add_chunk` continues the same meeting.
+
 ## Medical data updates
 
 Medical data updates (rules, confusion groups, phrase list updated without an app release). Code: `src-tauri/src/medical/data_set/` (the one place knowing bundled vs downloaded: manifest checks, on-disk sets, fallback), `src-tauri/src/medical/data_update.rs`, `src-tauri/src/commands/medical_data.rs`, frontend `src/features/medical-data/` and `src/features/onboarding/` (`startup-wizard/steps/medical-data-step.tsx`, `medical-data-prompt/`). Manifest format and storage: "Online updates" in `src-tauri/medical-data/SOURCE.md`.
