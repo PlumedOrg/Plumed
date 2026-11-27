@@ -7,13 +7,12 @@
 
 use log::warn;
 use std::time::{Duration, SystemTime};
-use tauri::{AppHandle, Emitter};
+use tauri::AppHandle;
 
 const PERIOD: Duration = Duration::from_secs(24 * 60 * 60);
 /// Wall-clock polling rather than one 24 h sleep: a sleep does not count
 /// the time the computer is suspended.
 const TICK: Duration = Duration::from_secs(60 * 60);
-const APP_UPDATE_EVENT: &str = "app-update-available";
 
 pub fn spawn(app: &AppHandle) {
     let app = app.clone();
@@ -37,17 +36,11 @@ fn is_due(last: Option<SystemTime>, now: SystemTime) -> bool {
     last.is_none_or(|t| now.duration_since(t).map_or(true, |d| d >= PERIOD))
 }
 
-/// Tells the frontend (sidebar button) when the user's channel has a newer
-/// version. Nothing when updates are disabled.
+/// `app_update::check` tells the sidebar button when the user's channel has
+/// a newer version. Nothing when updates are disabled.
 async fn check_app_update(app: &AppHandle) {
-    match crate::app_update::check(app, false).await {
-        Ok(Some(version)) => {
-            if let Err(e) = app.emit(APP_UPDATE_EVENT, version) {
-                warn!("Could not announce the app update: {e}");
-            }
-        }
-        Ok(None) => {}
-        Err(e) => warn!("App update check failed: {e}"),
+    if let Err(e) = crate::app_update::check(app, false).await {
+        warn!("App update check failed: {e}");
     }
 }
 

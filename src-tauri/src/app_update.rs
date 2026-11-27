@@ -36,6 +36,8 @@ const USER_AGENT: &str = "Plumed";
 const TIMEOUT: Duration = Duration::from_secs(20);
 /// Tells the frontend the channel changed (payload: the new channel).
 const CHANNEL_EVENT: &str = "app-update-channel";
+/// Tells the frontend (sidebar button) that a check found a newer version.
+const AVAILABLE_EVENT: &str = "app-update-available";
 
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, Default, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -209,8 +211,10 @@ async fn check_channel(app: &AppHandle, channel: UpdateChannel) -> Result<Option
     }
 }
 
-/// The newer version, if any, on the user's channel. An automatic check
-/// (`manual` false) does nothing when updates are disabled.
+/// The newer version, if any, on the user's channel, announced to the
+/// frontend so the sidebar offers it whoever asked (daily check, Settings >
+/// Online). An automatic check (`manual` false) does nothing when updates
+/// are disabled.
 pub async fn check(app: &AppHandle, manual: bool) -> Result<Option<String>, String> {
     let settings = crate::settings::load_settings(app);
     let Some(channel) = channel_to_check(settings.app_update_channel, manual) else {
@@ -219,6 +223,11 @@ pub async fn check(app: &AppHandle, manual: bool) -> Result<Option<String>, Stri
     let update = check_channel(app, channel).await?;
     let version = update.as_ref().map(|u| u.version.clone());
     *PENDING.lock().map_err(|e| e.to_string())? = update;
+    if let Some(version) = &version {
+        if let Err(e) = app.emit(AVAILABLE_EVENT, version) {
+            log::warn!("Could not announce the app update: {e}");
+        }
+    }
     Ok(version)
 }
 
