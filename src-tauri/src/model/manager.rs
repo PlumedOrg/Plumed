@@ -65,17 +65,7 @@ pub fn status(app: &AppHandle) -> ModelStatus {
     let root = model.models_root().ok();
     let variants = catalog::VARIANTS
         .iter()
-        .map(|v| VariantStatus {
-            id: v.id,
-            family: v.family.name,
-            name: v.name,
-            summary: v.summary,
-            size: v.total_size(),
-            available: v.available,
-            experimental: v.experimental,
-            installed: root.as_deref().and_then(|r| store::installed_source(r, v)),
-            downloaded: root.as_deref().map_or(0, |r| store::bytes_on_disk(r, v)),
-        })
+        .map(|v| variant_status(root.as_deref(), v))
         .collect();
     ModelStatus {
         active: model.active_variant().map(|v| v.id),
@@ -83,6 +73,20 @@ pub fn status(app: &AppHandle) -> ModelStatus {
         downloading: running().as_ref().map(|(id, _)| *id),
         recommended: catalog::recommended(memory::total_memory()).id,
         variants,
+    }
+}
+
+fn variant_status(root: Option<&std::path::Path>, v: &'static Variant) -> VariantStatus {
+    VariantStatus {
+        id: v.id,
+        family: v.family.name,
+        name: v.name,
+        summary: v.summary,
+        size: v.total_size(),
+        available: v.available,
+        experimental: v.experimental,
+        installed: root.and_then(|r| store::installed_source(r, v)),
+        downloaded: root.map_or(0, |r| store::bytes_on_disk(r, v)),
     }
 }
 
@@ -94,6 +98,23 @@ fn find(id: &str) -> Result<&'static Variant, String> {
 pub async fn download(app: &AppHandle, id: &str) -> Result<ModelStatus, DownloadError> {
     let variant = catalog::find(id).ok_or(DownloadError::Unavailable)?;
     let root = root(app).map_err(|detail| DownloadError::Io { detail })?;
+    fetch(app, &root, variant).await?;
+    activate(app, &root, variant)
+        .await
+        .map_err(|detail| DownloadError::Io { detail })?;
+    if let Err(e) = store::remove_stale(&root) {
+        log::warn!("Could not remove old models: {e}");
+    }
+    Ok(status(app))
+}
+
+/// Downloads `variant` into `root`, one download at a time, with progress
+/// events and cancellation.
+async fn fetch(
+    app: &AppHandle,
+    root: &std::path::Path,
+    variant: &'static Variant,
+) -> Result<(), DownloadError> {
     let cancel = {
         let mut running = running();
         if running.is_some() {
@@ -104,19 +125,27 @@ pub async fn download(app: &AppHandle, id: &str) -> Result<ModelStatus, Download
         receiver
     };
     let progress_app = app.clone();
-    let result = download::download(&root, variant, &Endpoints::public(), cancel, |p| {
+    let result = download::download(root, variant, &Endpoints::public(), cancel, |p| {
         let _ = progress_app.emit(PROGRESS_EVENT, p);
     })
     .await;
     *running() = None;
-    result?;
-    activate(app, &root, variant)
-        .await
-        .map_err(|detail| DownloadError::Io { detail })?;
-    if let Err(e) = store::remove_stale(&root) {
-        log::warn!("Could not remove old models: {e}");
-    }
-    Ok(status(app))
+    result.map(|_| ())
+}
+
+/// An auxiliary model (see `catalog::AUXILIARY`) as the UI shows it.
+pub fn auxiliary_status(app: &AppHandle, variant: &'static Variant) -> VariantStatus {
+    variant_status(root(app).ok().as_deref(), variant)
+}
+
+/// Downloads an auxiliary model; the speech model in use is unchanged.
+pub async fn download_auxiliary(
+    app: &AppHandle,
+    variant: &'static Variant,
+) -> Result<VariantStatus, DownloadError> {
+    let root = root(app).map_err(|detail| DownloadError::Io { detail })?;
+    fetch(app, &root, variant).await?;
+    Ok(variant_status(Some(&root), variant))
 }
 
 pub fn cancel() {

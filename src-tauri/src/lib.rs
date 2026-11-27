@@ -443,6 +443,8 @@ pub fn run() {
             get_model_status,
             download_model,
             cancel_model_download,
+            get_diarization_model_status,
+            download_diarization_model,
             set_active_model,
             delete_model,
             read_murmure_file,

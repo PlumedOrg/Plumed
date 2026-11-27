@@ -10,7 +10,7 @@
 //! variant is installed under those local names whatever its quantization.
 
 use plumed_relay_protocol::models::{
-    ModelRepo, ULTIMED_V1_ULTRA, ULTIMED_V2_REDUX, ULTIMED_V2_ULTRA,
+    ModelRepo, NEMOTRON_DIARIZATION, ULTIMED_V1_ULTRA, ULTIMED_V2_REDUX, ULTIMED_V2_ULTRA,
 };
 use serde::Serialize;
 
@@ -237,6 +237,62 @@ pub fn find(id: &str) -> Option<&'static Variant> {
     VARIANTS.iter().find(|v| v.id == id)
 }
 
+pub const DIARIZATION_FAMILY: Family = Family {
+    id: "diarization",
+    name: "Nemotron-3-Diarization",
+    repo: NEMOTRON_DIARIZATION,
+};
+
+/// Local name of the diarization step graph (int8: same decisions as fp32,
+/// faster on CPU, see docs/ARCHITECTURE.md).
+pub const DIARIZATION_STEP: &str = "step.int8.onnx";
+
+/// Who speaks when, for the Réunion page. Downloaded on first use, never the
+/// speech model in use, so not in `VARIANTS`.
+pub const DIARIZATION: Variant = Variant {
+    id: "diarization-int8",
+    family: &DIARIZATION_FAMILY,
+    name: "Nemotron-3-Diarization int8",
+    summary: "tells the speakers of a meeting apart",
+    files: &[
+        ModelFile {
+            path: "embed.onnx",
+            size: 2_103_628,
+            sha256: "d876351688b436ed8e893c00ee6f274aca2423c1a3981f12686885e1f0c9abbd",
+            local_name: crate::diarization::diarization::EMBED_FILE,
+        },
+        ModelFile {
+            path: "int8/step.int8.onnx",
+            size: 104_127_886,
+            sha256: "22c3c518a47a4b495b06beaba560b397269cc2576d8d8a4665e7dbf1cfa38c8f",
+            local_name: DIARIZATION_STEP,
+        },
+        ModelFile {
+            path: "silence_embeds.bin",
+            size: 2048,
+            sha256: "d4417b3c0eabdf7c47032fac2b5b5a7ee83d819a6ddda8fd8eaf74e2b5cc4ac7",
+            local_name: crate::diarization::diarization::SILENCE_FILE,
+        },
+        ModelFile {
+            path: "diarization-config.json",
+            size: 644,
+            sha256: "43e731b1a74901668a75f35338fbb5c7d68ec17008ddd50abd82a4bc5644ffac",
+            local_name: crate::diarization::diarization::CONFIG_FILE,
+        },
+    ],
+    available: true,
+    experimental: false,
+};
+
+/// Models downloaded besides the speech model: their folders are kept by
+/// `store::remove_stale`.
+pub const AUXILIARY: &[&Variant] = &[&DIARIZATION];
+
+/// Every variant, speech and auxiliary.
+pub fn all_variants() -> impl Iterator<Item = &'static Variant> {
+    VARIANTS.iter().chain(AUXILIARY.iter().copied())
+}
+
 /// Below this much total RAM, the lightest available variant is recommended.
 /// Peak RSS of the 400 clip benchmark under ONNX Runtime 1.31: Ultra int8
 /// 2.07 GB, w4a8 1.69 GB (380 MB less). An 8 GB machine reports a bit less
@@ -281,7 +337,7 @@ mod tests {
 
     #[test]
     fn every_file_is_pinned_and_safe() {
-        for file in VARIANTS.iter().flat_map(|v| v.files) {
+        for file in all_variants().flat_map(|v| v.files) {
             assert!(safe_path(file.path, 1), "{}", file.path);
             assert_eq!(file.sha256.len(), 64, "{}", file.path);
             assert!(file
@@ -294,9 +350,9 @@ mod tests {
 
     #[test]
     fn ids_are_unique_and_the_relay_serves_every_repository() {
-        let ids: HashSet<&str> = VARIANTS.iter().map(|v| v.id).collect();
-        assert_eq!(ids.len(), VARIANTS.len());
-        for variant in VARIANTS {
+        let ids: HashSet<&str> = all_variants().map(|v| v.id).collect();
+        assert_eq!(ids.len(), all_variants().count());
+        for variant in all_variants() {
             assert!(MODEL_REPOS.contains(&variant.family.repo), "{}", variant.id);
             assert!(variant.id.starts_with(variant.family.id));
         }

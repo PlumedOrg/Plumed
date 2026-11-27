@@ -42,3 +42,16 @@ pub async fn set_active_model(app: AppHandle, variant: String) -> Result<ModelSt
 pub async fn delete_model(app: AppHandle, variant: String) -> Result<ModelStatus, String> {
     manager::delete(&app, &variant).await
 }
+
+/// The speaker diarization model of the Réunion page, downloaded on first use.
+#[command]
+pub fn get_diarization_model_status(app: AppHandle) -> manager::VariantStatus {
+    manager::auxiliary_status(&app, &crate::model::catalog::DIARIZATION)
+}
+
+#[command]
+pub async fn download_diarization_model(
+    app: AppHandle,
+) -> Result<manager::VariantStatus, DownloadError> {
+    manager::download_auxiliary(&app, &crate::model::catalog::DIARIZATION).await
+}

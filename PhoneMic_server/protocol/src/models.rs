@@ -32,10 +32,22 @@ pub const ULTIMED_V2_REDUX: ModelRepo = ModelRepo {
     revision: "fa44bccba301fed3d8ed14f27ac7cf51db7b6d4e",
 };
 
+/// NVIDIA's Nemotron-3-Diarization (Streaming Sortformer) exported to ONNX:
+/// who speaks when, for the Réunion page.
+pub const NEMOTRON_DIARIZATION: ModelRepo = ModelRepo {
+    repo: "Olicorne/Nemotron-3-Diarization-web-onnx",
+    revision: "dc7ddd23a2242c61eb20914af226d9e5f24b6cf0",
+};
+
 /// Every repository the app may download from, so every one the relay serves
 /// by default. A new pinned revision goes here (and in the relay's
 /// `PLUMED_MODELS_REPOS` if the deployment overrides it).
-pub const MODEL_REPOS: &[ModelRepo] = &[ULTIMED_V1_ULTRA, ULTIMED_V2_ULTRA, ULTIMED_V2_REDUX];
+pub const MODEL_REPOS: &[ModelRepo] = &[
+    ULTIMED_V1_ULTRA,
+    ULTIMED_V2_ULTRA,
+    ULTIMED_V2_REDUX,
+    NEMOTRON_DIARIZATION,
+];
 
 /// Path prefix of the relay's files.
 pub const MODELS_PATH: &str = "/models";

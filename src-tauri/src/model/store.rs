@@ -152,7 +152,7 @@ pub fn delete(root: &Path, variant: &Variant) -> io::Result<()> {
 /// Deletes the folders no catalog variant uses any more (older revisions,
 /// removed variants). Partial downloads of current variants are kept.
 pub fn remove_stale(root: &Path) -> io::Result<()> {
-    let current: Vec<String> = catalog::VARIANTS.iter().map(folder_name).collect();
+    let current: Vec<String> = catalog::all_variants().map(folder_name).collect();
     let entries = match fs::read_dir(root) {
         Ok(entries) => entries,
         Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(()),
@@ -328,12 +328,15 @@ pub(crate) mod tests {
     fn stale_folders_go_and_current_ones_stay() {
         let root = temp_root();
         let current = variant_dir(&root, &catalog::VARIANTS[0]);
+        let auxiliary = variant_dir(&root, &catalog::DIARIZATION);
         let old = root.join("ultra-int8-000000000000");
         fs::create_dir_all(&current).unwrap();
+        fs::create_dir_all(&auxiliary).unwrap();
         fs::create_dir_all(&old).unwrap();
         set_active(&root, &catalog::VARIANTS[0]).unwrap();
         remove_stale(&root).unwrap();
         assert!(current.exists());
+        assert!(auxiliary.exists());
         assert!(!old.exists());
         assert!(root.join(ACTIVE_FILE).exists());
         assert!(remove_stale(&root.join("missing")).is_ok());

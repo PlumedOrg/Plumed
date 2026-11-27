@@ -9,6 +9,8 @@ permissions = [
     "allow-get-model-status",
     "allow-download-model",
     "allow-cancel-model-download",
+    "allow-get-diarization-model-status",
+    "allow-download-diarization-model",
     "allow-set-active-model",
     "allow-delete-model",
     "allow-read-murmure-file",
