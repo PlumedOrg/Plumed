@@ -1,27 +1,18 @@
 import { Loader2, RefreshCcw } from 'lucide-react';
-import { toast } from 'react-toastify';
 import { Button } from '@/components/button';
 import { ExternalLink } from '@/components/external-link';
 import { SettingsUI } from '@/components/settings-ui';
 import { Typography } from '@/components/typography';
 import { useTranslation } from '@/i18n';
 import { AppUpdateChannelSelect } from '@/features/update-checker/app-update-channel-select/app-update-channel-select';
-import { useAppUpdate } from '@/features/update-checker/hooks/use-app-update';
+import { useCheckAppUpdateNow } from '@/features/update-checker/hooks/use-check-app-update-now';
 import { PLUMED_RELEASES_URL } from '@/utils/plumed-links';
 
 // Plumed fork (written with Claude Code): which app releases the updater
 // offers (see AGENTS.FORK.md, auto-updater section), and a check on demand.
-// A found update is installed from the sidebar button, which the Rust check
-// announces (`app_update::check`).
 export const AppUpdateSettings = () => {
     const { t } = useTranslation();
-    const { isChecking, checkForUpdates } = useAppUpdate();
-
-    const checkNow = async () => {
-        if (await checkForUpdates(true))
-            toast.info(t('A new version is available: install it from the sidebar button.'));
-        else toast.info(t('Plumed is up to date.'));
-    };
+    const { isChecking, checkNow } = useCheckAppUpdateNow();
 
     return (
         <>

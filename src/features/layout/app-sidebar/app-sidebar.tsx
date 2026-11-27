@@ -11,6 +11,7 @@ import {
     SidebarMenuButton,
 } from '../../../components/sidebar';
 import { useGetVersion } from '../hooks/use-get-version';
+import { useCheckAppUpdateNow } from '@/features/update-checker/hooks/use-check-app-update-now';
 import { UpdateChecker } from '../../update-checker/update-checker';
 import { Separator } from '@/components/separator';
 import { useTranslation } from '@/i18n';
@@ -55,6 +56,7 @@ const getTopLevelItems = (t: (key: string) => string) => [
 export const AppSidebar = () => {
     const { pathname } = useLocation();
     const version = useGetVersion();
+    const { isChecking, checkNow } = useCheckAppUpdateNow();
     const { t } = useTranslation();
     const topLevelItems = getTopLevelItems(t);
     const isAboutActive = pathname === '/about';
@@ -131,7 +133,16 @@ export const AppSidebar = () => {
                 <Separator />
                 <div className="flex items-center gap-2 justify-center">
                     <UpdateChecker />
-                    <p className="text-xs text-muted-foreground">{version}</p>
+                    <button
+                        type="button"
+                        onClick={() => void checkNow()}
+                        disabled={isChecking}
+                        title={t('Check for updates')}
+                        className="text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer disabled:opacity-50"
+                        data-testid="sidebar-version"
+                    >
+                        {version}
+                    </button>
                 </div>
             </SidebarFooter>
         </Sidebar>
