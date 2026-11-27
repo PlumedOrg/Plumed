@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Check, Copy } from 'lucide-react';
 import { Button } from '@/components/button';
 import { Input } from '@/components/input';
@@ -7,17 +7,32 @@ import { Typography } from '@/components/typography';
 import { useCopyFeedback } from '@/components/hooks/use-copy-feedback';
 import { useTranslation } from '@/i18n';
 import { formatTranscript, lineTimestamp, speakerLetter, speakerName } from '../meeting.helpers';
-import { MeetingLine, TimestampOptions } from '../meeting.types';
+import { ClockAnchor, MeetingLine, TimestampOptions } from '../meeting.types';
 
 const SPEAKER_COLORS = ['text-sky-400', 'text-amber-400', 'text-emerald-400', 'text-fuchsia-400'];
 
+/** How close to the bottom (px) still counts as "reading the end": new lines then scroll into view. */
+const FOLLOW_MARGIN = 40;
+
+type TimestampSettings = Omit<TimestampOptions, 'anchors'>;
+
 // Plumed fork (written with Claude Code): the transcript, "- Name: text" per
-// speaker turn, with renamable speakers and optional timestamps.
-export const MeetingTranscript = ({ lines }: { lines: MeetingLine[] }) => {
+// speaker turn, with renamable speakers and optional timestamps. The lines
+// scroll in their own box, which follows the new ones unless the user
+// scrolled up to read.
+export const MeetingTranscript = ({ lines, anchors }: { lines: MeetingLine[]; anchors: ClockAnchor[] }) => {
     const { t } = useTranslation();
     const [names, setNames] = useState<string[]>([]);
-    const [timestamps, setTimestamps] = useState<TimestampOptions>({ enabled: false, startClock: '', offsetSecs: 0 });
+    const [settings, setTimestamps] = useState<TimestampSettings>({ enabled: false, startClock: '', offsetSecs: 0 });
+    const timestamps: TimestampOptions = { ...settings, anchors };
     const text = formatTranscript(lines, names, timestamps);
+    const scroller = useRef<HTMLDivElement>(null);
+    const following = useRef(true);
+
+    useEffect(() => {
+        const box = scroller.current;
+        if (box != null && following.current) box.scrollTop = box.scrollHeight;
+    }, [lines]);
     const { copied, handleCopy } = useCopyFeedback(text);
     const speakers = [...new Set(lines.map((line) => line.speaker))].sort((a, b) => a - b);
 
@@ -63,7 +78,10 @@ export const MeetingTranscript = ({ lines }: { lines: MeetingLine[] }) => {
                             {t('Start time')}
                             <Input
                                 className="h-8 w-24"
-                                placeholder="14:00"
+                                placeholder={t('auto')}
+                                title={t(
+                                    'Empty: the real time of each line for the microphone, the time since the start otherwise. Or the clock time of the start, like 14:00.'
+                                )}
                                 value={timestamps.startClock}
                                 onChange={(e) =>
                                     setTimestamps((previous) => ({ ...previous, startClock: e.target.value }))
@@ -91,7 +109,15 @@ export const MeetingTranscript = ({ lines }: { lines: MeetingLine[] }) => {
                     {t('Copy')}
                 </Button>
             </div>
-            <div className="space-y-1 text-sm select-text">
+            <div
+                ref={scroller}
+                onScroll={(e) => {
+                    const box = e.currentTarget;
+                    following.current = box.scrollHeight - box.scrollTop - box.clientHeight < FOLLOW_MARGIN;
+                }}
+                className="max-h-[55vh] overflow-y-auto space-y-1 pr-2 text-sm select-text"
+                data-testid="meeting-lines"
+            >
                 {lines.map((line, index) => (
                     <p key={index}>
                         {'- '}

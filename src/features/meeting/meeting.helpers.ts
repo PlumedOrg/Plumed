@@ -1,4 +1,4 @@
-import { MeetingLine, TimestampOptions } from './meeting.types';
+import { ClockAnchor, MeetingLine, TimestampOptions } from './meeting.types';
 
 export const AUDIO_EXTENSIONS = ['wav', 'mp3', 'm4a', 'mp4', 'aac', 'flac', 'ogg'];
 
@@ -12,15 +12,33 @@ export const formatDuration = (secs: number): string => {
     return `${pad(Math.floor(s / 3600))}:${pad(Math.floor((s % 3600) / 60))}:${pad(s % 60)}`;
 };
 
-/** The time of a line: since the start, or a clock time when `startClock` is set ("14:00" + 65 s -> "14:01:05"). */
+/** The anchor of the recording that holds `audioSecs`: the last one starting at or before it. */
+const anchorAt = (anchors: ClockAnchor[], audioSecs: number): ClockAnchor | undefined => {
+    const before = anchors.filter((anchor) => anchor.audioSecs <= audioSecs);
+    return before[before.length - 1];
+};
+
+/**
+ * The time of a line, in this order:
+ * - a clock time from `startClock` when set ("14:00" + 65 s -> "14:01:05");
+ * - the real clock time when its recording has one (microphone started at
+ *   14:03:10, line 65 s into it -> "14:04:15");
+ * - else the time since the start ("00:01:05").
+ * `offsetSecs` shifts all three.
+ */
 export const lineTimestamp = (start: number, options: TimestampOptions): string => {
     const shifted = start + options.offsetSecs;
     const clock = /^(\d{1,2}):(\d{2})$/.exec(options.startClock.trim());
-    if (clock == null) {
+    if (clock != null) {
+        const secs = Number(clock[1]) * 3600 + Number(clock[2]) * 60 + shifted;
+        return formatDuration(((secs % DAY_SECS) + DAY_SECS) % DAY_SECS);
+    }
+    const anchor = anchorAt(options.anchors, start);
+    if (anchor?.wallMs == null) {
         return formatDuration(shifted);
     }
-    const secs = Number(clock[1]) * 3600 + Number(clock[2]) * 60 + shifted;
-    return formatDuration(((secs % DAY_SECS) + DAY_SECS) % DAY_SECS);
+    const said = new Date(anchor.wallMs + (shifted - anchor.audioSecs) * 1000);
+    return `${pad(said.getHours())}:${pad(said.getMinutes())}:${pad(said.getSeconds())}`;
 };
 
 /** 0 -> "A", 25 -> "Z", 26 -> "27" (voice ids grow when speakers come and go). */

@@ -5,7 +5,7 @@ import { open } from '@tauri-apps/plugin-dialog';
 import { toast } from 'react-toastify';
 import { useTranslation } from '@/i18n';
 import { AUDIO_EXTENSIONS } from '../meeting.helpers';
-import { IndexedLine, MeetingLine, MeetingSnapshot, MeetingSource } from '../meeting.types';
+import { ClockAnchor, IndexedLine, MeetingLine, MeetingSnapshot, MeetingSource } from '../meeting.types';
 
 const FAILED = Symbol('failed');
 
@@ -17,6 +17,13 @@ interface FileProgress {
 
 // Plumed fork (written with Claude Code): follows the Rust meeting and exposes
 // its commands. Lines arrive about 30 s behind the audio (diarization delay).
+/**
+ * The recordings' clock times, kept outside the component so leaving the page
+ * and coming back keeps them (the Rust meeting lives on); lost when the app
+ * restarts, the lines then show their time since the start.
+ */
+let savedAnchors: ClockAnchor[] = [];
+
 export const useMeeting = () => {
     const { t } = useTranslation();
     const [lines, setLines] = useState<MeetingLine[]>([]);
@@ -25,6 +32,12 @@ export const useMeeting = () => {
     const [starting, setStarting] = useState(false);
     const [stopping, setStopping] = useState(false);
     const [file, setFile] = useState<FileProgress | null>(null);
+    const [anchors, setAnchors] = useState<ClockAnchor[]>(savedAnchors);
+
+    const addAnchor = (anchor: ClockAnchor) => {
+        savedAnchors = [...savedAnchors, anchor];
+        setAnchors(savedAnchors);
+    };
 
     useEffect(() => {
         invoke<MeetingSnapshot>('meeting_snapshot').then((snapshot) => {
@@ -72,7 +85,10 @@ export const useMeeting = () => {
     const start = async (source: MeetingSource) => {
         if (source !== 'file') {
             setFile(null);
-            await run(source === 'mic' ? 'meeting_start_mic' : 'meeting_start_phone');
+            const anchor = { audioSecs: processedSecs, wallMs: source === 'mic' ? Date.now() : null };
+            if ((await run(source === 'mic' ? 'meeting_start_mic' : 'meeting_start_phone')) !== FAILED) {
+                addAnchor(anchor);
+            }
             return;
         }
         const path = await open({ multiple: false, filters: [{ name: t('Audio'), extensions: AUDIO_EXTENSIONS }] });
@@ -83,6 +99,7 @@ export const useMeeting = () => {
         const duration = await run('meeting_start_file', { path });
         if (duration !== FAILED) {
             setFile({ base, duration: duration as number | null });
+            addAnchor({ audioSecs: base, wallMs: null });
         }
     };
 
@@ -98,9 +115,11 @@ export const useMeeting = () => {
         setRunning(false);
         setStopping(false);
         setFile(null);
+        savedAnchors = [];
+        setAnchors([]);
     };
 
-    return { lines, processedSecs, running, starting, stopping, file, start, stop, reset };
+    return { lines, processedSecs, running, starting, stopping, file, anchors, start, stop, reset };
 };
 
 export type Meeting = ReturnType<typeof useMeeting>;

@@ -33,10 +33,22 @@ export interface MeetingBackup {
 
 export type MeetingSource = 'mic' | 'phone' | 'file';
 
+/**
+ * When a recording started: the meeting audio from `audioSecs` on was said
+ * from `wallMs` (Unix ms) on. `null` for a file or PhoneMic, whose audio has
+ * no known clock time (PhoneMic only sends the recordings, with gaps between them).
+ */
+export interface ClockAnchor {
+    audioSecs: number;
+    wallMs: number | null;
+}
+
 export interface TimestampOptions {
     enabled: boolean;
-    /** "HH:MM" clock time of the start, or "" for times since the start. */
+    /** "HH:MM" clock time of the start, or "" for the real clock time where `anchors` know it, else the time since the start. */
     startClock: string;
     /** Seconds added to every time (negative allowed). */
     offsetSecs: number;
+    /** One per recording, in order (see `useMeeting`). */
+    anchors: ClockAnchor[];
 }
