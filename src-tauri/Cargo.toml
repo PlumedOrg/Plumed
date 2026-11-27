@@ -66,6 +66,7 @@ semver = "1"
 # Plumed: grammar step (Grammalecte's JavaScript build in QuickJS, masks with lookarounds)
 rquickjs = "0.14"
 fancy-regex = "0.17"
+keepawake = { version = "0.6.1", default-features = false }
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-autostart = "2"

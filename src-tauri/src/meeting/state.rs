@@ -138,7 +138,7 @@ impl MeetingState {
         let (tx, rx) = mpsc::channel();
         let cancel = Arc::new(AtomicBool::new(false));
         let recorder = open_source(tx, meeting.clone(), cancel.clone())?;
-        let worker = worker::spawn(app.clone(), rx, meeting);
+        let worker = keep_awake_while(worker::spawn(app.clone(), rx, meeting));
         *recording = Some(Recording {
             recorder,
             cancel,
@@ -206,6 +206,26 @@ impl MeetingState {
             },
         }
     }
+}
+
+/// Plumed fork (written with Claude Code): the computer does not fall asleep
+/// on its own while a meeting is recorded or transcribed (a manual suspend
+/// still works). The returned handle ends with `worker`. The inhibition is
+/// taken and released on one thread: on Windows it belongs to a thread.
+fn keep_awake_while(worker: JoinHandle<()>) -> JoinHandle<()> {
+    std::thread::spawn(move || {
+        let awake = keepawake::Builder::default()
+            .idle(true)
+            .reason("Meeting transcription")
+            .app_name("Plumed")
+            .app_reverse_domain("org.olicorne.plumed")
+            .create();
+        if let Err(e) = &awake {
+            warn!("Meeting: cannot keep the computer awake: {e}");
+        }
+        let _ = worker.join();
+        drop(awake);
+    })
 }
 
 /// Mono blocks of `BLOCK_SECS` decoded on demand.
